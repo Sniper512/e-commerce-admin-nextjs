@@ -1,0 +1,44 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp, getApps } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { getAnalytics, isSupported } from "firebase/analytics";
+import {
+	getMessaging,
+	isSupported as isMessagingSupported,
+} from "firebase/messaging";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+	apiKey: "AIzaSyB7-pL5y1WFoC9GX1lZYuZ58A-DpUM6cxc",
+	authDomain: "e-commerce-14d5c.firebaseapp.com",
+	projectId: "e-commerce-14d5c",
+	storageBucket: "e-commerce-14d5c.firebasestorage.app",
+	messagingSenderId: "25168298985",
+	appId: "1:25168298985:web:09c204c72a11c166280178",
+	measurementId: "G-J3BPV9PN4L",
+};
+
+// Initialize Firebase
+const app =
+	getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+// Initialize Firebase services
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+// Initialize Analytics (only on client side)
+export const analytics =
+	typeof window !== "undefined"
+		? isSupported().then((yes) => (yes ? getAnalytics(app) : null))
+		: null;
+
+// Initialize Messaging (only on client side with notification support)
+export const messaging =
+	typeof window !== "undefined"
+		? isMessagingSupported().then((yes) => (yes ? getMessaging(app) : null))
+		: null;
+
+export { app };
