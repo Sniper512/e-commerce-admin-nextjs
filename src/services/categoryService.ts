@@ -35,6 +35,22 @@ const sanitizeForFirestore = (data: any): any => {
 
 // Helper function to convert Firestore data to Category
 const firestoreToCategory = (id: string, data: any): Category => {
+	// Handle timestamp conversion
+	const convertTimestamp = (timestamp: any): Date => {
+		if (timestamp instanceof Timestamp) {
+			return timestamp.toDate();
+		}
+		if (timestamp instanceof Date) {
+			return timestamp;
+		}
+		if (typeof timestamp === "string") {
+			const parsed = new Date(timestamp);
+			return isNaN(parsed.getTime()) ? new Date() : parsed;
+		}
+		// If timestamp is null, undefined, or serverTimestamp placeholder
+		return new Date();
+	};
+
 	return {
 		id,
 		name: data.name || "",
@@ -53,14 +69,8 @@ const firestoreToCategory = (id: string, data: any): Category => {
 		isActive: data.isActive ?? data.isPublished ?? true,
 		showOnHomepage: data.showOnHomepage ?? false,
 		showOnNavbar: data.showOnNavbar ?? false,
-		createdAt:
-			data.createdAt instanceof Timestamp
-				? data.createdAt.toDate()
-				: data.createdAt || new Date(),
-		updatedAt:
-			data.updatedAt instanceof Timestamp
-				? data.updatedAt.toDate()
-				: data.updatedAt || new Date(),
+		createdAt: convertTimestamp(data.createdAt),
+		updatedAt: convertTimestamp(data.updatedAt),
 		createdBy: data.createdBy || "system",
 		updatedBy: data.updatedBy || "system",
 	};
