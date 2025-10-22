@@ -178,8 +178,8 @@ export class CategoryService {
 				isActive: categoryData.isPublished ?? true,
 				showOnHomepage: categoryData.showOnHomepage ?? false,
 				showOnNavbar: categoryData.showOnNavbar ?? false,
-				createdAt: serverTimestamp(),
-				updatedAt: serverTimestamp(),
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
 				createdBy: "current-user",
 				updatedBy: "current-user",
 			};
@@ -214,11 +214,12 @@ export class CategoryService {
 			if (!docSnap.exists()) {
 				throw new Error("Category not found");
 			}
-
+          
+			const updatedAt = new Date().toISOString();
 			const currentData = docSnap.data();
 			const updateData: any = {
 				...updates,
-				updatedAt: serverTimestamp(),
+				updatedAt: new Date().toISOString(),
 				updatedBy: "current-user",
 			};
 

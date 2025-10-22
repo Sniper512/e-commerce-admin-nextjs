@@ -17,70 +17,76 @@ import {
     Percent,
     DollarSign
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils';
+import { DiscountService } from '@/services/discountService';
+import { Discount } from '@/types';
 
 export default function DiscountsPage() {
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [discounts, setDiscounts] = useState<Discount[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock discount data
-    const discounts = [
-        {
-            id: '1',
-            name: 'Summer Sale 2025',
-            description: 'Summer collection discount',
-            type: 'percentage',
-            value: 20,
-            startDate: '2025-06-01',
-            endDate: '2025-08-31',
-            isActive: true,
-            usedCount: 145,
-            usageLimit: 1000,
-            applicableProducts: ['prod1', 'prod2'],
-            applicableCategories: ['cat1'],
-            minimumOrderAmount: 50
-        },
-        {
-            id: '2',
-            name: 'New Customer Welcome',
-            description: 'First time buyer discount',
-            type: 'fixed_amount',
-            value: 10,
-            startDate: '2025-01-01',
-            endDate: '2025-12-31',
-            isActive: true,
-            usedCount: 89,
-            usageLimit: null,
-            applicableProducts: [],
-            applicableCategories: [],
-            minimumOrderAmount: 25
-        },
-        {
-            id: '3',
-            name: 'Winter Clearance',
-            description: 'End of season clearance',
-            type: 'percentage',
-            value: 35,
-            startDate: '2024-12-01',
-            endDate: '2025-02-28',
-            isActive: false,
-            usedCount: 234,
-            usageLimit: 500,
-            applicableProducts: [],
-            applicableCategories: ['winter-clothes'],
-            minimumOrderAmount: 100
+    // Load discounts from Firebase
+    useEffect(() => {
+        loadDiscounts();
+    }, []);
+
+    const loadDiscounts = async () => {
+        try {
+            setLoading(true);
+            const data = await DiscountService.getAllDiscounts();
+            setDiscounts(data);
+        } catch (error) {
+            console.error('Error loading discounts:', error);
+            alert('Failed to load discounts');
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this discount?')) {
+            return;
+        }
+
+        try {
+            await DiscountService.deleteDiscount(id);
+            alert('Discount deleted successfully!');
+            loadDiscounts(); // Reload the list
+        } catch (error) {
+            console.error('Error deleting discount:', error);
+            alert('Failed to delete discount');
+        }
+    };
+
+    const handleToggleStatus = async (id: string) => {
+        try {
+            await DiscountService.toggleDiscountStatus(id);
+            loadDiscounts(); // Reload the list
+        } catch (error) {
+            console.error('Error toggling discount status:', error);
+            alert('Failed to update discount status');
+        }
+    };
 
     const filteredDiscounts = discounts.filter(discount => {
         const matchesSearch = discount.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            discount.description.toLowerCase().includes(searchTerm.toLowerCase());
+            (discount.description && discount.description.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesFilter = filterStatus === 'all' ||
             (filterStatus === 'active' && discount.isActive) ||
             (filterStatus === 'inactive' && !discount.isActive);
         return matchesSearch && matchesFilter;
     });
+
+    // Calculate stats
+    const stats = {
+        total: discounts.length,
+        active: discounts.filter(d => d.isActive).length,
+    };
 
     return (
         <DashboardLayout>
@@ -91,7 +97,7 @@ export default function DiscountsPage() {
                         <h1 className="text-3xl font-bold">Discounts Management</h1>
                         <p className="text-gray-600">Create and manage promotional discounts for your products</p>
                     </div>
-                    <Button>
+                    <Button onClick={() => router.push('/dashboard/discounts/add')}>
                         <Plus className="h-4 w-4 mr-2" />
                         Create Discount
                     </Button>
@@ -104,7 +110,7 @@ export default function DiscountsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Total Discounts</p>
-                                    <p className="text-2xl font-bold">12</p>
+                                    <p className="text-2xl font-bold">{stats.total}</p>
                                 </div>
                                 <Percent className="h-8 w-8 text-blue-600" />
                             </div>
@@ -116,7 +122,7 @@ export default function DiscountsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Active Discounts</p>
-                                    <p className="text-2xl font-bold">8</p>
+                                    <p className="text-2xl font-bold">{stats.active}</p>
                                 </div>
                                 <Calendar className="h-8 w-8 text-green-600" />
                             </div>
@@ -127,8 +133,8 @@ export default function DiscountsPage() {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">Total Savings</p>
-                                    <p className="text-2xl font-bold">{formatCurrency(15420)}</p>
+                                    <p className="text-sm font-medium text-gray-600">Inactive Discounts</p>
+                                    <p className="text-2xl font-bold">{stats.total - stats.active}</p>
                                 </div>
                                 <DollarSign className="h-8 w-8 text-orange-600" />
                             </div>
@@ -139,8 +145,8 @@ export default function DiscountsPage() {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">Usage This Month</p>
-                                    <p className="text-2xl font-bold">234</p>
+                                    <p className="text-sm font-medium text-gray-600">Status</p>
+                                    <p className="text-2xl font-bold">{loading ? 'Loading...' : 'Ready'}</p>
                                 </div>
                                 <Percent className="h-8 w-8 text-purple-600" />
                             </div>
@@ -189,97 +195,152 @@ export default function DiscountsPage() {
                         <CardTitle>All Discounts</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b">
-                                        <th className="table-header">Name</th>
-                                        <th className="table-header">Type</th>
-                                        <th className="table-header">Value</th>
-                                        <th className="table-header">Period</th>
-                                        <th className="table-header">Usage</th>
-                                        <th className="table-header">Status</th>
-                                        <th className="table-header">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredDiscounts.map((discount) => (
-                                        <tr key={discount.id} className="border-b">
-                                            <td className="table-cell">
-                                                <div>
-                                                    <p className="font-medium">{discount.name}</p>
-                                                    <p className="text-sm text-gray-600">{discount.description}</p>
-                                                </div>
-                                            </td>
-                                            <td className="table-cell">
-                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${discount.type === 'percentage'
+                        {loading ? (
+                            <div className="text-center py-8">
+                                <p className="text-gray-600">Loading discounts...</p>
+                            </div>
+                        ) : filteredDiscounts.length === 0 ? (
+                            <div className="text-center py-8">
+                                <p className="text-gray-600">No discounts found</p>
+                                <Button
+                                    onClick={() => router.push('/dashboard/discounts/add')}
+                                    className="mt-4"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Create Your First Discount
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b">
+                                            <th className="table-header">Name</th>
+                                            <th className="table-header">Type</th>
+                                            <th className="table-header">Applies To</th>
+                                            <th className="table-header">Value</th>
+                                            <th className="table-header">Limitation</th>
+                                            <th className="table-header">Period</th>
+                                            <th className="table-header">Status</th>
+                                            <th className="table-header">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredDiscounts.map((discount) => (
+                                            <tr key={discount.id} className="border-b">
+                                                <td className="table-cell">
+                                                    <div>
+                                                        <p className="font-medium">{discount.name}</p>
+                                                        <p className="text-sm text-gray-600">{discount.description || 'No description'}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="table-cell">
+                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${discount.type === 'percentage'
                                                         ? 'bg-blue-100 text-blue-800'
                                                         : 'bg-green-100 text-green-800'
-                                                    }`}>
-                                                    {discount.type === 'percentage' ? (
-                                                        <>
-                                                            <Percent className="h-3 w-3 mr-1" />
-                                                            Percentage
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <DollarSign className="h-3 w-3 mr-1" />
-                                                            Fixed Amount
-                                                        </>
-                                                    )}
-                                                </span>
-                                            </td>
-                                            <td className="table-cell">
-                                                <span className="font-medium">
-                                                    {discount.type === 'percentage'
-                                                        ? `${discount.value}%`
-                                                        : formatCurrency(discount.value)
-                                                    }
-                                                </span>
-                                            </td>
-                                            <td className="table-cell">
-                                                <div className="text-sm">
-                                                    <p>{discount.startDate}</p>
-                                                    <p className="text-gray-600">to {discount.endDate}</p>
-                                                </div>
-                                            </td>
-                                            <td className="table-cell">
-                                                <div className="text-sm">
-                                                    <p className="font-medium">{discount.usedCount}</p>
-                                                    {discount.usageLimit && (
-                                                        <p className="text-gray-600">of {discount.usageLimit}</p>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="table-cell">
-                                                <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${discount.isActive
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-gray-100 text-gray-800'
-                                                    }`}>
-                                                    {discount.isActive ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </td>
-                                            <td className="table-cell">
-                                                <div className="flex items-center gap-2">
-                                                    <Button variant="ghost" size="sm">
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm">
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                                        }`}>
+                                                        {discount.type === 'percentage' ? (
+                                                            <>
+                                                                <Percent className="h-3 w-3 mr-1" />
+                                                                Percentage
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <DollarSign className="h-3 w-3 mr-1" />
+                                                                Fixed Amount
+                                                            </>
+                                                        )}
+                                                    </span>
+                                                </td>
+                                                <td className="table-cell">
+                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${discount.applicableTo === 'order'
+                                                        ? 'bg-purple-100 text-purple-800'
+                                                        : discount.applicableTo === 'products'
+                                                            ? 'bg-orange-100 text-orange-800'
+                                                            : 'bg-teal-100 text-teal-800'
+                                                        }`}>
+                                                        {discount.applicableTo === 'order' && 'Total Order'}
+                                                        {discount.applicableTo === 'products' && 'Specific Products'}
+                                                        {discount.applicableTo === 'categories' && 'Categories'}
+                                                    </span>
+                                                </td>
+                                                <td className="table-cell">
+                                                    <span className="font-medium">
+                                                        {discount.type === 'percentage'
+                                                            ? `${discount.value}%`
+                                                            : formatCurrency(discount.value)
+                                                        }
+                                                    </span>
+                                                </td>
+                                                <td className="table-cell">
+                                                    <div className="text-sm">
+                                                        {discount.limitationType === 'unlimited' ? (
+                                                            <span className="text-green-600 font-medium">Unlimited</span>
+                                                        ) : discount.limitationType === 'n_times_only' ? (
+                                                            <>
+                                                                <p className="font-medium">{discount.currentUsageCount || 0} / {discount.limitationTimes}</p>
+                                                                <p className="text-gray-600 text-xs">Total uses</p>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <p className="font-medium">{discount.limitationTimes} per customer</p>
+                                                                <p className="text-gray-600 text-xs">Max uses</p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="table-cell">
+                                                    <div className="text-sm">
+                                                        <p>{discount.startDate.toLocaleDateString()}</p>
+                                                        <p className="text-gray-600">to {discount.endDate.toLocaleDateString()}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="table-cell">
+                                                    <span
+                                                        className={`inline-block rounded-full px-2 py-1 text-xs font-medium cursor-pointer ${discount.isActive
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : 'bg-gray-100 text-gray-800'
+                                                            }`}
+                                                        onClick={() => handleToggleStatus(discount.id)}
+                                                        title="Click to toggle status"
+                                                    >
+                                                        {discount.isActive ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                </td>
+                                                <td className="table-cell">
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => router.push(`/dashboard/discounts/${discount.id}`)}
+                                                            title="View details"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => router.push(`/dashboard/discounts/${discount.id}/edit`)}
+                                                            title="Edit discount"
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDelete(discount.id)}
+                                                            title="Delete discount"
+                                                        >
+                                                            <Trash2 className="h-4 w-4 text-red-600" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

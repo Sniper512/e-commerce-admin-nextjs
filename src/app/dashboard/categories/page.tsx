@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,7 @@ const DEFAULT_CATEGORY_IMAGE = '/images/default-category.svg';
 const DEFAULT_PRODUCT_IMAGE = '/images/default-product.svg';
 
 export default function CategoriesPage() {
+    const router = useRouter();
     const [searchQuery, setSearchQuery] = React.useState('');
     const [showAddModal, setShowAddModal] = React.useState(false);
     const [showViewModal, setShowViewModal] = React.useState(false);
@@ -86,42 +88,12 @@ export default function CategoriesPage() {
         }
     };
 
-    const handleViewCategory = async (categoryId: string) => {
-        try {
-            const category = await CategoryService.getCategoryById(categoryId);
-            if (category) {
-                setViewingCategory(category);
-                setShowViewModal(true);
-            }
-        } catch (error) {
-            console.error('Error loading category:', error);
-            alert('Error loading category');
-        }
+    const handleViewCategory = (categoryId: string) => {
+        router.push(`/dashboard/categories/${categoryId}`);
     };
 
-    const handleEditCategory = async (categoryId: string) => {
-        try {
-            const category = await CategoryService.getCategoryById(categoryId);
-            if (category) {
-                setEditingCategoryId(categoryId);
-                setFormData({
-                    name: category.name,
-                    description: category.description || '',
-                    type: category.type,
-                    parentId: category.parentId || '',
-                    picture: category.picture || '',
-                    displayOrder: category.displayOrder,
-                    isPublished: category.isPublished,
-                    showOnHomepage: category.showOnHomepage || false,
-                    showOnNavbar: category.showOnNavbar || false,
-                    selectedProductIds: category.productIds || []
-                });
-                setShowAddModal(true);
-            }
-        } catch (error) {
-            console.error('Error loading category:', error);
-            alert('Error loading category');
-        }
+    const handleEditCategory = (categoryId: string) => {
+        router.push(`/dashboard/categories/${categoryId}`);
     };
 
     const handleSaveCategory = async () => {
@@ -758,19 +730,33 @@ export default function CategoriesPage() {
                                             <div>
                                                 <Label className="text-xs font-semibold text-gray-500">Created</Label>
                                                 <p className="mt-1">
-                                                    {new Date(viewingCategory.createdAt).toLocaleDateString()}
+                                                    {new Date(viewingCategory.createdAt).toLocaleDateString('en-US', {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    })}
                                                 </p>
                                                 <p className="text-xs text-gray-500">
-                                                    by {viewingCategory.createdBy || 'N/A'}
+                                                    {new Date(viewingCategory.createdAt).toLocaleTimeString('en-US', {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })} by {viewingCategory.createdBy || 'N/A'}
                                                 </p>
                                             </div>
                                             <div>
                                                 <Label className="text-xs font-semibold text-gray-500">Last Updated</Label>
                                                 <p className="mt-1">
-                                                    {new Date(viewingCategory.updatedAt).toLocaleDateString()}
+                                                    {new Date(viewingCategory.updatedAt).toLocaleDateString('en-US', {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    })}
                                                 </p>
                                                 <p className="text-xs text-gray-500">
-                                                    by {viewingCategory.updatedBy || 'N/A'}
+                                                    {new Date(viewingCategory.updatedAt).toLocaleTimeString('en-US', {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })} by {viewingCategory.updatedBy || 'N/A'}
                                                 </p>
                                             </div>
                                         </div>

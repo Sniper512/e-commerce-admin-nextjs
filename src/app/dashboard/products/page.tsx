@@ -19,7 +19,8 @@ import {
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 import { productService } from '@/services/productService';
-import type { Product } from '@/types';
+import CategoryService from '@/services/categoryService';
+import type { Product, Category } from '@/types';
 
 // Default product image
 const DEFAULT_PRODUCT_IMAGE = '/images/default-product.svg';
@@ -27,26 +28,37 @@ const DEFAULT_PRODUCT_IMAGE = '/images/default-product.svg';
 export default function ProductsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Load products from Firebase on component mount
+    // Load products and categories from Firebase on component mount
     useEffect(() => {
-        loadProducts();
+        loadData();
     }, []);
 
-    const loadProducts = async () => {
+    const loadData = async () => {
         try {
             setLoading(true);
             setError(null);
-            const fetchedProducts = await productService.getAll();
+            const [fetchedProducts, fetchedCategories] = await Promise.all([
+                productService.getAll(),
+                CategoryService.getAllCategories()
+            ]);
             setProducts(fetchedProducts);
+            setCategories(fetchedCategories);
         } catch (err) {
-            console.error('Error loading products:', err);
-            setError('Failed to load products. Please try again.');
+            console.error('Error loading data:', err);
+            setError('Failed to load data. Please try again.');
         } finally {
             setLoading(false);
         }
+    };
+
+    // Helper function to get category name from ID
+    const getCategoryName = (categoryId: string): string => {
+        const category = categories.find(c => c.id === categoryId);
+        return category ? category.name : categoryId;
     };
 
     const filteredProducts = products.filter(product =>
@@ -106,14 +118,15 @@ export default function ProductsPage() {
                             <Package className="h-12 w-12 text-red-400 mb-4" />
                             <h3 className="text-lg font-semibold mb-2 text-red-600">Error</h3>
                             <p className="text-gray-600 mb-4">{error}</p>
-                            <Button onClick={loadProducts}>Try Again</Button>
+                            <Button onClick={loadData}>Try Again</Button>
                         </CardContent>
                     </Card>
                 ) : (
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {filteredProducts.map((product) => {
                             const primaryImage = product.multimedia.images.find(img => img.isPrimary)?.url || product.multimedia.images[0]?.url;
-                            const category = product.info.categories[0] || 'Uncategorized';
+                            const categoryId = product.info.categories[0];
+                            const categoryName = categoryId ? getCategoryName(categoryId) : 'Uncategorized';
                             const stock = product.inventory.stockQuantity;
                             const minStock = product.inventory.minimumStockQuantity;
                             const isLowStock = stock < minStock;
@@ -144,7 +157,7 @@ export default function ProductsPage() {
 
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-gray-600">Category:</span>
-                                                <span className="font-medium">{category}</span>
+                                                <span className="font-medium">{categoryName}</span>
                                             </div>
 
                                             <div className="flex items-center justify-between text-sm">
@@ -185,7 +198,7 @@ export default function ProductsPage() {
                                                         if (confirm('Are you sure you want to delete this product?')) {
                                                             try {
                                                                 await productService.delete(product.id);
-                                                                await loadProducts();
+                                                                await loadData();
                                                             } catch (err) {
                                                                 alert('Failed to delete product');
                                                             }

@@ -434,6 +434,11 @@ export interface Expense {
 
 // Promotion & Discount Types
 export type DiscountType = "percentage" | "fixed";
+export type DiscountApplicableTo = "products" | "categories" | "order"; // What the discount applies to
+export type DiscountLimitationType =
+	| "unlimited"
+	| "n_times_only"
+	| "n_times_per_customer";
 export type PromoCodeType = "single_use" | "multi_use";
 
 export interface Discount {
@@ -444,9 +449,18 @@ export interface Discount {
 	value: number; // percentage or fixed amount
 
 	// Applicability
-	applicableProducts?: string[];
-	applicableCategories?: string[];
-	minPurchaseAmount?: number;
+	applicableTo: DiscountApplicableTo; // products, categories, or order (total)
+	applicableProducts?: string[]; // Only used when applicableTo = 'products'
+	applicableCategories?: string[]; // Only used when applicableTo = 'categories'
+	minPurchaseAmount?: number; // Minimum order amount to qualify
+
+	// Limitation
+	limitationType: DiscountLimitationType; // unlimited, n_times_only, or n_times_per_customer
+	limitationTimes?: number; // Only used when limitationType is not 'unlimited'
+	currentUsageCount?: number; // Track how many times discount has been used
+
+	// Admin comment
+	adminComment?: string;
 
 	// Validity
 	startDate: Date;

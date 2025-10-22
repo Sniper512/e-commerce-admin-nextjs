@@ -34,8 +34,7 @@ const menuItems = [
         title: 'Products',
         icon: Package,
         items: [
-            { title: 'All Products', href: '/dashboard/products' },
-            { title: 'Add Product', href: '/dashboard/products/add' },
+            { title: 'Products', href: '/dashboard/products' },
             { title: 'Categories', href: '/dashboard/categories' },
             { title: 'Discounts', href: '/dashboard/discounts' },
             { title: 'Batches', href: '/dashboard/batches' },
