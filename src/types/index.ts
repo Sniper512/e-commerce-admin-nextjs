@@ -245,19 +245,33 @@ export interface ProductBatch {
 	updatedAt: Date;
 }
 
-// Carton Management
+// Carton Management - Comprehensive version for managing cartons with multiple products
+export interface CartonProductItem {
+	productId: string;
+	productName: string;
+	quantity: number;
+	costPerUnit: number;
+	totalCost: number;
+	sku?: string;
+	imageUrl?: string;
+}
+
 export interface Carton {
 	id: string;
-	cartonNumber: string;
-	productId: string;
-	batchId?: string;
-	unitsPerCarton: number;
-	totalCartons: number;
-	remainingCartons: number;
-	costPerCarton: number;
-	receivedDate: Date;
+	cartonNumber: string; // Unique carton identifier
+	name: string;
+	description?: string;
+	products: CartonProductItem[];
+	totalQuantity: number; // Total number of items in carton
+	totalCost: number; // Total cost of all products
+	status: "active" | "archived" | "shipped";
+	supplier?: string;
+	purchaseDate?: Date;
+	notes?: string;
 	createdAt: Date;
 	updatedAt: Date;
+	createdBy?: string;
+	updatedBy?: string;
 }
 
 // Customer Types
@@ -632,4 +646,26 @@ export interface DashboardStats {
 		productName: string;
 		sales: number;
 	}[];
+}
+
+// Batch Types
+export type BatchStatus = "active" | "expired" | "recalled";
+
+export interface Batch {
+	id: string;
+	batchId: string; // Barcode/unique identifier
+	productId: string;
+	productName?: string; // Populated from product
+	manufacturingDate: Date;
+	expiryDate: Date;
+	quantity: number;
+	remainingQuantity: number;
+	supplier?: string;
+	location?: string; // Storage location
+	notes?: string;
+	status: BatchStatus;
+	createdAt: Date;
+	updatedAt: Date;
+	createdBy?: string;
+	updatedBy?: string;
 }
