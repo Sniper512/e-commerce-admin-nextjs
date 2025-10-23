@@ -307,19 +307,19 @@ export default function BatchesPage() {
                                                                 batch.status === 'active' && !expired && !expiringSoon
                                                                     ? 'bg-green-100 text-green-800'
                                                                     : batch.status === 'active' && expiringSoon
-                                                                    ? 'bg-orange-100 text-orange-800'
-                                                                    : batch.status === 'recalled'
-                                                                    ? 'bg-red-100 text-red-800'
-                                                                    : 'bg-gray-100 text-gray-800'
+                                                                        ? 'bg-orange-100 text-orange-800'
+                                                                        : batch.status === 'recalled'
+                                                                            ? 'bg-red-100 text-red-800'
+                                                                            : 'bg-gray-100 text-gray-800'
                                                             }
                                                         >
                                                             {expired || batch.status === 'expired'
                                                                 ? 'Expired'
                                                                 : expiringSoon
-                                                                ? 'Expiring Soon'
-                                                                : batch.status === 'recalled'
-                                                                ? 'Recalled'
-                                                                : 'Active'}
+                                                                    ? 'Expiring Soon'
+                                                                    : batch.status === 'recalled'
+                                                                        ? 'Recalled'
+                                                                        : 'Active'}
                                                         </Badge>
                                                     </td>
                                                     <td className="py-3 px-4">

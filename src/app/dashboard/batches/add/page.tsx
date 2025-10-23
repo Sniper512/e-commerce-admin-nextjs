@@ -39,11 +39,11 @@ export default function AddBatchPage() {
         console.log('Scanned symbol:', symbol, 'Symbologies:', matchedSymbologies);
         handleInputChange('batchId', symbol);
         setScannerActive(true);
-        
+
         // Show feedback (optional: add beep sound)
         const audio = new Audio('/sounds/beep.mp3');
-        audio.play().catch(() => {});
-        
+        audio.play().catch(() => { });
+
         // Flash effect - reset active state after 1 second
         setTimeout(() => setScannerActive(false), 1000);
     };
@@ -189,17 +189,16 @@ export default function AddBatchPage() {
                                         {scannerActive ? '✓ Barcode Scanned!' : 'Scanner Active'}
                                     </p>
                                     <p className="text-sm text-gray-600">
-                                        {scannerActive 
+                                        {scannerActive
                                             ? 'Batch ID captured successfully!'
                                             : 'Listening for barcode scans... Use your scanner device.'}
                                     </p>
                                 </div>
                             </div>
-                            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                scannerActive 
-                                    ? 'bg-green-100 text-green-800' 
+                            <div className={`px-3 py-1 rounded-full text-sm font-medium ${scannerActive
+                                    ? 'bg-green-100 text-green-800'
                                     : 'bg-blue-100 text-blue-800'
-                            }`}>
+                                }`}>
                                 {scannerActive ? 'Scanned ✓' : 'Listening...'}
                             </div>
                         </div>

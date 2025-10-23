@@ -291,7 +291,7 @@ export default function BatchDetailPage() {
                                                         {Math.round(
                                                             ((batch.quantity - batch.remainingQuantity) /
                                                                 batch.quantity) *
-                                                                100
+                                                            100
                                                         )}
                                                         % utilized)
                                                     </span>
@@ -369,7 +369,7 @@ export default function BatchDetailPage() {
                                                 0,
                                                 Math.ceil(
                                                     (batch.expiryDate.getTime() - new Date().getTime()) /
-                                                        (1000 * 60 * 60 * 24)
+                                                    (1000 * 60 * 60 * 24)
                                                 )
                                             )}
                                         </p>
