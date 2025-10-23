@@ -39,9 +39,9 @@ export default function CategoriesPage() {
     const [categoryStats, setCategoryStats] = React.useState({
         totalCategories: 0,
         publishedCategories: 0,
-        rootCategories: 0,
-        subCategories: 0,
-        categoriesWithProducts: 0
+        unpublishedCategories: 0,
+        categoriesWithProducts: 0,
+        emptyCategories: 0
     });
 
     // Form state
@@ -333,8 +333,8 @@ export default function CategoriesPage() {
                             <div className="flex items-center gap-2">
                                 <Folder className="h-4 w-4 text-purple-500" />
                                 <div>
-                                    <p className="text-sm text-gray-600">Root</p>
-                                    <p className="text-2xl font-bold">{categoryStats.rootCategories}</p>
+                                    <p className="text-sm text-gray-600">Unpublished</p>
+                                    <p className="text-2xl font-bold">{categoryStats.unpublishedCategories}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -344,8 +344,8 @@ export default function CategoriesPage() {
                             <div className="flex items-center gap-2">
                                 <Folder className="h-4 w-4 text-orange-500" />
                                 <div>
-                                    <p className="text-sm text-gray-600">Sub</p>
-                                    <p className="text-2xl font-bold">{categoryStats.subCategories}</p>
+                                    <p className="text-sm text-gray-600">Empty</p>
+                                    <p className="text-2xl font-bold">{categoryStats.emptyCategories}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -525,9 +525,9 @@ export default function CategoriesPage() {
                                         </div>
                                         {formData.picture && (
                                             <div className="mt-2">
-                                                <img 
-                                                    src={formData.picture} 
-                                                    alt="Preview" 
+                                                <img
+                                                    src={formData.picture}
+                                                    alt="Preview"
                                                     className="w-20 h-20 object-cover rounded border"
                                                     onError={(e) => {
                                                         e.currentTarget.style.display = 'none';
@@ -554,7 +554,7 @@ export default function CategoriesPage() {
                                                 <p className="text-sm text-gray-500">Make this category visible to customers</p>
                                             </div>
                                         </label>
-                                        
+
                                         <label className="flex items-center gap-3 p-2 rounded border hover:bg-gray-50 cursor-pointer">
                                             <input
                                                 type="checkbox"
@@ -567,7 +567,7 @@ export default function CategoriesPage() {
                                                 <p className="text-sm text-gray-500">Display this category on the homepage</p>
                                             </div>
                                         </label>
-                                        
+
                                         <label className="flex items-center gap-3 p-2 rounded border hover:bg-gray-50 cursor-pointer">
                                             <input
                                                 type="checkbox"
@@ -603,8 +603,8 @@ export default function CategoriesPage() {
 
                                 {/* Action Buttons */}
                                 <div className="flex gap-3 pt-4 border-t">
-                                    <Button 
-                                        onClick={handleSaveCategory} 
+                                    <Button
+                                        onClick={handleSaveCategory}
                                         disabled={loading || !formData.name.trim()}
                                         className="flex-1"
                                     >
@@ -615,105 +615,11 @@ export default function CategoriesPage() {
                                         )}
                                         {editingCategory ? 'Update Category' : 'Create Category'}
                                     </Button>
-                                    <Button 
-                                        variant="outline" 
-                                        onClick={() => setShowAddModal(false)}
-                                        className="flex-1"
-                                        disabled={loading}
-                                    >
-                                        Cancel
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
-            </div>
-        </DashboardLayout>
-    );
-}
-                                    <Select
-                                        value={formData.parentId}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, parentId: e.target.value }))}
-                                    >
-                                        <option value="">None (Root Category)</option>
-                                        {rootCategories.map(cat => (
-                                            <option key={cat.id} value={cat.id}>
-                                                {cat.name}
-                                            </option>
-                                        ))}
-                                    </Select>
-                                </div>
-
-                                <div>
-                                    <Label htmlFor="picture">Picture URL</Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            id="picture"
-                                            value={formData.picture}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, picture: e.target.value }))}
-                                            placeholder="Image URL"
-                                        />
-                                        <Button variant="outline" size="sm" title="Upload image">
-                                            <Upload className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label htmlFor="displayOrder">Display Order</Label>
-                                    <Input
-                                        id="displayOrder"
-                                        type="number"
-                                        value={formData.displayOrder}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, displayOrder: parseInt(e.target.value) || 1 }))}
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.isPublished}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, isPublished: e.target.checked }))}
-                                        />
-                                        <span>Published</span>
-                                    </label>
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.showOnHomepage}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, showOnHomepage: e.target.checked }))}
-                                        />
-                                        <span>Show on Homepage</span>
-                                    </label>
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.showOnNavbar}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, showOnNavbar: e.target.checked }))}
-                                        />
-                                        <span>Show on Navbar</span>
-                                    </label>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={handleSaveCategory}
-                                        disabled={loading || !formData.name}
-                                        className="flex-1"
-                                    >
-                                        {loading ? (
-                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        ) : (
-                                            <Save className="h-4 w-4 mr-2" />
-                                        )}
-                                        {editingCategory ? 'Update' : 'Create'}
-                                    </Button>
                                     <Button
                                         variant="outline"
                                         onClick={() => setShowAddModal(false)}
                                         className="flex-1"
+                                        disabled={loading}
                                     >
                                         Cancel
                                     </Button>

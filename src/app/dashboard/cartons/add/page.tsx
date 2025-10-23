@@ -108,7 +108,11 @@ export default function AddCartonPage() {
             // Remove tempId from products before saving
             const cleanProducts: CartonProductItem[] = products.map(({ tempId, ...rest }) => rest);
 
+            // Generate carton number
+            const cartonNumber = await CartonService.generateCartonNumber();
+
             const cartonData = {
+                cartonNumber,
                 name: formData.name,
                 description: formData.description,
                 products: cleanProducts,
@@ -116,7 +120,7 @@ export default function AddCartonPage() {
                 totalCost,
                 status: 'active' as const,
                 supplier: formData.supplier,
-                purchaseDate: formData.purchaseDate,
+                purchaseDate: formData.purchaseDate ? new Date(formData.purchaseDate) : undefined,
                 notes: formData.notes,
             };
 
