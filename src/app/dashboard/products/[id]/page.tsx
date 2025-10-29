@@ -15,9 +15,9 @@ export default async function ProductDetailPage({
   const { id: productId } = await params;
 
   // Fetch data on the server
-  const [product, allProducts, discounts] = await Promise.all([
-    productService.getById(productId),
+  const [allProducts, product, discounts] = await Promise.all([
     productService.getAll({ isActive: true }),
+    productService.getById(productId),
     DiscountService.getAllDiscounts(),
   ]);
 

@@ -23,7 +23,6 @@ export interface Category {
   displayOrder: number;
   picture?: string; // Category image/picture URL
   parentId?: string; // Parent category ID (null for root categories)
-  parentCategory?: Category; // Populated parent category object
   subCategories?: Category[]; // Child categories
   isPublished: boolean; // Whether category is published/active
   productIds: string[]; // Array of product IDs in this category
@@ -92,8 +91,8 @@ export interface RelatedProduct {
   imageUrl?: string;
 }
 
-// Cross-sells Section
-export interface CrossSellProduct {
+// Bought together Section
+export interface BoughtTogetherProduct {
   productId: string;
   productName: string;
   price: number;
@@ -132,7 +131,7 @@ export interface Product {
   // Product Information Section
   info: ProductInfo;
 
-  // Pricing Section
+  // Discounts Section
   discountIds: string[]; // Array of associated discount IDs
 
   // Inventory Section
@@ -142,10 +141,10 @@ export interface Product {
   multimedia: ProductMultimedia;
 
   // Related Products Section
-  relatedProducts: RelatedProduct[];
+  similarProducts: RelatedProduct[];
 
-  // Cross-sells Section
-  crossSellProducts: CrossSellProduct[];
+  // Bought together Section
+  boughtTogetherProducts: BoughtTogetherProduct[];
 
   // Purchase History Section
   purchaseHistory: PurchaseOrderHistory[];

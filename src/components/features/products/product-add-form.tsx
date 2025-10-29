@@ -14,19 +14,18 @@ import { ProductInventoryTab } from "./tabs/product-inventory-tab";
 import { ProductMultimediaTab } from "./tabs/product-multimedia-tab";
 import { ProductSimilarTab } from "./tabs/product-similar-tab";
 import { ProductBoughtTogetherTab } from "./tabs/product-bought-together-tab";
-import { ProductOrderHistoryTab } from "./tabs/product-order-history-tab";
 
-interface ProductEditFormProps {
-  product: any; // Serialized product
+interface ProductAddFormProps {
   availableProducts: any[];
   availableDiscounts: any[];
+  categories: any[];
 }
 
-export function ProductEditForm({
-  product,
+export function ProductAddForm({
   availableProducts,
   availableDiscounts,
-}: ProductEditFormProps) {
+  categories,
+}: ProductAddFormProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -37,45 +36,50 @@ export function ProductEditForm({
 
   // Form state
   const [formData, setFormData] = useState({
-    name: product.info.name,
-    description: product.info.description || "",
-    categories: product.info.categories || [],
-    manufacturer: product.info.manufacturer || "",
-    productTags: product.info.productTags || [],
-    isPublished: product.info.isPublished,
-    allowCustomerReviews: product.info.allowCustomerReviews,
-    markAsNew: product.info.markAsNew,
-    markAsNewStartDate: product.info.markAsNewStartDate,
-    markAsNewEndDate: product.info.markAsNewEndDate,
-    productCost: product.pricing.productCost || 0,
-    minBuy: product.pricing.minBuy || 1,
-    maxBuy: product.pricing.maxBuy || 999,
-    stockQuantity: product.inventory.stockQuantity,
-    minimumStockQuantity: product.inventory.minimumStockQuantity,
+    name: "",
+    description: "",
+    categories: [] as string[],
+    manufacturer: "",
+    productTags: [] as string[],
+    isPublished: true,
+    allowCustomerReviews: true,
+    markAsNew: false,
+    markAsNewStartDate: undefined as Date | undefined,
+    markAsNewEndDate: undefined as Date | undefined,
+    stockQuantity: 0,
+    minimumStockQuantity: 10,
   });
 
-  const [images, setImages] = useState(
-    product.multimedia.images?.map((img: any, index: number) => ({
-      id: index.toString(),
-      url: img.url,
-      altText: img.altText || "",
-      isPrimary: img.isPrimary,
-      sortOrder: img.sortOrder,
-    })) || []
-  );
+  const [images, setImages] = useState<ProductImage[]>([
+    {
+      id: "1",
+      url: "",
+      altText: "",
+      isPrimary: true,
+      sortOrder: 1,
+    },
+  ]);
 
-  const [similarProducts, setSimilarProducts] = useState(
-    product.similarProducts || []
-  );
+  const [similarProducts, setSimilarProducts] = useState<
+    Array<{
+      productId: string;
+      productName: string;
+      price: number;
+      imageUrl?: string;
+    }>
+  >([]);
 
-  const [boughtTogetherProducts, setBoughtTogetherProducts] = useState(
-    product.boughtTogetherProducts || []
-  );
+  const [boughtTogetherProducts, setBoughtTogetherProducts] = useState<
+    Array<{
+      productId: string;
+      productName: string;
+      price: number;
+      imageUrl?: string;
+      sortOrder: number;
+    }>
+  >([]);
 
-  const [selectedDiscountIds, setSelectedDiscountIds] = useState(
-    product.pricing.discountIds || []
-  );
-
+  const [selectedDiscountIds, setSelectedDiscountIds] = useState<string[]>([]);
   const [discountSearchValue, setDiscountSearchValue] = useState("");
 
   // Function to change tab and update URL
@@ -89,8 +93,10 @@ export function ProductEditForm({
     try {
       setSaving(true);
 
-      const updatedProduct: Partial<Product> = {
+      const newProduct: Partial<Product> = {
         slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
+        sku: `SKU-${Date.now()}`,
+        type: "single",
         info: {
           name: formData.name,
           description: formData.description,
@@ -109,26 +115,32 @@ export function ProductEditForm({
           minimumStockQuantity: formData.minimumStockQuantity,
         },
         multimedia: {
-          images: images.map((img: ProductImage) => ({
-            id: img.id,
-            url: img.url,
-            altText: img.altText,
-            isPrimary: img.isPrimary,
-            sortOrder: img.sortOrder,
-          })),
-          videos: product.multimedia.videos || [],
+          images: images
+            .filter((img) => img.url)
+            .map((img) => ({
+              id: img.id,
+              url: img.url,
+              altText: img.altText,
+              isPrimary: img.isPrimary,
+              sortOrder: img.sortOrder,
+            })),
+          videos: [],
         },
         similarProducts: similarProducts,
         boughtTogetherProducts: boughtTogetherProducts,
         isActive: formData.isPublished,
+        purchaseHistory: [],
+        stockHistory: [],
       };
 
-      await productService.update(product.id, updatedProduct);
-      alert("Product updated successfully!");
+      await productService.create(
+        newProduct as Omit<Product, "id" | "createdAt" | "updatedAt">
+      );
+      alert("Product created successfully!");
       router.push("/dashboard/products");
     } catch (err) {
-      console.error("Error updating product:", err);
-      alert("Failed to update product. Please try again.");
+      console.error("Error creating product:", err);
+      alert("Failed to create product. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -146,10 +158,8 @@ export function ProductEditForm({
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">
-              {formData.name || "Product Details"}
-            </h1>
-            <p className="text-gray-600">Manage all aspects of your product</p>
+            <h1 className="text-3xl font-bold">Add New Product</h1>
+            <p className="text-gray-600">Create a new product for your store</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -187,7 +197,7 @@ export function ProductEditForm({
           onCategoryIdChange={(value: string) =>
             setFormData({ ...formData, categories: [value] })
           }
-          categories={[]}
+          categories={categories}
           manufacturer={formData.manufacturer}
           onManufacturerChange={(value: string) =>
             setFormData({ ...formData, manufacturer: value })
@@ -253,11 +263,6 @@ export function ProductEditForm({
           onboughtTogetherProductsChange={setBoughtTogetherProducts}
           availableProducts={availableProducts}
           defaultImage=""
-        />
-      )}
-      {activeTab === "orders" && (
-        <ProductOrderHistoryTab
-          purchaseHistory={product.purchaseHistory || []}
         />
       )}
     </div>

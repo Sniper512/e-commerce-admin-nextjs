@@ -5,8 +5,8 @@ import {
   DollarSign,
   ShoppingCart,
   Image as ImageIcon,
-  Link as LinkIcon,
-  Users,
+  Sparkles,
+  ShoppingBag,
   History,
 } from "lucide-react";
 
@@ -15,8 +15,8 @@ const tabs = [
   { id: "discounts", label: "Discounts", icon: DollarSign },
   { id: "inventory", label: "Inventory", icon: ShoppingCart },
   { id: "multimedia", label: "Multimedia", icon: ImageIcon },
-  { id: "related", label: "Related Products", icon: LinkIcon },
-  { id: "crosssell", label: "Cross-sells", icon: Users },
+  { id: "related", label: "Similar Products", icon: Sparkles },
+  { id: "bought-together", label: "Bought Together Products", icon: ShoppingBag },
   { id: "orders", label: "Purchase History", icon: History },
 ];
 
