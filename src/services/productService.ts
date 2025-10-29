@@ -71,12 +71,31 @@ export const productService = {
 		const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints);
 		const snapshot = await getDocs(q);
 
-		return snapshot.docs.map((doc) => ({
-			id: doc.id,
-			...doc.data(),
-			createdAt: doc.data().createdAt?.toDate(),
-			updatedAt: doc.data().updatedAt?.toDate(),
-		})) as Product[];
+		return snapshot.docs.map((doc) => {
+			const data = doc.data();
+			return {
+				id: doc.id,
+				...data,
+				createdAt: data.createdAt?.toDate(),
+				updatedAt: data.updatedAt?.toDate(),
+				// Convert nested date fields in stockHistory
+				stockHistory: data.stockHistory?.map((entry: any) => ({
+					...entry,
+					date: entry.date?.toDate?.() || entry.date,
+				})) || [],
+				// Convert nested date fields in purchaseHistory
+				purchaseHistory: data.purchaseHistory?.map((entry: any) => ({
+					...entry,
+					orderDate: entry.orderDate?.toDate?.() || entry.orderDate,
+				})) || [],
+				// Convert nested date fields in info section
+				info: data.info ? {
+					...data.info,
+					markAsNewStartDate: data.info.markAsNewStartDate?.toDate?.() || data.info.markAsNewStartDate,
+					markAsNewEndDate: data.info.markAsNewEndDate?.toDate?.() || data.info.markAsNewEndDate,
+				} : data.info,
+			};
+		}) as Product[];
 	},
 
 	// Get product by ID
@@ -86,11 +105,28 @@ export const productService = {
 
 		if (!docSnap.exists()) return null;
 
+		const data = docSnap.data();
 		return {
 			id: docSnap.id,
-			...docSnap.data(),
-			createdAt: docSnap.data().createdAt?.toDate(),
-			updatedAt: docSnap.data().updatedAt?.toDate(),
+			...data,
+			createdAt: data.createdAt?.toDate(),
+			updatedAt: data.updatedAt?.toDate(),
+			// Convert nested date fields in stockHistory
+			stockHistory: data.stockHistory?.map((entry: any) => ({
+				...entry,
+				date: entry.date?.toDate?.() || entry.date,
+			})) || [],
+			// Convert nested date fields in purchaseHistory
+			purchaseHistory: data.purchaseHistory?.map((entry: any) => ({
+				...entry,
+				orderDate: entry.orderDate?.toDate?.() || entry.orderDate,
+			})) || [],
+			// Convert nested date fields in info section
+			info: data.info ? {
+				...data.info,
+				markAsNewStartDate: data.info.markAsNewStartDate?.toDate?.() || data.info.markAsNewStartDate,
+				markAsNewEndDate: data.info.markAsNewEndDate?.toDate?.() || data.info.markAsNewEndDate,
+			} : data.info,
 		} as Product;
 	},
 

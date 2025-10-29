@@ -76,14 +76,59 @@ const firestoreToCategory = (id: string, data: any): Category => {
 	};
 };
 
-// Category Service Functions using Firebase Firestore
-export class CategoryService {
-	private static readonly COLLECTION_NAME = "CATEGORIES";
+const COLLECTION_NAME = "CATEGORIES";
 
+// Helper function to generate slug from name
+const generateSlug = (name: string): string => {
+	return name
+		.toLowerCase()
+		.replace(/[^a-z0-9 -]/g, "")
+		.replace(/\s+/g, "-")
+		.replace(/-+/g, "-")
+		.trim();
+};
+
+// Build category hierarchy (helper function)
+const buildCategoryHierarchy = (categories: Category[]): Category[] => {
+	const categoryMap = new Map<string, Category>();
+	const result: Category[] = [];
+
+	// First pass: create map
+	categories.forEach((category) => {
+		categoryMap.set(category.id, { ...category, subCategories: [] });
+	});
+
+	// Second pass: build hierarchy
+	categoryMap.forEach((category) => {
+		if (category.parentId) {
+			const parent = categoryMap.get(category.parentId);
+			if (parent) {
+				category.parentCategory = parent;
+				parent.subCategories = parent.subCategories || [];
+				parent.subCategories.push(category);
+			}
+		} else {
+			result.push(category);
+		}
+	});
+
+	// Sort by display order
+	result.sort((a, b) => a.displayOrder - b.displayOrder);
+	result.forEach((category) => {
+		if (category.subCategories) {
+			category.subCategories.sort((a, b) => a.displayOrder - b.displayOrder);
+		}
+	});
+
+	return Array.from(categoryMap.values());
+};
+
+// Category Service Functions using Firebase Firestore
+export const categoryService = {
 	// Get all categories
-	static async getAllCategories(): Promise<Category[]> {
+	async getAllCategories(): Promise<Category[]> {
 		try {
-			const categoriesRef = collection(db, this.COLLECTION_NAME);
+			const categoriesRef = collection(db, COLLECTION_NAME);
 			const q = query(categoriesRef, orderBy("displayOrder", "asc"));
 			const snapshot = await getDocs(q);
 
@@ -92,17 +137,17 @@ export class CategoryService {
 			);
 
 			// Build category hierarchy
-			return this.buildCategoryHierarchy(categories);
+			return buildCategoryHierarchy(categories);
 		} catch (error) {
 			console.error("Error fetching categories:", error);
 			throw error;
 		}
-	}
+	},
 
 	// Get root categories (no parent)
-	static async getRootCategories(): Promise<Category[]> {
+	async getRootCategories(): Promise<Category[]> {
 		try {
-			const categoriesRef = collection(db, this.COLLECTION_NAME);
+			const categoriesRef = collection(db, COLLECTION_NAME);
 			const q = query(
 				categoriesRef,
 				where("parentId", "==", null),
@@ -117,12 +162,12 @@ export class CategoryService {
 			console.error("Error fetching root categories:", error);
 			throw error;
 		}
-	}
+	},
 
 	// Get category by ID
-	static async getCategoryById(id: string): Promise<Category | null> {
+	async getCategoryById(id: string): Promise<Category | null> {
 		try {
-			const docRef = doc(db, this.COLLECTION_NAME, id);
+			const docRef = doc(db, COLLECTION_NAME, id);
 			const docSnap = await getDoc(docRef);
 
 			if (docSnap.exists()) {
@@ -133,12 +178,12 @@ export class CategoryService {
 			console.error("Error fetching category:", error);
 			throw error;
 		}
-	}
+	},
 
 	// Get subcategories of a parent category
-	static async getSubCategories(parentId: string): Promise<Category[]> {
+	async getSubCategories(parentId: string): Promise<Category[]> {
 		try {
-			const categoriesRef = collection(db, this.COLLECTION_NAME);
+			const categoriesRef = collection(db, COLLECTION_NAME);
 			const q = query(
 				categoriesRef,
 				where("parentId", "==", parentId),
@@ -153,18 +198,16 @@ export class CategoryService {
 			console.error("Error fetching subcategories:", error);
 			throw error;
 		}
-	}
+	},
 
 	// Create new category
-	static async createCategory(
-		categoryData: Partial<Category>
-	): Promise<Category> {
+	async createCategory(categoryData: Partial<Category>): Promise<Category> {
 		try {
-			const categoriesRef = collection(db, this.COLLECTION_NAME);
+			const categoriesRef = collection(db, COLLECTION_NAME);
 
 			const newCategoryData = {
 				name: categoryData.name || "",
-				slug: this.generateSlug(categoryData.name || ""),
+				slug: generateSlug(categoryData.name || ""),
 				description: categoryData.description || "",
 				type: categoryData.type || "simple",
 				displayOrder: categoryData.displayOrder || 1,
@@ -200,22 +243,21 @@ export class CategoryService {
 			console.error("Error creating category:", error);
 			throw error;
 		}
-	}
+	},
 
 	// Update category
-	static async updateCategory(
+	async updateCategory(
 		id: string,
 		updates: Partial<Category>
 	): Promise<Category> {
 		try {
-			const docRef = doc(db, this.COLLECTION_NAME, id);
+			const docRef = doc(db, COLLECTION_NAME, id);
 			const docSnap = await getDoc(docRef);
 
 			if (!docSnap.exists()) {
 				throw new Error("Category not found");
 			}
-          
-			const updatedAt = new Date().toISOString();
+
 			const currentData = docSnap.data();
 			const updateData: any = {
 				...updates,
@@ -225,7 +267,7 @@ export class CategoryService {
 
 			// Update slug if name changed
 			if (updates.name && updates.name !== currentData.name) {
-				updateData.slug = this.generateSlug(updates.name);
+				updateData.slug = generateSlug(updates.name);
 			}
 
 			// Sync legacy fields
@@ -250,10 +292,10 @@ export class CategoryService {
 			console.error("Error updating category:", error);
 			throw error;
 		}
-	}
+	},
 
 	// Delete category
-	static async deleteCategory(id: string): Promise<boolean> {
+	async deleteCategory(id: string): Promise<boolean> {
 		try {
 			// Check if category has subcategories
 			const subCategories = await this.getSubCategories(id);
@@ -267,7 +309,7 @@ export class CategoryService {
 				throw new Error("Cannot delete category with products");
 			}
 
-			const docRef = doc(db, this.COLLECTION_NAME, id);
+			const docRef = doc(db, COLLECTION_NAME, id);
 			await deleteDoc(docRef);
 
 			return true;
@@ -275,10 +317,10 @@ export class CategoryService {
 			console.error("Error deleting category:", error);
 			throw error;
 		}
-	}
+	},
 
 	// Toggle category publish status
-	static async togglePublishStatus(id: string): Promise<Category> {
+	async togglePublishStatus(id: string): Promise<Category> {
 		const category = await this.getCategoryById(id);
 		if (!category) {
 			throw new Error("Category not found");
@@ -288,15 +330,15 @@ export class CategoryService {
 			isPublished: !category.isPublished,
 			isActive: !category.isPublished,
 		});
-	}
+	},
 
 	// Reorder categories
-	static async reorderCategories(
+	async reorderCategories(
 		categoryOrders: { id: string; displayOrder: number }[]
 	): Promise<Category[]> {
 		try {
 			const updatePromises = categoryOrders.map(async (order) => {
-				const docRef = doc(db, this.COLLECTION_NAME, order.id);
+				const docRef = doc(db, COLLECTION_NAME, order.id);
 				return updateDoc(docRef, {
 					displayOrder: order.displayOrder,
 					updatedAt: new Date().toUTCString(),
@@ -309,10 +351,10 @@ export class CategoryService {
 			console.error("Error reordering categories:", error);
 			throw error;
 		}
-	}
+	},
 
 	// Search categories
-	static async searchCategories(query: string): Promise<Category[]> {
+	async searchCategories(query: string): Promise<Category[]> {
 		const allCategories = await this.getAllCategories();
 		const lowercaseQuery = query.toLowerCase();
 
@@ -322,10 +364,10 @@ export class CategoryService {
 				category.description?.toLowerCase().includes(lowercaseQuery) ||
 				category.slug.toLowerCase().includes(lowercaseQuery)
 		);
-	}
+	},
 
 	// Get category statistics
-	static async getCategoryStats(): Promise<{
+	async getCategoryStats(): Promise<{
 		totalCategories: number;
 		publishedCategories: number;
 		unpublishedCategories: number;
@@ -352,52 +394,7 @@ export class CategoryService {
 			console.error("Error fetching category stats:", error);
 			throw error;
 		}
-	}
+	},
+};
 
-	// Build category hierarchy (helper method)
-	private static buildCategoryHierarchy(categories: Category[]): Category[] {
-		const categoryMap = new Map<string, Category>();
-		const result: Category[] = [];
-
-		// First pass: create map
-		categories.forEach((category) => {
-			categoryMap.set(category.id, { ...category, subCategories: [] });
-		});
-
-		// Second pass: build hierarchy
-		categoryMap.forEach((category) => {
-			if (category.parentId) {
-				const parent = categoryMap.get(category.parentId);
-				if (parent) {
-					category.parentCategory = parent;
-					parent.subCategories = parent.subCategories || [];
-					parent.subCategories.push(category);
-				}
-			} else {
-				result.push(category);
-			}
-		});
-
-		// Sort by display order
-		result.sort((a, b) => a.displayOrder - b.displayOrder);
-		result.forEach((category) => {
-			if (category.subCategories) {
-				category.subCategories.sort((a, b) => a.displayOrder - b.displayOrder);
-			}
-		});
-
-		return Array.from(categoryMap.values());
-	}
-
-	// Helper function to generate slug from name
-	private static generateSlug(name: string): string {
-		return name
-			.toLowerCase()
-			.replace(/[^a-z0-9 -]/g, "")
-			.replace(/\s+/g, "-")
-			.replace(/-+/g, "-")
-			.trim();
-	}
-}
-
-export default CategoryService;
+export default categoryService;

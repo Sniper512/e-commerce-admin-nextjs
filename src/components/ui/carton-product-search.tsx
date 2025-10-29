@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { productService } from '@/services/productService';
 import { Product } from '@/types';
-import { ProductSearchDropdown } from './product-search-dropdown';
+import { ProductSearchDropdown } from '@/components/features/products/product-search-dropdown';
 import { DEFAULT_IMAGES } from '@/lib/defaultImages';
 
 interface CartonProductSearchProps {

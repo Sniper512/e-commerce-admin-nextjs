@@ -1,349 +1,380 @@
-'use client';
+"use client";
 
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-    Plus,
-    Search,
-    Filter,
-    MoreHorizontal,
-    Edit,
-    Trash2,
-    Eye,
-    Calendar,
-    Percent,
-    DollarSign
-} from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { formatCurrency } from '@/lib/utils';
-import { DiscountService } from '@/services/discountService';
-import { Discount } from '@/types';
+  Plus,
+  Search,
+  Filter,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Eye,
+  Calendar,
+  Percent,
+  DollarSign,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { formatCurrency } from "@/lib/utils";
+import { DiscountService } from "@/services/discountService";
+import { Discount } from "@/types";
 
 export default function DiscountsPage() {
-    const router = useRouter();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [discounts, setDiscounts] = useState<Discount[]>([]);
-    const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    // Load discounts from Firebase
-    useEffect(() => {
-        loadDiscounts();
-    }, []);
+  // Load discounts from Firebase
+  useEffect(() => {
+    loadDiscounts();
+  }, []);
 
-    const loadDiscounts = async () => {
-        try {
-            setLoading(true);
-            const data = await DiscountService.getAllDiscounts();
-            setDiscounts(data);
-        } catch (error) {
-            console.error('Error loading discounts:', error);
-            alert('Failed to load discounts');
-        } finally {
-            setLoading(false);
-        }
-    };
+  const loadDiscounts = async () => {
+    try {
+      setLoading(true);
+      const data = await DiscountService.getAllDiscounts();
+      setDiscounts(data);
+    } catch (error) {
+      console.error("Error loading discounts:", error);
+      alert("Failed to load discounts");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this discount?')) {
-            return;
-        }
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this discount?")) {
+      return;
+    }
 
-        try {
-            await DiscountService.deleteDiscount(id);
-            alert('Discount deleted successfully!');
-            loadDiscounts(); // Reload the list
-        } catch (error) {
-            console.error('Error deleting discount:', error);
-            alert('Failed to delete discount');
-        }
-    };
+    try {
+      await DiscountService.deleteDiscount(id);
+      alert("Discount deleted successfully!");
+      loadDiscounts(); // Reload the list
+    } catch (error) {
+      console.error("Error deleting discount:", error);
+      alert("Failed to delete discount");
+    }
+  };
 
-    const handleToggleStatus = async (id: string) => {
-        try {
-            await DiscountService.toggleDiscountStatus(id);
-            loadDiscounts(); // Reload the list
-        } catch (error) {
-            console.error('Error toggling discount status:', error);
-            alert('Failed to update discount status');
-        }
-    };
+  const handleToggleStatus = async (id: string) => {
+    try {
+      await DiscountService.toggleDiscountStatus(id);
+      loadDiscounts(); // Reload the list
+    } catch (error) {
+      console.error("Error toggling discount status:", error);
+      alert("Failed to update discount status");
+    }
+  };
 
-    const filteredDiscounts = discounts.filter(discount => {
-        const matchesSearch = discount.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (discount.description && discount.description.toLowerCase().includes(searchTerm.toLowerCase()));
-        const matchesFilter = filterStatus === 'all' ||
-            (filterStatus === 'active' && discount.isActive) ||
-            (filterStatus === 'inactive' && !discount.isActive);
-        return matchesSearch && matchesFilter;
-    });
+  const filteredDiscounts = discounts.filter((discount) => {
+    const matchesSearch =
+      discount.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (discount.description &&
+        discount.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesFilter =
+      filterStatus === "all" ||
+      (filterStatus === "active" && discount.isActive) ||
+      (filterStatus === "inactive" && !discount.isActive);
+    return matchesSearch && matchesFilter;
+  });
 
-    // Calculate stats
-    const stats = {
-        total: discounts.length,
-        active: discounts.filter(d => d.isActive).length,
-    };
+  // Calculate stats
+  const stats = {
+    total: discounts.length,
+    active: discounts.filter((d) => d.isActive).length,
+  };
 
-    return (
-        <DashboardLayout>
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold">Discounts Management</h1>
-                        <p className="text-gray-600">Create and manage promotional discounts for your products</p>
-                    </div>
-                    <Button onClick={() => router.push('/dashboard/discounts/add')}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Discount
-                    </Button>
-                </div>
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Discounts Management</h1>
+          <p className="text-gray-600">
+            Create and manage promotional discounts for your products
+          </p>
+        </div>
+        <Button onClick={() => router.push("/dashboard/discounts/add")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Discount
+        </Button>
+      </div>
 
-                {/* Stats Cards */}
-                <div className="grid gap-4 md:grid-cols-4">
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600">Total Discounts</p>
-                                    <p className="text-2xl font-bold">{stats.total}</p>
-                                </div>
-                                <Percent className="h-8 w-8 text-blue-600" />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600">Active Discounts</p>
-                                    <p className="text-2xl font-bold">{stats.active}</p>
-                                </div>
-                                <Calendar className="h-8 w-8 text-green-600" />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600">Inactive Discounts</p>
-                                    <p className="text-2xl font-bold">{stats.total - stats.active}</p>
-                                </div>
-                                <DollarSign className="h-8 w-8 text-orange-600" />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600">Status</p>
-                                    <p className="text-2xl font-bold">{loading ? 'Loading...' : 'Ready'}</p>
-                                </div>
-                                <Percent className="h-8 w-8 text-purple-600" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Filters */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Filters</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex gap-4">
-                            <div className="flex-1">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                                    <Input
-                                        placeholder="Search discounts..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="pl-9"
-                                    />
-                                </div>
-                            </div>
-                            <select
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="all">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                            <Button variant="outline">
-                                <Filter className="h-4 w-4 mr-2" />
-                                More Filters
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Discounts Table */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>All Discounts</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? (
-                            <div className="text-center py-8">
-                                <p className="text-gray-600">Loading discounts...</p>
-                            </div>
-                        ) : filteredDiscounts.length === 0 ? (
-                            <div className="text-center py-8">
-                                <p className="text-gray-600">No discounts found</p>
-                                <Button
-                                    onClick={() => router.push('/dashboard/discounts/add')}
-                                    className="mt-4"
-                                >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Create Your First Discount
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b">
-                                            <th className="table-header">Name</th>
-                                            <th className="table-header">Type</th>
-                                            <th className="table-header">Applies To</th>
-                                            <th className="table-header">Value</th>
-                                            <th className="table-header">Limitation</th>
-                                            <th className="table-header">Period</th>
-                                            <th className="table-header">Status</th>
-                                            <th className="table-header">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredDiscounts.map((discount) => (
-                                            <tr key={discount.id} className="border-b">
-                                                <td className="table-cell">
-                                                    <div>
-                                                        <p className="font-medium">{discount.name}</p>
-                                                        <p className="text-sm text-gray-600">{discount.description || 'No description'}</p>
-                                                    </div>
-                                                </td>
-                                                <td className="table-cell">
-                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${discount.type === 'percentage'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : 'bg-green-100 text-green-800'
-                                                        }`}>
-                                                        {discount.type === 'percentage' ? (
-                                                            <>
-                                                                <Percent className="h-3 w-3 mr-1" />
-                                                                Percentage
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <DollarSign className="h-3 w-3 mr-1" />
-                                                                Fixed Amount
-                                                            </>
-                                                        )}
-                                                    </span>
-                                                </td>
-                                                <td className="table-cell">
-                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${discount.applicableTo === 'order'
-                                                        ? 'bg-purple-100 text-purple-800'
-                                                        : discount.applicableTo === 'products'
-                                                            ? 'bg-orange-100 text-orange-800'
-                                                            : 'bg-teal-100 text-teal-800'
-                                                        }`}>
-                                                        {discount.applicableTo === 'order' && 'Total Order'}
-                                                        {discount.applicableTo === 'products' && 'Specific Products'}
-                                                        {discount.applicableTo === 'categories' && 'Categories'}
-                                                    </span>
-                                                </td>
-                                                <td className="table-cell">
-                                                    <span className="font-medium">
-                                                        {discount.type === 'percentage'
-                                                            ? `${discount.value}%`
-                                                            : formatCurrency(discount.value)
-                                                        }
-                                                    </span>
-                                                </td>
-                                                <td className="table-cell">
-                                                    <div className="text-sm">
-                                                        {discount.limitationType === 'unlimited' ? (
-                                                            <span className="text-green-600 font-medium">Unlimited</span>
-                                                        ) : discount.limitationType === 'n_times_only' ? (
-                                                            <>
-                                                                <p className="font-medium">{discount.currentUsageCount || 0} / {discount.limitationTimes}</p>
-                                                                <p className="text-gray-600 text-xs">Total uses</p>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <p className="font-medium">{discount.limitationTimes} per customer</p>
-                                                                <p className="text-gray-600 text-xs">Max uses</p>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="table-cell">
-                                                    <div className="text-sm">
-                                                        <p>{discount.startDate.toLocaleDateString()}</p>
-                                                        <p className="text-gray-600">to {discount.endDate.toLocaleDateString()}</p>
-                                                    </div>
-                                                </td>
-                                                <td className="table-cell">
-                                                    <span
-                                                        className={`inline-block rounded-full px-2 py-1 text-xs font-medium cursor-pointer ${discount.isActive
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : 'bg-gray-100 text-gray-800'
-                                                            }`}
-                                                        onClick={() => handleToggleStatus(discount.id)}
-                                                        title="Click to toggle status"
-                                                    >
-                                                        {discount.isActive ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                </td>
-                                                <td className="table-cell">
-                                                    <div className="flex items-center gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => router.push(`/dashboard/discounts/${discount.id}`)}
-                                                            title="View details"
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => router.push(`/dashboard/discounts/${discount.id}/edit`)}
-                                                            title="Edit discount"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => handleDelete(discount.id)}
-                                                            title="Delete discount"
-                                                        >
-                                                            <Trash2 className="h-4 w-4 text-red-600" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Discounts
+                </p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </div>
+              <Percent className="h-8 w-8 text-blue-600" />
             </div>
-        </DashboardLayout>
-    );
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Discounts
+                </p>
+                <p className="text-2xl font-bold">{stats.active}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Inactive Discounts
+                </p>
+                <p className="text-2xl font-bold">
+                  {stats.total - stats.active}
+                </p>
+              </div>
+              <DollarSign className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Status</p>
+                <p className="text-2xl font-bold">
+                  {loading ? "Loading..." : "Ready"}
+                </p>
+              </div>
+              <Percent className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search discounts..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              More Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Discounts Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Discounts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">Loading discounts...</p>
+            </div>
+          ) : filteredDiscounts.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">No discounts found</p>
+              <Button
+                onClick={() => router.push("/dashboard/discounts/add")}
+                className="mt-4">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Discount
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="table-header">Name</th>
+                    <th className="table-header">Type</th>
+                    <th className="table-header">Applies To</th>
+                    <th className="table-header">Value</th>
+                    <th className="table-header">Limitation</th>
+                    <th className="table-header">Period</th>
+                    <th className="table-header">Status</th>
+                    <th className="table-header">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDiscounts.map((discount) => (
+                    <tr key={discount.id} className="border-b">
+                      <td className="table-cell">
+                        <div>
+                          <p className="font-medium">{discount.name}</p>
+                          <p className="text-sm text-gray-600">
+                            {discount.description || "No description"}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="table-cell">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            discount.type === "percentage"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-green-100 text-green-800"
+                          }`}>
+                          {discount.type === "percentage" ? (
+                            <>
+                              <Percent className="h-3 w-3 mr-1" />
+                              Percentage
+                            </>
+                          ) : (
+                            <>
+                              <DollarSign className="h-3 w-3 mr-1" />
+                              Fixed Amount
+                            </>
+                          )}
+                        </span>
+                      </td>
+                      <td className="table-cell">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            discount.applicableTo === "order"
+                              ? "bg-purple-100 text-purple-800"
+                              : discount.applicableTo === "products"
+                              ? "bg-orange-100 text-orange-800"
+                              : "bg-teal-100 text-teal-800"
+                          }`}>
+                          {discount.applicableTo === "order" && "Total Order"}
+                          {discount.applicableTo === "products" &&
+                            "Specific Products"}
+                          {discount.applicableTo === "categories" &&
+                            "Categories"}
+                        </span>
+                      </td>
+                      <td className="table-cell">
+                        <span className="font-medium">
+                          {discount.type === "percentage"
+                            ? `${discount.value}%`
+                            : formatCurrency(discount.value)}
+                        </span>
+                      </td>
+                      <td className="table-cell">
+                        <div className="text-sm">
+                          {discount.limitationType === "unlimited" ? (
+                            <span className="text-green-600 font-medium">
+                              Unlimited
+                            </span>
+                          ) : discount.limitationType === "n_times_only" ? (
+                            <>
+                              <p className="font-medium">
+                                {discount.currentUsageCount || 0} /{" "}
+                                {discount.limitationTimes}
+                              </p>
+                              <p className="text-gray-600 text-xs">
+                                Total uses
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="font-medium">
+                                {discount.limitationTimes} per customer
+                              </p>
+                              <p className="text-gray-600 text-xs">Max uses</p>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="table-cell">
+                        <div className="text-sm">
+                          <p>{discount.startDate.toLocaleDateString()}</p>
+                          <p className="text-gray-600">
+                            to {discount.endDate.toLocaleDateString()}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="table-cell">
+                        <span
+                          className={`inline-block rounded-full px-2 py-1 text-xs font-medium cursor-pointer ${
+                            discount.isActive
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                          onClick={() => handleToggleStatus(discount.id)}
+                          title="Click to toggle status">
+                          {discount.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="table-cell">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              router.push(`/dashboard/discounts/${discount.id}`)
+                            }
+                            title="View details">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              router.push(
+                                `/dashboard/discounts/${discount.id}/edit`
+                              )
+                            }
+                            title="Edit discount">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(discount.id)}
+                            title="Delete discount">
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
