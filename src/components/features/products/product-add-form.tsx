@@ -7,13 +7,13 @@ import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
 import type { Product, ProductImage } from "@/types";
-import { ProductEditTabs } from "./product-edit-tabs";
 import { ProductInfoTab } from "./tabs/product-info-tab";
 import { ProductDiscountsTab } from "./tabs/product-discounts-tab";
 import { ProductInventoryTab } from "./tabs/product-inventory-tab";
 import { ProductMultimediaTab } from "./tabs/product-multimedia-tab";
 import { ProductSimilarTab } from "./tabs/product-similar-tab";
 import { ProductBoughtTogetherTab } from "./tabs/product-bought-together-tab";
+import { ProductAddTabs } from "./product-add-tabs";
 
 interface ProductAddFormProps {
   availableProducts: any[];
@@ -95,8 +95,6 @@ export function ProductAddForm({
 
       const newProduct: Partial<Product> = {
         slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
-        sku: `SKU-${Date.now()}`,
-        type: "single",
         info: {
           name: formData.name,
           description: formData.description,
@@ -180,7 +178,7 @@ export function ProductAddForm({
       </div>
 
       {/* Tabs Navigation */}
-      <ProductEditTabs activeTab={activeTab} onTabChange={handleTabChange} />
+      <ProductAddTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Tab Content */}
       {activeTab === "info" && (

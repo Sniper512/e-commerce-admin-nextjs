@@ -38,9 +38,6 @@ export interface Category {
   updatedBy?: string;
 }
 
-// Product Types
-export type ProductType = "single" | "composite";
-
 // Product Information Section
 export interface ProductInfo {
   name: string;
@@ -126,7 +123,6 @@ export interface Product {
   id: string;
   slug: string;
   sku: string;
-  type: ProductType; // single or composite (made of other products)
 
   // Product Information Section
   info: ProductInfo;
