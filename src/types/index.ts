@@ -119,7 +119,6 @@ export interface StockQuantityHistory {
 export interface Product {
   id: string;
   slug: string;
-  sku: string;
 
   // Product Information Section
   info: ProductInfo;
@@ -152,7 +151,6 @@ export interface Product {
   minStockLevel: number; // Alias for inventory.minimumStockQuantity
   basePrice: number; // Alias for pricing.productCost
   sellingPrice: number; // Alias for pricing.price
-  discount?: number;
 
   // Composite product details
   compositeItems?: {
