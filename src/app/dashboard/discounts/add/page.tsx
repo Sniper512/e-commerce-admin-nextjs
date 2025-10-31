@@ -1,6 +1,6 @@
 ﻿import categoryService from "@/services/categoryService";
 import { productService } from "@/services/productService";
-import { DiscountAddForm } from "@/components/features/discounts/discount-add-form";
+import { DiscountForm } from "@/components/features/discounts/discount-form";
 
 export default async function AddDiscountPage() {
   // Fetch data on the server
@@ -14,7 +14,7 @@ export default async function AddDiscountPage() {
   const serializedProducts = JSON.parse(JSON.stringify(products));
 
   return (
-    <DiscountAddForm
+    <DiscountForm
       categories={serializedCategories}
       products={serializedProducts}
     />

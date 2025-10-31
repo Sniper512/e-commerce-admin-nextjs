@@ -14,39 +14,52 @@ import { Discount, Category, Product } from "@/types";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
 import { CategorySearchDropdown } from "@/components/ui/category-search-dropdown";
 
-interface DiscountAddFormProps {
+interface DiscountFormProps {
+  discount?: Discount | null;
   categories: Category[];
   products: Product[];
 }
 
-export function DiscountAddForm({
+export function DiscountForm({
+  discount,
   categories,
   products,
-}: DiscountAddFormProps) {
+}: DiscountFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [productSearchValue, setProductSearchValue] = useState("");
   const [categorySearchValue, setCategorySearchValue] = useState("");
+  const isEditMode = !!discount;
+
+  // Helper function to format date for input
+  const formatDateForInput = (date: Date | string | undefined) => {
+    if (!date) return "";
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    return dateObj.toISOString().slice(0, 16);
+  };
 
   // Form state
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    type: "percentage" as "percentage" | "fixed",
-    value: 0,
-    applicableTo: "order" as "products" | "categories" | "order",
-    applicableProducts: [] as string[],
-    applicableCategories: [] as string[],
-    minPurchaseAmount: 0,
-    limitationType: "unlimited" as
+    name: discount?.name || "",
+    description: discount?.description || "",
+    type: (discount?.type || "percentage") as "percentage" | "fixed",
+    value: discount?.value || 0,
+    applicableTo: (discount?.applicableTo || "order") as
+      | "products"
+      | "categories"
+      | "order",
+    applicableProducts: discount?.applicableProducts || ([] as string[]),
+    applicableCategories: discount?.applicableCategories || ([] as string[]),
+    minPurchaseAmount: discount?.minPurchaseAmount || 0,
+    limitationType: (discount?.limitationType || "unlimited") as
       | "unlimited"
       | "n_times_only"
       | "n_times_per_customer",
-    limitationTimes: 0,
-    adminComment: "",
-    startDate: "",
-    endDate: "",
-    isActive: true,
+    limitationTimes: discount?.limitationTimes || 0,
+    adminComment: discount?.adminComment || "",
+    startDate: formatDateForInput(discount?.startDate) || "",
+    endDate: formatDateForInput(discount?.endDate) || "",
+    isActive: discount?.isActive ?? true,
   });
 
   const handleInputChange = (
@@ -94,7 +107,9 @@ export function DiscountAddForm({
     setLoading(true);
 
     try {
-      const discountData: Omit<Discount, "id" | "createdAt" | "updatedAt"> = {
+      const discountData:
+        | Omit<Discount, "id" | "createdAt" | "updatedAt">
+        | Partial<Discount> = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         type: formData.type,
@@ -120,15 +135,27 @@ export function DiscountAddForm({
           formData.limitationTimes > 0
             ? formData.limitationTimes
             : undefined,
-        currentUsageCount: 0,
+        ...(!isEditMode && { currentUsageCount: 0 }),
         adminComment: formData.adminComment.trim() || undefined,
         startDate,
         endDate,
         isActive: formData.isActive,
       };
 
-      // Create the discount and get its ID
-      const discountId = await DiscountService.createDiscount(discountData);
+      let discountId: string;
+
+      if (isEditMode && discount) {
+        // Update existing discount
+        await DiscountService.updateDiscount(discount.id, discountData);
+        discountId = discount.id;
+        alert("Discount updated successfully!");
+      } else {
+        // Create the discount and get its ID
+        discountId = await DiscountService.createDiscount(
+          discountData as Omit<Discount, "id" | "createdAt" | "updatedAt">
+        );
+        alert("Discount created successfully!");
+      }
 
       // Update products with the new discount ID if applicable
       if (
@@ -211,11 +238,17 @@ export function DiscountAddForm({
         await Promise.all(updatePromises);
       }
 
-      alert("Discount created successfully!");
       router.push("/dashboard/discounts");
     } catch (error) {
-      console.error("Error creating discount:", error);
-      alert("Failed to create discount. Please try again.");
+      console.error(
+        `Error ${isEditMode ? "updating" : "creating"} discount:`,
+        error
+      );
+      alert(
+        `Failed to ${
+          isEditMode ? "update" : "create"
+        } discount. Please try again.`
+      );
     } finally {
       setLoading(false);
     }
@@ -289,20 +322,26 @@ export function DiscountAddForm({
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Add New Discount</h1>
-            <p className="text-gray-600">Create a new promotional discount</p>
+            <h1 className="text-3xl font-bold">
+              {isEditMode ? "Edit Discount" : "Add New Discount"}
+            </h1>
+            <p className="text-gray-600">
+              {isEditMode
+                ? "Update discount information"
+                : "Create a new promotional discount"}
+            </p>
           </div>
         </div>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Creating...
+              {isEditMode ? "Updating..." : "Creating..."}
             </>
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Create Discount
+              {isEditMode ? "Update Discount" : "Create Discount"}
             </>
           )}
         </Button>

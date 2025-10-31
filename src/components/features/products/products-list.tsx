@@ -154,14 +154,18 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Link href={`/dashboard/products/${product.id}`}>
-                            <Button variant="outline" size="sm">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              title="View details">
                               <Eye className="h-3 w-3" />
                             </Button>
                           </Link>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(product.id)}>
+                            onClick={() => handleDelete(product.id)}
+                            title="Delete product">
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>

@@ -7,7 +7,6 @@ import {
   Plus,
   Search,
   Filter,
-  Edit,
   Trash2,
   Eye,
   Calendar,
@@ -19,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import { DiscountService } from "@/services/discountService";
 import { Discount } from "@/types";
+import Link from "next/link";
 
 interface DiscountsListProps {
   discounts: Discount[];
@@ -84,7 +84,7 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
   return (
     <>
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -128,18 +128,6 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Status</p>
-                <p className="text-2xl font-bold">Ready</p>
-              </div>
-              <Percent className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Filters */}
@@ -178,10 +166,7 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
 
       {/* Discounts Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Discounts</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {filteredDiscounts.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600">
@@ -315,32 +300,20 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                       </td>
                       <td className="table-cell">
                         <div className="flex items-center gap-2">
+                          <Link href={`/dashboard/discounts/${discount.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              title="View details">
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          </Link>
                           <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              router.push(`/dashboard/discounts/${discount.id}`)
-                            }
-                            title="View details">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              router.push(
-                                `/dashboard/discounts/${discount.id}/edit`
-                              )
-                            }
-                            title="Edit discount">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleDelete(discount.id)}
                             title="Delete discount">
-                            <Trash2 className="h-4 w-4 text-red-600" />
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </td>
