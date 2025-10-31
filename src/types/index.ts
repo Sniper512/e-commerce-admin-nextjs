@@ -24,12 +24,9 @@ export interface Category {
   picture?: string; // Category image/picture URL
   parentId?: string; // Parent category ID (null for root categories)
   subCategories?: Category[]; // Child categories
-  isPublished: boolean; // Whether category is published/active
+  isPublished: boolean; // Whether category is published
   productIds: string[]; // Array of product IDs in this category
   productCount?: number; // Computed count of products
-  // Legacy fields for backwards compatibility
-  imageUrl?: string; // Alias for picture
-  isActive: boolean; // Alias for isPublished
   showOnHomepage: boolean;
   showOnNavbar: boolean;
   createdAt: Date;

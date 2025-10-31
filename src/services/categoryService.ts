@@ -11,7 +11,6 @@ import {
   where,
   orderBy,
   Timestamp,
-  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
@@ -64,9 +63,6 @@ const firestoreToCategory = (id: string, data: any): Category => {
     isPublished: data.isPublished ?? true,
     productIds: data.productIds || [],
     productCount: data.productCount || 0,
-    // Legacy fields
-    imageUrl: data.imageUrl || data.picture || undefined,
-    isActive: data.isActive ?? data.isPublished ?? true,
     showOnHomepage: data.showOnHomepage ?? false,
     showOnNavbar: data.showOnNavbar ?? false,
     createdAt: convertTimestamp(data.createdAt),
@@ -203,9 +199,6 @@ export const categoryService = {
         isPublished: categoryData.isPublished ?? true,
         productIds: categoryData.productIds || [],
         productCount: 0,
-        // Legacy fields
-        imageUrl: categoryData.picture || null,
-        isActive: categoryData.isPublished ?? true,
         showOnHomepage: categoryData.showOnHomepage ?? false,
         showOnNavbar: categoryData.showOnNavbar ?? false,
         createdAt: new Date().toISOString(),
@@ -261,9 +254,6 @@ export const categoryService = {
       if (updates.picture !== undefined) {
         updateData.imageUrl = updates.picture;
       }
-      if (updates.isPublished !== undefined) {
-        updateData.isActive = updates.isPublished;
-      }
 
       // Remove undefined values
       const sanitizedUpdate = sanitizeForFirestore(updateData);
@@ -315,7 +305,6 @@ export const categoryService = {
 
     return this.updateCategory(id, {
       isPublished: !category.isPublished,
-      isActive: !category.isPublished,
     });
   },
 
