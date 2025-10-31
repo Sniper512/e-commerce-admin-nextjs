@@ -16,7 +16,7 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
-import { DiscountService } from "@/services/discountService";
+import discountService from "@/services/discountService";
 import { Discount } from "@/types";
 import Link from "next/link";
 
@@ -44,7 +44,7 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
     }
 
     try {
-      await DiscountService.deleteDiscount(id);
+      await discountService.delete(id);
       alert("Discount deleted successfully!");
       router.refresh(); // Refresh server component data
     } catch (error) {
@@ -55,7 +55,7 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
 
   const handleToggleStatus = async (id: string) => {
     try {
-      await DiscountService.toggleDiscountStatus(id);
+      await discountService.toggleStatus(id);
       router.refresh(); // Refresh server component data
     } catch (error) {
       console.error("Error toggling discount status:", error);

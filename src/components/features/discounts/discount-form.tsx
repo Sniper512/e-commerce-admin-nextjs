@@ -8,7 +8,7 @@ import { Save, ArrowLeft, Percent, DollarSign, Loader2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DiscountService } from "@/services/discountService";
+import discountService from "@/services/discountService";
 import { productService } from "@/services/productService";
 import { Discount, Category, Product } from "@/types";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
@@ -146,12 +146,12 @@ export function DiscountForm({
 
       if (isEditMode && discount) {
         // Update existing discount
-        await DiscountService.updateDiscount(discount.id, discountData);
+        await discountService.update(discount.id, discountData);
         discountId = discount.id;
         alert("Discount updated successfully!");
       } else {
         // Create the discount and get its ID
-        discountId = await DiscountService.createDiscount(
+        discountId = await discountService.create(
           discountData as Omit<Discount, "id" | "createdAt" | "updatedAt">
         );
         alert("Discount created successfully!");

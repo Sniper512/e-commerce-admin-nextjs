@@ -35,7 +35,6 @@ const menuItems = [
       { title: "Categories", href: "/dashboard/categories" },
       { title: "Discounts", href: "/dashboard/discounts" },
       { title: "Batches", href: "/dashboard/batches" },
-      { title: "Cartons", href: "/dashboard/cartons" },
     ],
   },
   {

@@ -1,5 +1,5 @@
 import { productService } from "@/services/productService";
-import { DiscountService } from "@/services/discountService";
+import discountService from "@/services/discountService";
 import { notFound } from "next/navigation";
 import { ProductEditForm } from "@/components/features/products/product-edit-form";
 
@@ -18,7 +18,7 @@ export default async function ProductDetailPage({
   const [allProducts, product, discounts] = await Promise.all([
     productService.getAll({ isActive: true }),
     productService.getById(productId),
-    DiscountService.getAllDiscounts(),
+    discountService.getAll(),
   ]);
 
   // If product not found, show 404

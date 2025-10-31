@@ -1,5 +1,5 @@
 import { productService } from "@/services/productService";
-import { DiscountService } from "@/services/discountService";
+import discountService from "@/services/discountService";
 import categoryService from "@/services/categoryService";
 import { ProductAddForm } from "@/components/features/products/product-add-form";
 
@@ -7,7 +7,7 @@ export default async function AddProductPage() {
   // Fetch data on the server
   const [allProducts, discounts, categories] = await Promise.all([
     productService.getAll({ isActive: true }),
-    DiscountService.getAllDiscounts(),
+    discountService.getAll(),
     categoryService.getAllCategories(),
   ]);
   console.log(categories);

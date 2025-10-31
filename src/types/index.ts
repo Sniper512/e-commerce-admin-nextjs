@@ -206,41 +206,8 @@ export interface ProductBatch {
   costPrice: number;
   supplierId?: string;
 
-  // Carton management
-  cartonId?: string;
-  unitsPerCarton?: number;
-
   createdAt: Date;
   updatedAt: Date;
-}
-
-// Carton Management - Comprehensive version for managing cartons with multiple products
-export interface CartonProductItem {
-  productId: string;
-  productName: string;
-  quantity: number;
-  costPerUnit: number;
-  totalCost: number;
-  sku?: string;
-  imageUrl?: string;
-}
-
-export interface Carton {
-  id: string;
-  cartonNumber: string; // Unique carton identifier
-  name: string;
-  description?: string;
-  products: CartonProductItem[];
-  totalQuantity: number; // Total number of items in carton
-  totalCost: number; // Total cost of all products
-  status: "active" | "archived" | "shipped";
-  supplier?: string;
-  purchaseDate?: Date;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy?: string;
-  updatedBy?: string;
 }
 
 // Customer Types

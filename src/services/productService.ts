@@ -14,11 +14,10 @@ import {
   QueryConstraint,
 } from "firebase/firestore";
 import { db } from "@/../firebaseConfig";
-import { Product, ProductBatch, Carton } from "@/types";
+import { Product, ProductBatch } from "@/types";
 
 const PRODUCTS_COLLECTION = "PRODUCTS";
 const BATCHES_COLLECTION = "BATCHES";
-const CARTONS_COLLECTION = "CARTONS";
 
 // Helper: sanitize object for Firestore by removing undefined values
 // and converting Date instances to Firestore Timestamps recursively.

@@ -1,6 +1,6 @@
 ﻿import categoryService from "@/services/categoryService";
 import { productService } from "@/services/productService";
-import { DiscountService } from "@/services/discountService";
+import discountService from "@/services/discountService";
 import { notFound } from "next/navigation";
 import { DiscountForm } from "@/components/features/discounts/discount-form";
 
@@ -17,7 +17,7 @@ export default async function DiscountDetailPage({
 
   // Fetch data on the server
   const [discount, categories, products] = await Promise.all([
-    DiscountService.getDiscountById(id),
+    discountService.getById(id),
     categoryService.getAllCategories(),
     productService.getAll({ isActive: true }),
   ]);

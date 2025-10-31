@@ -53,7 +53,7 @@ const sanitizeForFirestore = (data: any) => {
 	return sanitized;
 };
 
-export const BatchService = {
+export const batchService = {
 	// Get all batches
 	async getAllBatches(): Promise<Batch[]> {
 		try {
@@ -270,4 +270,4 @@ export const BatchService = {
 	},
 };
 
-export default BatchService;
+export default batchService;
