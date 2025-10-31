@@ -1,9 +1,9 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import Link from "next/link";
 import { productService } from "@/services/productService";
 import categoryService from "@/services/categoryService";
-import { ProductsGrid } from "@/components/features/products/products-grid";
+import { ProductsList } from "@/components/features/products/products-list";
 
 export default async function ProductsPage() {
   // Fetch data on the server
@@ -11,6 +11,10 @@ export default async function ProductsPage() {
     productService.getAll(),
     categoryService.getAllCategories(),
   ]);
+
+  // Serialize data for client component
+  const serializedProducts = JSON.parse(JSON.stringify(products));
+  const serializedCategories = JSON.parse(JSON.stringify(categories));
 
   return (
     <div className="space-y-6">
@@ -28,8 +32,11 @@ export default async function ProductsPage() {
         </Link>
       </div>
 
-      {/* Products Grid with Search and Delete functionality */}
-      <ProductsGrid initialProducts={products} categories={categories} />
+      {/* Products List - Client Component */}
+      <ProductsList
+        products={serializedProducts}
+        categories={serializedCategories}
+      />
     </div>
   );
 }
