@@ -64,8 +64,8 @@ export function ProductAddForm({
     Array<{
       productId: string;
       productName: string;
-      price: number;
       imageUrl?: string;
+      sortOrder: number;
     }>
   >([]);
 
@@ -73,7 +73,6 @@ export function ProductAddForm({
     Array<{
       productId: string;
       productName: string;
-      price: number;
       imageUrl?: string;
       sortOrder: number;
     }>

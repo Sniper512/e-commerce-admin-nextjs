@@ -11,8 +11,6 @@ import { useState } from "react";
 interface SimpleProduct {
   id: string;
   name: string;
-  sku: string;
-  price: number;
   image: string;
 }
 
@@ -20,7 +18,6 @@ interface SimpleProduct {
 interface BoughtTogetherProduct {
   productId: string;
   productName: string;
-  price: number;
   imageUrl?: string;
   sortOrder: number;
 }
@@ -52,7 +49,6 @@ export function ProductBoughtTogetherTab({
         {
           productId: product.id,
           productName: product.name,
-          price: product.price,
           imageUrl: product.image,
           sortOrder: boughtTogetherProducts.length + 1,
         },
@@ -108,7 +104,6 @@ export function ProductBoughtTogetherTab({
                   />
                   <div className="flex-1">
                     <h4 className="font-medium">{product.productName}</h4>
-                    <p className="text-sm text-gray-600">${product.price}</p>
                     <p className="text-xs text-gray-500">
                       Sort Order: {product.sortOrder}
                     </p>

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { productService } from "@/services/productService";
 import discountService from "@/services/discountService";
 import { notFound } from "next/navigation";
@@ -37,10 +38,12 @@ export default async function ProductDetailPage({
   );
 
   return (
-    <ProductEditForm
-      product={serializedProduct}
-      availableProducts={availableProducts}
-      availableDiscounts={serializedDiscounts}
-    />
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProductEditForm
+        product={serializedProduct}
+        availableProducts={availableProducts}
+        availableDiscounts={serializedDiscounts}
+      />
+    </Suspense>
   );
 }

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { productService } from "@/services/productService";
 import discountService from "@/services/discountService";
 import categoryService from "@/services/categoryService";
@@ -10,7 +11,6 @@ export default async function AddProductPage() {
     discountService.getAll(),
     categoryService.getAllCategories(),
   ]);
-  console.log(categories);
 
   // Serialize data for client component
   const serializedAllProducts = JSON.parse(JSON.stringify(allProducts));
@@ -18,10 +18,12 @@ export default async function AddProductPage() {
   const serializedCategories = JSON.parse(JSON.stringify(categories));
 
   return (
-    <ProductAddForm
-      availableProducts={serializedAllProducts}
-      availableDiscounts={serializedDiscounts}
-      categories={serializedCategories}
-    />
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProductAddForm
+        availableProducts={serializedAllProducts}
+        availableDiscounts={serializedDiscounts}
+        categories={serializedCategories}
+      />
+    </Suspense>
   );
 }

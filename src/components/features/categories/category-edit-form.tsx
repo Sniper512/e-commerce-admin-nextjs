@@ -286,7 +286,6 @@ export function CategoryEditForm({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Product</TableHead>
-                      <TableHead>SKU</TableHead>
                       <TableHead>Stock</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -315,11 +314,6 @@ export function CategoryEditForm({
                               </p>
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-sm">
-                            {product.sku}
-                          </span>
                         </TableCell>
                         <TableCell>
                           <Badge

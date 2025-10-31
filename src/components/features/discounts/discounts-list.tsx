@@ -25,8 +25,6 @@ interface DiscountsListProps {
 }
 
 export function DiscountsList({ discounts }: DiscountsListProps) {
-  console.log("DiscountsList discounts:", discounts);
-
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");

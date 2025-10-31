@@ -11,8 +11,6 @@ import { useState } from "react";
 interface SimpleProduct {
   id: string;
   name: string;
-  sku: string;
-  price: number;
   image: string;
 }
 
@@ -20,8 +18,8 @@ interface SimpleProduct {
 interface SimilarProduct {
   productId: string;
   productName: string;
-  price: number;
   imageUrl?: string;
+  sortOrder: number;
 }
 
 interface ProductSimilarTabProps {
@@ -51,8 +49,8 @@ export function ProductSimilarTab({
         {
           productId: product.id,
           productName: product.name,
-          price: product.price,
           imageUrl: product.image,
+          sortOrder: similarProducts.length + 1,
         },
       ]);
     }
@@ -105,7 +103,6 @@ export function ProductSimilarTab({
                   />
                   <div className="flex-1">
                     <h4 className="font-medium">{product.productName}</h4>
-                    <p className="text-sm text-gray-600">${product.price}</p>
                   </div>
                   <Button
                     type="button"

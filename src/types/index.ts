@@ -81,7 +81,6 @@ export interface ProductVideo {
 export interface RelatedProduct {
   productId: string;
   productName: string;
-  price: number;
   imageUrl?: string;
 }
 
@@ -89,9 +88,7 @@ export interface RelatedProduct {
 export interface BoughtTogetherProduct {
   productId: string;
   productName: string;
-  price: number;
   imageUrl?: string;
-  sortOrder: number;
 }
 
 // Purchase History Section
