@@ -28,72 +28,118 @@ import {
   Calendar,
   User,
   BarChart3,
+  Plus,
 } from "lucide-react";
-import type { Category, Product } from "@/types";
+import type { Category, SubCategory, Product } from "@/types";
 import categoryService from "@/services/categoryService";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
+import { LinkButton } from "@/components/ui/link-button";
 
 const DEFAULT_CATEGORY_IMAGE = "/images/default-category.svg";
 const DEFAULT_PRODUCT_IMAGE = "/images/default-product.svg";
 
 interface CategoryEditFormProps {
   category: Category;
+  subCategory: SubCategory | null;
+  subCategories: SubCategory[];
   products: Product[];
+  isSubCategory: boolean;
 }
 
 export function CategoryEditForm({
   category,
+  subCategory,
+  subCategories,
   products,
+  isSubCategory,
 }: CategoryEditFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: category.name,
-    description: category.description || "",
-    type: category.type,
-    parentId: category.parentId || "",
-    picture: category.picture || "",
-    displayOrder: category.displayOrder,
-    isPublished: category.isPublished,
-    showOnHomepage: category.showOnHomepage || false,
-    showOnNavbar: category.showOnNavbar || false,
-  });
+  // Use different form data based on whether it's a category or subcategory
+  const [formData, setFormData] = useState(
+    isSubCategory && subCategory
+      ? {
+          name: subCategory.name,
+          description: subCategory.description || "",
+          picture: subCategory.picture || "",
+          displayOrder: subCategory.displayOrder,
+          isPublished: subCategory.isPublished,
+        }
+      : {
+          name: category.name,
+          description: category.description || "",
+          type: category.type,
+          picture: category.picture || "",
+          displayOrder: category.displayOrder,
+          isPublished: category.isPublished,
+          showOnHomepage: category.showOnHomepage || false,
+          showOnNavbar: category.showOnNavbar || false,
+        }
+  );
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      alert("Please enter a category name");
+      alert(
+        `Please enter a ${isSubCategory ? "subcategory" : "category"} name`
+      );
       return;
     }
 
     try {
       setSaving(true);
-      await categoryService.updateCategory(category.id, formData);
+
+      if (isSubCategory && subCategory) {
+        // Update subcategory
+        await categoryService.updateSubCategory(
+          category.id,
+          subCategory.id,
+          formData
+        );
+      } else {
+        // Update main category
+        await categoryService.updateCategory(category.id, formData);
+      }
+
       setIsEditing(false);
-      alert("Category updated successfully!");
+      alert(
+        `${isSubCategory ? "Subcategory" : "Category"} updated successfully!`
+      );
       router.refresh();
     } catch (err) {
-      console.error("Error updating category:", err);
-      alert("Failed to update category");
+      alert(
+        err instanceof Error
+          ? err.message
+          : `Failed to update ${isSubCategory ? "subcategory" : "category"}`
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleCancel = () => {
-    setFormData({
-      name: category.name,
-      description: category.description || "",
-      type: category.type,
-      parentId: category.parentId || "",
-      picture: category.picture || "",
-      displayOrder: category.displayOrder,
-      isPublished: category.isPublished,
-      showOnHomepage: category.showOnHomepage || false,
-      showOnNavbar: category.showOnNavbar || false,
-    });
+    setFormData(
+      isSubCategory && subCategory
+        ? {
+            name: subCategory.name,
+            description: subCategory.description || "",
+            picture: subCategory.picture || "",
+            displayOrder: subCategory.displayOrder,
+            isPublished: subCategory.isPublished,
+          }
+        : {
+            name: category.name,
+            description: category.description || "",
+            type: category.type,
+            picture: category.picture || "",
+            displayOrder: category.displayOrder,
+            isPublished: category.isPublished,
+            showOnHomepage: category.showOnHomepage || false,
+            showOnNavbar: category.showOnNavbar || false,
+          }
+    );
     setIsEditing(false);
   };
 
@@ -102,19 +148,34 @@ export function CategoryEditForm({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/categories">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Categories
-            </Button>
-          </Link>
+          {isSubCategory ? (
+            <Link href={`/dashboard/categories/${category.id}`}>
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to {category.name}
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/dashboard/categories">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Categories
+              </Button>
+            </Link>
+          )}
           <div>
             <h1 className="text-3xl font-bold text-gray-800">
-              {isEditing ? "Edit Category" : category.name}
+              {isEditing
+                ? `Edit ${isSubCategory ? "Subcategory" : "Category"}`
+                : isSubCategory && subCategory
+                ? subCategory.name
+                : category.name}
             </h1>
             <p className="text-gray-500 mt-1">
               {isEditing
-                ? "Update category details"
+                ? `Update ${isSubCategory ? "subcategory" : "category"} details`
+                : isSubCategory
+                ? `Subcategory under ${category.name}`
                 : "View and manage category"}
             </p>
           </div>
@@ -148,7 +209,7 @@ export function CategoryEditForm({
           ) : (
             <Button onClick={() => setIsEditing(true)}>
               <Edit className="h-4 w-4 mr-2" />
-              Edit Category
+              Edit {isSubCategory ? "Subcategory" : "Category"}
             </Button>
           )}
         </div>
@@ -164,24 +225,48 @@ export function CategoryEditForm({
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Category Name</Label>
+                <Label>{isSubCategory ? "Subcategory" : "Category"} Name</Label>
                 {isEditing ? (
                   <Input
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    placeholder="Enter category name"
+                    placeholder={`Enter ${
+                      isSubCategory ? "subcategory" : "category"
+                    } name`}
                   />
                 ) : (
-                  <p className="mt-1 text-lg font-medium">{category.name}</p>
+                  <p className="mt-1 text-lg font-medium">
+                    {isSubCategory && subCategory
+                      ? subCategory.name
+                      : category.name}
+                  </p>
                 )}
               </div>
+
+              {/* Display Parent Category (Read-only) */}
+              {isSubCategory && (
+                <div>
+                  <Label>Main Category</Label>
+                  <div className="mt-1">
+                    <Link href={`/dashboard/categories/${category.id}`}>
+                      <Badge
+                        variant="default"
+                        className="cursor-pointer hover:bg-blue-600">
+                        {category.name}
+                      </Badge>
+                    </Link>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <Label>Slug</Label>
                 <p className="mt-1 text-gray-600 font-mono text-sm">
-                  {category.slug}
+                  {isSubCategory && subCategory
+                    ? subCategory.slug
+                    : category.slug}
                 </p>
               </div>
 
@@ -193,38 +278,44 @@ export function CategoryEditForm({
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
-                    placeholder="Enter category description"
+                    placeholder={`Enter ${
+                      isSubCategory ? "subcategory" : "category"
+                    } description`}
                     rows={3}
                   />
                 ) : (
                   <p className="mt-1 text-gray-600">
-                    {category.description || "No description"}
+                    {isSubCategory && subCategory
+                      ? subCategory.description || "No description"
+                      : category.description || "No description"}
                   </p>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Type</Label>
-                  {isEditing ? (
-                    <select
-                      value={formData.type}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          type: e.target.value as "simple" | "special",
-                        })
-                      }
-                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md">
-                      <option value="simple">Simple</option>
-                      <option value="special">Special</option>
-                    </select>
-                  ) : (
-                    <Badge variant="default" className="mt-1">
-                      {category.type}
-                    </Badge>
-                  )}
-                </div>
+                {!isSubCategory && (
+                  <div>
+                    <Label>Type</Label>
+                    {isEditing ? (
+                      <select
+                        value={(formData as any).type}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            type: e.target.value as "simple" | "special",
+                          } as any)
+                        }
+                        className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="simple">Simple</option>
+                        <option value="special">Special</option>
+                      </select>
+                    ) : (
+                      <Badge variant="default" className="mt-1">
+                        {category.type}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <Label>Display Order</Label>
@@ -242,7 +333,9 @@ export function CategoryEditForm({
                     />
                   ) : (
                     <p className="mt-1 text-gray-600">
-                      {category.displayOrder}
+                      {isSubCategory && subCategory
+                        ? subCategory.displayOrder
+                        : category.displayOrder}
                     </p>
                   )}
                 </div>
@@ -356,19 +449,30 @@ export function CategoryEditForm({
             </CardContent>
           </Card>
 
-          {/* Subcategories Card */}
-          {category.subCategories && category.subCategories.length > 0 && (
+          {/* Subcategories Card - Only show for main categories */}
+          {!isSubCategory && subCategories && subCategories.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FolderOpen className="h-5 w-5" />
-                  Subcategories
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderOpen className="h-5 w-5" />
+                    Subcategories
+                  </CardTitle>
+                  <LinkButton
+                    href="/dashboard/categories/add"
+                    variant="default"
+                    size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Subcategory
+                  </LinkButton>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {category.subCategories.map((sub) => (
-                    <Link key={sub.id} href={`/dashboard/categories/${sub.id}`}>
+                  {subCategories.map((sub) => (
+                    <Link
+                      key={sub.id}
+                      href={`/dashboard/categories/${category.id}?sub=${sub.id}`}>
                       <div className="p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer">
                         <div className="flex items-center gap-3">
                           <FolderOpen className="h-8 w-8 text-blue-500" />
@@ -393,7 +497,9 @@ export function CategoryEditForm({
           {/* Category Image Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Category Image</CardTitle>
+              <CardTitle>
+                {isSubCategory ? "Subcategory" : "Category"} Image
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
@@ -401,9 +507,15 @@ export function CategoryEditForm({
                   src={
                     isEditing
                       ? formData.picture || DEFAULT_CATEGORY_IMAGE
+                      : isSubCategory && subCategory
+                      ? subCategory.picture || DEFAULT_CATEGORY_IMAGE
                       : category.picture || DEFAULT_CATEGORY_IMAGE
                   }
-                  alt={category.name}
+                  alt={
+                    isSubCategory && subCategory
+                      ? subCategory.name
+                      : category.name
+                  }
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.src = DEFAULT_CATEGORY_IMAGE;
@@ -435,55 +547,77 @@ export function CategoryEditForm({
                   />
                 ) : (
                   <Badge
-                    variant={category.isPublished ? "success" : "secondary"}>
-                    {category.isPublished ? "Published" : "Unpublished"}
+                    variant={
+                      (
+                        isSubCategory && subCategory
+                          ? subCategory.isPublished
+                          : category.isPublished
+                      )
+                        ? "success"
+                        : "secondary"
+                    }>
+                    {(
+                      isSubCategory && subCategory
+                        ? subCategory.isPublished
+                        : category.isPublished
+                    )
+                      ? "Published"
+                      : "Unpublished"}
                   </Badge>
                 )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <Label>Show on Homepage</Label>
-                {isEditing ? (
-                  <input
-                    type="checkbox"
-                    checked={formData.showOnHomepage}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        showOnHomepage: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4"
-                  />
-                ) : (
-                  <Badge
-                    variant={category.showOnHomepage ? "success" : "secondary"}>
-                    {category.showOnHomepage ? "Yes" : "No"}
-                  </Badge>
-                )}
-              </div>
+              {!isSubCategory && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <Label>Show on Homepage</Label>
+                    {isEditing ? (
+                      <input
+                        type="checkbox"
+                        checked={(formData as any).showOnHomepage}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            showOnHomepage: e.target.checked,
+                          } as any)
+                        }
+                        className="w-4 h-4"
+                      />
+                    ) : (
+                      <Badge
+                        variant={
+                          category.showOnHomepage ? "success" : "secondary"
+                        }>
+                        {category.showOnHomepage ? "Yes" : "No"}
+                      </Badge>
+                    )}
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <Label>Show on Navbar</Label>
-                {isEditing ? (
-                  <input
-                    type="checkbox"
-                    checked={formData.showOnNavbar}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        showOnNavbar: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4"
-                  />
-                ) : (
-                  <Badge
-                    variant={category.showOnNavbar ? "success" : "secondary"}>
-                    {category.showOnNavbar ? "Yes" : "No"}
-                  </Badge>
-                )}
-              </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Show on Navbar</Label>
+                    {isEditing ? (
+                      <input
+                        type="checkbox"
+                        checked={(formData as any).showOnNavbar}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            showOnNavbar: e.target.checked,
+                          } as any)
+                        }
+                        className="w-4 h-4"
+                      />
+                    ) : (
+                      <Badge
+                        variant={
+                          category.showOnNavbar ? "success" : "secondary"
+                        }>
+                        {category.showOnNavbar ? "Yes" : "No"}
+                      </Badge>
+                    )}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -499,15 +633,19 @@ export function CategoryEditForm({
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Total Products</span>
                 <Badge variant="default">
-                  {category.productIds?.length || 0}
+                  {isSubCategory && subCategory
+                    ? subCategory.productIds?.length || 0
+                    : category.productIds?.length || 0}
                 </Badge>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Subcategories</span>
-                <Badge variant="default">
-                  {category.subCategories?.length || 0}
-                </Badge>
-              </div>
+              {!isSubCategory && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Subcategories</span>
+                  <Badge variant="default">
+                    {category.subCategoryCount || 0}
+                  </Badge>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -523,7 +661,11 @@ export function CategoryEditForm({
               <div>
                 <Label className="text-xs text-gray-500">Created</Label>
                 <p className="mt-1">
-                  {new Date(category.createdAt).toLocaleDateString("en-US", {
+                  {new Date(
+                    isSubCategory && subCategory
+                      ? subCategory.createdAt
+                      : category.createdAt
+                  ).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
@@ -531,13 +673,19 @@ export function CategoryEditForm({
                 </p>
                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                   <User className="h-3 w-3" />
-                  {category.createdBy || "N/A"}
+                  {isSubCategory && subCategory
+                    ? subCategory.createdBy || "N/A"
+                    : category.createdBy || "N/A"}
                 </p>
               </div>
               <div className="pt-3 border-t">
                 <Label className="text-xs text-gray-500">Last Updated</Label>
                 <p className="mt-1">
-                  {new Date(category.updatedAt).toLocaleDateString("en-US", {
+                  {new Date(
+                    isSubCategory && subCategory
+                      ? subCategory.updatedAt
+                      : category.updatedAt
+                  ).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
@@ -545,7 +693,9 @@ export function CategoryEditForm({
                 </p>
                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                   <User className="h-3 w-3" />
-                  {category.updatedBy || "N/A"}
+                  {isSubCategory && subCategory
+                    ? subCategory.updatedBy || "N/A"
+                    : category.updatedBy || "N/A"}
                 </p>
               </div>
             </CardContent>

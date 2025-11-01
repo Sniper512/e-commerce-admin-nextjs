@@ -58,7 +58,6 @@ const firestoreToCategory = (id: string, data: any): Category => {
     type: data.type || "simple",
     displayOrder: data.displayOrder || 1,
     picture: data.picture || undefined,
-    hasSubCategories: data.hasSubCategories ?? false,
     subCategoryCount: data.subCategoryCount || 0,
     isPublished: data.isPublished ?? true,
     productIds: data.productIds || [],
@@ -184,7 +183,59 @@ export const categoryService = {
     }
   },
 
-  // Get subcategories of a parent category
+  // Check if category name already exists
+  async checkCategoryNameExists(
+    name: string,
+    excludeId?: string
+  ): Promise<boolean> {
+    try {
+      const categoriesRef = collection(db, COLLECTION_NAME);
+      const slug = generateSlug(name);
+      const q = query(categoriesRef, where("slug", "==", slug));
+      const snapshot = await getDocs(q);
+
+      // If excludeId is provided, check if any other category has this name
+      if (excludeId) {
+        return snapshot.docs.some((doc) => doc.id !== excludeId);
+      }
+
+      return !snapshot.empty;
+    } catch (error) {
+      console.error("Error checking category name:", error);
+      throw error;
+    }
+  },
+
+  // Check if subcategory name already exists within a parent category
+  async checkSubCategoryNameExists(
+    parentCategoryId: string,
+    name: string,
+    excludeId?: string
+  ): Promise<boolean> {
+    try {
+      const subCategoriesRef = collection(
+        db,
+        COLLECTION_NAME,
+        parentCategoryId,
+        SUBCATEGORIES_COLLECTION
+      );
+      const slug = generateSlug(name);
+      const q = query(subCategoriesRef, where("slug", "==", slug));
+      const snapshot = await getDocs(q);
+
+      // If excludeId is provided, check if any other subcategory has this name
+      if (excludeId) {
+        return snapshot.docs.some((doc) => doc.id !== excludeId);
+      }
+
+      return !snapshot.empty;
+    } catch (error) {
+      console.error("Error checking subcategory name:", error);
+      throw error;
+    }
+  },
+
+  // Get subcategory by ID
   async getSubCategories(parentId: string): Promise<SubCategory[]> {
     try {
       const subCategoriesRef = collection(
@@ -208,6 +259,16 @@ export const categoryService = {
   // Create new category
   async createCategory(categoryData: Partial<Category>): Promise<Category> {
     try {
+      // Check if category name already exists
+      const nameExists = await this.checkCategoryNameExists(
+        categoryData.name || ""
+      );
+      if (nameExists) {
+        throw new Error(
+          `A category with the name "${categoryData.name}" already exists`
+        );
+      }
+
       const categoriesRef = collection(db, COLLECTION_NAME);
 
       const newCategoryData = {
@@ -217,7 +278,6 @@ export const categoryService = {
         type: categoryData.type || "simple",
         displayOrder: categoryData.displayOrder || 1,
         picture: categoryData.picture || null,
-        hasSubCategories: false,
         subCategoryCount: 0,
         isPublished: categoryData.isPublished ?? true,
         productIds: categoryData.productIds || [],
@@ -260,6 +320,17 @@ export const categoryService = {
         throw new Error("Parent category not found");
       }
 
+      // Check if subcategory name already exists within this parent
+      const nameExists = await this.checkSubCategoryNameExists(
+        parentCategoryId,
+        subCategoryData.name || ""
+      );
+      if (nameExists) {
+        throw new Error(
+          `A subcategory with the name "${subCategoryData.name}" already exists in "${parentCategory.name}"`
+        );
+      }
+
       const subCategoriesRef = collection(
         db,
         COLLECTION_NAME,
@@ -285,9 +356,8 @@ export const categoryService = {
       const sanitizedData = sanitizeForFirestore(newSubCategoryData);
       const docRef = await addDoc(subCategoriesRef, sanitizedData);
 
-      // Update parent category flags
+      // Update parent category count
       await this.updateCategory(parentCategoryId, {
-        hasSubCategories: true,
         subCategoryCount: parentCategory.subCategoryCount + 1,
       });
 
@@ -352,6 +422,16 @@ export const categoryService = {
 
       const currentData = docSnap.data();
 
+      // Check if name is being updated and if it already exists
+      if (updates.name && updates.name !== currentData.name) {
+        const nameExists = await this.checkCategoryNameExists(updates.name, id);
+        if (nameExists) {
+          throw new Error(
+            `A category with the name "${updates.name}" already exists`
+          );
+        }
+      }
+
       const updateData: any = {
         ...updates,
         updatedAt: new Date().toISOString(),
@@ -384,6 +464,71 @@ export const categoryService = {
     }
   },
 
+  // Update subcategory
+  async updateSubCategory(
+    parentCategoryId: string,
+    subCategoryId: string,
+    updates: Partial<SubCategory>
+  ): Promise<SubCategory> {
+    try {
+      const docRef = doc(
+        db,
+        COLLECTION_NAME,
+        parentCategoryId,
+        SUBCATEGORIES_COLLECTION,
+        subCategoryId
+      );
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        throw new Error("Subcategory not found");
+      }
+
+      const currentData = docSnap.data();
+
+      // Check if name is being updated and if it already exists
+      if (updates.name && updates.name !== currentData.name) {
+        const nameExists = await this.checkSubCategoryNameExists(
+          parentCategoryId,
+          updates.name,
+          subCategoryId
+        );
+        if (nameExists) {
+          throw new Error(
+            `A subcategory with the name "${updates.name}" already exists in this category`
+          );
+        }
+      }
+
+      const updateData: any = {
+        ...updates,
+        updatedAt: new Date().toISOString(),
+        updatedBy: "current-user",
+      };
+
+      // Update slug if name changed
+      if (updates.name && updates.name !== currentData.name) {
+        updateData.slug = generateSlug(updates.name);
+      }
+
+      const sanitizedUpdate = sanitizeForFirestore(updateData);
+      await updateDoc(docRef, sanitizedUpdate);
+
+      const updatedSubCategory = await this.getSubCategoryById(
+        parentCategoryId,
+        subCategoryId
+      );
+      if (!updatedSubCategory) {
+        throw new Error("Failed to retrieve updated subcategory");
+      }
+
+      return updatedSubCategory;
+    } catch (error) {
+      console.error("Error updating subcategory:", error);
+      throw error;
+    }
+  },
+
   // Delete category
   async deleteCategory(id: string): Promise<boolean> {
     try {
@@ -393,7 +538,7 @@ export const categoryService = {
       }
 
       // Check if category has subcategories
-      if (category.hasSubCategories || category.subCategoryCount > 0) {
+      if (category.subCategoryCount > 0) {
         throw new Error("Cannot delete category with subcategories");
       }
 
@@ -446,7 +591,6 @@ export const categoryService = {
         const newCount = Math.max(0, parentCategory.subCategoryCount - 1);
         await this.updateCategory(parentCategoryId, {
           subCategoryCount: newCount,
-          hasSubCategories: newCount > 0,
         });
       }
 

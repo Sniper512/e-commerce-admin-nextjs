@@ -19,10 +19,8 @@ import {
   Search,
   Trash2,
   Eye,
-  ArrowUpDown,
   Check,
   X,
-  ChevronRight,
   Folder,
   FolderOpen,
 } from "lucide-react";
@@ -84,7 +82,6 @@ export function CategoriesList({
       alert("Category deleted successfully!");
       router.refresh();
     } catch (error) {
-      console.error("Error deleting category:", error);
       alert(error instanceof Error ? error.message : "Error deleting category");
     }
   };
@@ -102,7 +99,6 @@ export function CategoriesList({
       alert("Sub-category deleted successfully!");
       router.refresh();
     } catch (error) {
-      console.error("Error deleting sub-category:", error);
       alert(
         error instanceof Error ? error.message : "Error deleting sub-category"
       );
@@ -166,7 +162,7 @@ export function CategoriesList({
                         </TableCell>
                         <TableCell className="font-semibold">
                           <div className="flex items-center gap-2">
-                            {category.hasSubCategories ? (
+                            {category.subCategoryCount > 0 ? (
                               <FolderOpen className="h-4 w-4 text-blue-600" />
                             ) : (
                               <Folder className="h-4 w-4 text-gray-500" />
@@ -282,7 +278,7 @@ export function CategoriesList({
                             <LinkButton
                               variant="outline"
                               size="sm"
-                              href={`/dashboard/categories/${subCategory.id}`}>
+                              href={`/dashboard/categories/${item.parentId}?sub=${subCategory.id}`}>
                               <Eye className="h-3 w-3" />
                             </LinkButton>
                             <Button

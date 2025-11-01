@@ -22,7 +22,6 @@ export interface Category {
   type: CategoryType; // simple or special (e.g., "Summer Sales")
   displayOrder: number;
   picture?: string; // Category image/picture URL
-  hasSubCategories: boolean; // Flag to indicate if subcategories exist
   subCategoryCount: number; // Count of subcategories
   isPublished: boolean; // Whether category is published
   productIds: string[]; // Array of product IDs in this category

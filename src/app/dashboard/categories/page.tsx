@@ -16,7 +16,7 @@ export default async function CategoriesPage() {
   }> = await Promise.all(
     categories.map(async (category) => ({
       category,
-      subCategories: category.hasSubCategories
+      subCategories: category.subCategoryCount > 0
         ? await categoryService.getSubCategories(category.id)
         : [],
     }))

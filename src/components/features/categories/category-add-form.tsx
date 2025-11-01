@@ -88,7 +88,6 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
 
       router.push("/dashboard/categories");
     } catch (error) {
-      console.error("Error saving category:", error);
       alert(error instanceof Error ? error.message : "Error saving category");
     } finally {
       setLoading(false);
@@ -194,7 +193,7 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}
-                        {cat.hasSubCategories
+                        {cat.subCategoryCount > 0
                           ? ` (${cat.subCategoryCount} sub-categories)`
                           : ""}
                       </option>
