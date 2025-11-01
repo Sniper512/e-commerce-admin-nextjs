@@ -70,8 +70,8 @@ export interface Manufacturer {
 export interface ProductInfo {
   name: string;
   description: string;
-  categories: string[]; // Array of category IDs
-  manufacturer: string;
+  categoryIds: string[]; // Format: "categoryId" or "parentCategoryId/subCategoryId"
+  manufacturerId: string; // Reference to manufacturer ID
   isPublished: boolean;
   productTags: string[];
   allowCustomerReviews: boolean;
@@ -109,10 +109,11 @@ export interface ProductVideo {
 }
 
 // Related Products Section
-export interface RelatedProduct {
+export interface SimilarProduct {
   productId: string;
   productName: string;
   imageUrl?: string;
+  sortOrder?: number;
 }
 
 // Bought together Section
@@ -120,6 +121,7 @@ export interface BoughtTogetherProduct {
   productId: string;
   productName: string;
   imageUrl?: string;
+  sortOrder?: number;
 }
 
 // Purchase History Section
@@ -161,7 +163,7 @@ export interface Product {
   multimedia: ProductMultimedia;
 
   // Related Products Section
-  similarProducts: RelatedProduct[];
+  similarProducts: SimilarProduct[];
 
   // Bought together Section
   boughtTogetherProducts: BoughtTogetherProduct[];
@@ -172,30 +174,14 @@ export interface Product {
   // Stock History Section
   stockHistory: StockQuantityHistory[];
 
-  // Legacy fields for backwards compatibility
-  categoryIds: string[]; // Alias for info.categories
-  images: string[]; // Alias for multimedia.images URLs
-  thumbnailUrl?: string;
-  minStockLevel: number; // Alias for inventory.minimumStockQuantity
-  basePrice: number; // Alias for pricing.productCost
-  sellingPrice: number; // Alias for pricing.price
-
-  // Composite product details
-  compositeItems?: {
-    productId: string;
-    quantity: number;
-  }[];
-
   // Batch tracking (existing functionality)
   hasBatches: boolean;
 
   // Display
   displayOrder: number;
   isFeatured: boolean;
-  isActive: boolean; // Alias for info.isPublished
 
   // Metadata
-  tags?: string[]; // Alias for info.productTags
   createdAt: Date;
   updatedAt: Date;
   createdBy: string;
@@ -632,4 +618,46 @@ export interface Batch {
   updatedAt: Date;
   createdBy?: string;
   updatedBy?: string;
+}
+
+// Category Helper Types and Functions
+export interface ParsedCategoryId {
+  categoryId: string;
+  subCategoryId?: string;
+  isSubCategory: boolean;
+}
+
+/**
+ * Parse a category ID string
+ * @param categoryIdString - Format: "categoryId" or "parentCategoryId/subCategoryId"
+ * @returns Parsed category information
+ */
+export function parseCategoryId(categoryIdString: string): ParsedCategoryId {
+  const parts = categoryIdString.split("/");
+
+  if (parts.length === 1) {
+    return {
+      categoryId: parts[0],
+      isSubCategory: false,
+    };
+  }
+
+  return {
+    categoryId: parts[0],
+    subCategoryId: parts[1],
+    isSubCategory: true,
+  };
+}
+
+/**
+ * Create a category ID string
+ * @param categoryId - Main category ID
+ * @param subCategoryId - Optional subcategory ID
+ * @returns Formatted category ID string
+ */
+export function createCategoryIdString(
+  categoryId: string,
+  subCategoryId?: string
+): string {
+  return subCategoryId ? `${categoryId}/${subCategoryId}` : categoryId;
 }

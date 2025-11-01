@@ -235,6 +235,35 @@ export const categoryService = {
     }
   },
 
+  // Get all categories with their subcategories populated
+  async getAllCategoriesWithSubCategories(): Promise<any[]> {
+    try {
+      // First, get all main categories
+      const categoriesRef = collection(db, COLLECTION_NAME);
+      const q = query(categoriesRef, orderBy("displayOrder", "asc"));
+      const snapshot = await getDocs(q);
+
+      const categories = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const category = firestoreToCategory(docSnap.id, docSnap.data());
+          
+          // Fetch subcategories for this category
+          const subcategories = await this.getSubCategories(category.id);
+          
+          return {
+            ...category,
+            subcategories
+          };
+        })
+      );
+
+      return categories;
+    } catch (error) {
+      console.error("Error fetching categories with subcategories:", error);
+      throw error;
+    }
+  },
+
   // Get subcategory by ID
   async getSubCategories(parentId: string): Promise<SubCategory[]> {
     try {
@@ -441,11 +470,6 @@ export const categoryService = {
       // Update slug if name changed
       if (updates.name && updates.name !== currentData.name) {
         updateData.slug = generateSlug(updates.name);
-      }
-
-      // Sync legacy fields
-      if (updates.picture !== undefined) {
-        updateData.imageUrl = updates.picture;
       }
 
       // Remove undefined values

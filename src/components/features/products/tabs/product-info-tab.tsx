@@ -4,18 +4,22 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Category } from "@/types";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
+import type { Category, Manufacturer, SubCategory } from "@/types";
+import { parseCategoryId, createCategoryIdString } from "@/types";
 
 interface ProductInfoTabProps {
   productName: string;
   onProductNameChange: (value: string) => void;
   description: string;
   onDescriptionChange: (value: string) => void;
-  categoryId: string;
-  onCategoryIdChange: (value: string) => void;
+  categoryIds: string[];
+  onCategoryIdsChange: (value: string[]) => void;
   categories: Category[];
-  manufacturer: string;
-  onManufacturerChange: (value: string) => void;
+  manufacturerId: string;
+  onManufacturerIdChange: (value: string) => void;
+  manufacturers: Manufacturer[];
   productTags: string[];
   onProductTagsChange: (value: string[]) => void;
   isPublished: boolean;
@@ -35,11 +39,12 @@ export function ProductInfoTab({
   onProductNameChange,
   description,
   onDescriptionChange,
-  categoryId,
-  onCategoryIdChange,
+  categoryIds,
+  onCategoryIdsChange,
   categories,
-  manufacturer,
-  onManufacturerChange,
+  manufacturerId,
+  onManufacturerIdChange,
+  manufacturers,
   productTags,
   onProductTagsChange,
   isPublished,
@@ -53,6 +58,35 @@ export function ProductInfoTab({
   markAsNewEndDate,
   onMarkAsNewEndDateChange,
 }: ProductInfoTabProps) {
+  // Helper function to get category/subcategory name by ID string
+  const getCategoryName = (categoryIdString: string): string => {
+    const parsed = parseCategoryId(categoryIdString);
+    
+    if (parsed.isSubCategory) {
+      const category = categories.find((cat) => cat.id === parsed.categoryId);
+      const subCategory = (category as any)?.subcategories?.find(
+        (sub: SubCategory) => sub.id === parsed.subCategoryId
+      );
+      return category && subCategory
+        ? `${category.name} >> ${subCategory.name}`
+        : "Unknown";
+    }
+    
+    const category = categories.find((cat) => cat.id === parsed.categoryId);
+    return category?.name || "Unknown";
+  };
+
+  // Handle adding a category
+  const handleAddCategory = (categoryIdString: string) => {
+    if (categoryIdString && !categoryIds.includes(categoryIdString)) {
+      onCategoryIdsChange([...categoryIds, categoryIdString]);
+    }
+  };
+
+  // Handle removing a category
+  const handleRemoveCategory = (categoryIdString: string) => {
+    onCategoryIdsChange(categoryIds.filter((id) => id !== categoryIdString));
+  };
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
@@ -89,26 +123,67 @@ export function ProductInfoTab({
             <Label htmlFor="manufacturer" className="form-label">
               Manufacturer
             </Label>
-            <Input
+            <select
               id="manufacturer"
-              placeholder="Enter manufacturer name"
-              value={manufacturer}
-              onChange={(e) => onManufacturerChange(e.target.value)}
-            />
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={manufacturerId}
+              onChange={(e) => onManufacturerIdChange(e.target.value)}>
+              <option value="">Select manufacturer</option>
+              {manufacturers.map((manufacturer) => (
+                <option key={manufacturer.id} value={manufacturer.id}>
+                  {manufacturer.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
             <Label htmlFor="categories" className="form-label">
               Categories
             </Label>
+            
+            {/* Selected Categories */}
+            {categoryIds.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {categoryIds.map((categoryIdString) => (
+                  <Badge
+                    key={categoryIdString}
+                    variant="secondary"
+                    className="flex items-center gap-1">
+                    {getCategoryName(categoryIdString)}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCategory(categoryIdString)}
+                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            
+            {/* Category Dropdown */}
             <select
+              id="categories"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={categoryId}
-              onChange={(e) => onCategoryIdChange(e.target.value)}>
-              <option value="">Select categories</option>
-              <option value="electronics">Electronics</option>
-              <option value="clothing">Clothing</option>
-              <option value="books">Books</option>
+              value=""
+              onChange={(e) => handleAddCategory(e.target.value)}>
+              <option value="">Select category or subcategory</option>
+              {categories.map((category) => (
+                <optgroup key={category.id} label={category.name}>
+                  {/* Main Category Option */}
+                  <option value={category.id}>{category.name}</option>
+                  
+                  {/* Subcategory Options */}
+                  {(category as any).subcategories?.map((subCategory: SubCategory) => (
+                    <option
+                      key={subCategory.id}
+                      value={createCategoryIdString(category.id, subCategory.id)}>
+                      {category.name} &gt;&gt; {subCategory.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
 

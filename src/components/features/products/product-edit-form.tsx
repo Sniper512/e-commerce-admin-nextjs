@@ -17,15 +17,19 @@ import { ProductBoughtTogetherTab } from "./tabs/product-bought-together-tab";
 import { ProductOrderHistoryTab } from "./tabs/product-order-history-tab";
 
 interface ProductEditFormProps {
-  product: any; // Serialized product
+  product: Product; // Serialized product
   availableProducts: any[];
   availableDiscounts: any[];
+  categories: any[];
+  manufacturers: any[];
 }
 
 export function ProductEditForm({
   product,
   availableProducts,
   availableDiscounts,
+  categories,
+  manufacturers,
 }: ProductEditFormProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -35,21 +39,17 @@ export function ProductEditForm({
   // Get active tab from URL search params, default to "info"
   const activeTab = searchParams.get("tab") || "info";
 
-  // Form state
   const [formData, setFormData] = useState({
     name: product.info.name,
     description: product.info.description || "",
-    categories: product.info.categories || [],
-    manufacturer: product.info.manufacturer || "",
+    categoryIds: product.info.categoryIds || [],
+    manufacturerId: product.info.manufacturerId || "",
     productTags: product.info.productTags || [],
     isPublished: product.info.isPublished,
     allowCustomerReviews: product.info.allowCustomerReviews,
     markAsNew: product.info.markAsNew,
     markAsNewStartDate: product.info.markAsNewStartDate,
     markAsNewEndDate: product.info.markAsNewEndDate,
-    productCost: product.pricing.productCost || 0,
-    minBuy: product.pricing.minBuy || 1,
-    maxBuy: product.pricing.maxBuy || 999,
     stockQuantity: product.inventory.stockQuantity,
     minimumStockQuantity: product.inventory.minimumStockQuantity,
   });
@@ -73,7 +73,7 @@ export function ProductEditForm({
   );
 
   const [selectedDiscountIds, setSelectedDiscountIds] = useState(
-    product.pricing.discountIds || []
+    product.discountIds || []
   );
 
   const [discountSearchValue, setDiscountSearchValue] = useState("");
@@ -94,8 +94,8 @@ export function ProductEditForm({
         info: {
           name: formData.name,
           description: formData.description,
-          categories: formData.categories,
-          manufacturer: formData.manufacturer,
+          categoryIds: formData.categoryIds,
+          manufacturerId: formData.manufacturerId,
           productTags: formData.productTags,
           isPublished: formData.isPublished,
           allowCustomerReviews: formData.allowCustomerReviews,
@@ -183,15 +183,16 @@ export function ProductEditForm({
           onDescriptionChange={(value: string) =>
             setFormData({ ...formData, description: value })
           }
-          categoryId={formData.categories[0] || ""}
-          onCategoryIdChange={(value: string) =>
-            setFormData({ ...formData, categories: [value] })
+          categoryIds={formData.categoryIds}
+          onCategoryIdsChange={(value: string[]) =>
+            setFormData({ ...formData, categoryIds: value })
           }
-          categories={[]}
-          manufacturer={formData.manufacturer}
-          onManufacturerChange={(value: string) =>
-            setFormData({ ...formData, manufacturer: value })
+          categories={categories}
+          manufacturerId={formData.manufacturerId}
+          onManufacturerIdChange={(value: string) =>
+            setFormData({ ...formData, manufacturerId: value })
           }
+          manufacturers={manufacturers}
           productTags={formData.productTags}
           onProductTagsChange={(value: string[]) =>
             setFormData({ ...formData, productTags: value })

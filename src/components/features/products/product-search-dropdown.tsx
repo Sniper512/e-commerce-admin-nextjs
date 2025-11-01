@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useRef, useMemo } from "react";
 
 interface Product {
@@ -96,10 +97,12 @@ export function ProductSearchDropdown({
               type="button"
               onClick={() => handleSelectProduct(product.id)}
               className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 text-left">
-              <img
+              <Image
                 src={product.image}
                 alt={product.name}
                 className="w-10 h-10 object-cover rounded"
+                width={40}
+                height={40}
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = defaultProductImage;
                 }}

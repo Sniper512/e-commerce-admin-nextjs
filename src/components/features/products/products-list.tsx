@@ -16,23 +16,41 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search, Trash2, Eye, ArrowUpDown } from "lucide-react";
-import type { Product, Category } from "@/types";
+import type { Product, Category, SubCategory } from "@/types";
+import { parseCategoryId } from "@/types";
 import { productService } from "@/services/productService";
 import Image from "next/image";
 
 interface ProductsListProps {
   products: Product[];
-  categories: Category[];
+  categories: any[]; // Categories with subcategories populated
 }
 
 export function ProductsList({ products, categories }: ProductsListProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Helper function to get category name from ID
-  const getCategoryName = (categoryId: string): string => {
-    const category = categories.find((c) => c.id === categoryId);
-    return category ? category.name : "Uncategorized";
+  // Helper function to get category name from categoryId string
+  const getCategoryName = (categoryIdString: string): string => {
+    const parsed = parseCategoryId(categoryIdString);
+
+    if (parsed.isSubCategory) {
+      // Find parent category and subcategory
+      const parentCategory = categories.find((c) => c.id === parsed.categoryId);
+      if (parentCategory && parentCategory.subcategories) {
+        const subCategory = parentCategory.subcategories.find(
+          (sub: SubCategory) => sub.id === parsed.subCategoryId
+        );
+        if (subCategory) {
+          return `${parentCategory.name} >> ${subCategory.name}`;
+        }
+      }
+      return "Unknown Category";
+    } else {
+      // Main category
+      const category = categories.find((c) => c.id === parsed.categoryId);
+      return category ? category.name : "Uncategorized";
+    }
   };
 
   const handleDelete = async (productId: string) => {
@@ -77,17 +95,12 @@ export function ProductsList({ products, categories }: ProductsListProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>
-                  <button className="flex items-center gap-1 font-semibold">
-                    Product Name
-                    <ArrowUpDown className="h-4 w-4" />
-                  </button>
-                </TableHead>
-                <TableHead>Image</TableHead>
-                <TableHead>Category</TableHead>
+                <TableHead>Product Name</TableHead>
+                <TableHead className="text-center">Image</TableHead>
+                <TableHead className="text-center">Category</TableHead>
                 <TableHead className="text-center">Stock</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -103,13 +116,14 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                 </TableRow>
               ) : (
                 filteredProducts.map((product) => {
-                  const categoryId = product.info.categories[0];
-                  const categoryName = categoryId
-                    ? getCategoryName(categoryId)
-                    : "Uncategorized";
+                  // Handle new categoryIds format
+                  const categoryIdStrings = product.info.categoryIds || [];
                   const stock = product.inventory.stockQuantity;
                   const minStock = product.inventory.minimumStockQuantity;
                   const isLowStock = stock < minStock;
+                  const productImage =
+                    product.multimedia?.images?.[0]?.url ||
+                    "/images/default-product.svg";
 
                   return (
                     <TableRow key={product.id}>
@@ -118,18 +132,29 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                       </TableCell>
                       <TableCell>
                         <Image
-                          src={
-                            product.images && product.images[0]
-                              ? product.images[0]
-                              : "/images/default-product.svg"
-                          }
+                          src={productImage}
                           alt={product.info.name}
-                          className="h-16 w-16 object-cover"
+                          className="h-16 w-16 object-cover mx-auto"
                           width={64}
                           height={64}
                         />
                       </TableCell>
-                      <TableCell>{categoryName}</TableCell>
+                      <TableCell className="text-center">
+                        {categoryIdStrings.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 justify-center">
+                            {categoryIdStrings.map((catIdString: string) => (
+                              <Badge
+                                key={catIdString}
+                                variant="secondary"
+                                className="text-xs">
+                                {getCategoryName(catIdString)}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">Uncategorized</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-col items-center">
                           <span
@@ -151,8 +176,8 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                           {product.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                      <TableCell>
+                        <div className="flex justify-center gap-2">
                           <Link href={`/dashboard/products/${product.id}`}>
                             <Button
                               variant="outline"

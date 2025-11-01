@@ -6,20 +6,14 @@ import { Button } from "@/components/ui/button";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
+import { SimilarProduct } from "@/types";
+import Image from "next/image";
 
 // Simplified product type for dropdown
 interface SimpleProduct {
   id: string;
   name: string;
   image: string;
-}
-
-// Similar product type
-interface SimilarProduct {
-  productId: string;
-  productName: string;
-  imageUrl?: string;
-  sortOrder: number;
 }
 
 interface ProductSimilarTabProps {
@@ -93,10 +87,12 @@ export function ProductSimilarTab({
                 <div
                   key={product.productId}
                   className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <img
+                  <Image
                     src={product.imageUrl || defaultImage}
                     alt={product.productName}
                     className="w-16 h-16 object-cover rounded"
+                    width={64}
+                    height={64}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = defaultImage;
                     }}

@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
-import type { Product, ProductImage } from "@/types";
+import type {
+  BoughtTogetherProduct,
+  Product,
+  ProductImage,
+  SimilarProduct,
+} from "@/types";
 import { ProductInfoTab } from "./tabs/product-info-tab";
 import { ProductDiscountsTab } from "./tabs/product-discounts-tab";
 import { ProductInventoryTab } from "./tabs/product-inventory-tab";
@@ -19,12 +24,14 @@ interface ProductAddFormProps {
   availableProducts: any[];
   availableDiscounts: any[];
   categories: any[];
+  manufacturers: any[];
 }
 
 export function ProductAddForm({
   availableProducts,
   availableDiscounts,
   categories,
+  manufacturers,
 }: ProductAddFormProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -34,12 +41,12 @@ export function ProductAddForm({
   // Get active tab from URL search params, default to "info"
   const activeTab = searchParams.get("tab") || "info";
 
-  // Form state
-  const [formData, setFormData] = useState({
+  // Form state - using useMemo to prevent hydration mismatch
+  const initialFormData = {
     name: "",
     description: "",
-    categories: [] as string[],
-    manufacturer: "",
+    categoryIds: [] as string[],
+    manufacturerId: "",
     productTags: [] as string[],
     isPublished: true,
     allowCustomerReviews: true,
@@ -48,7 +55,9 @@ export function ProductAddForm({
     markAsNewEndDate: undefined as Date | undefined,
     stockQuantity: 0,
     minimumStockQuantity: 10,
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   const [images, setImages] = useState<ProductImage[]>([
     {
@@ -60,22 +69,12 @@ export function ProductAddForm({
     },
   ]);
 
-  const [similarProducts, setSimilarProducts] = useState<
-    Array<{
-      productId: string;
-      productName: string;
-      imageUrl?: string;
-      sortOrder: number;
-    }>
-  >([]);
+  const [similarProducts, setSimilarProducts] = useState<Array<SimilarProduct>>(
+    []
+  );
 
   const [boughtTogetherProducts, setBoughtTogetherProducts] = useState<
-    Array<{
-      productId: string;
-      productName: string;
-      imageUrl?: string;
-      sortOrder: number;
-    }>
+    Array<BoughtTogetherProduct>
   >([]);
 
   const [selectedDiscountIds, setSelectedDiscountIds] = useState<string[]>([]);
@@ -97,8 +96,8 @@ export function ProductAddForm({
         info: {
           name: formData.name,
           description: formData.description,
-          categories: formData.categories,
-          manufacturer: formData.manufacturer,
+          categoryIds: formData.categoryIds,
+          manufacturerId: formData.manufacturerId,
           productTags: formData.productTags,
           isPublished: formData.isPublished,
           allowCustomerReviews: formData.allowCustomerReviews,
@@ -190,15 +189,16 @@ export function ProductAddForm({
           onDescriptionChange={(value: string) =>
             setFormData({ ...formData, description: value })
           }
-          categoryId={formData.categories[0] || ""}
-          onCategoryIdChange={(value: string) =>
-            setFormData({ ...formData, categories: [value] })
+          categoryIds={formData.categoryIds}
+          onCategoryIdsChange={(value: string[]) =>
+            setFormData({ ...formData, categoryIds: value })
           }
           categories={categories}
-          manufacturer={formData.manufacturer}
-          onManufacturerChange={(value: string) =>
-            setFormData({ ...formData, manufacturer: value })
+          manufacturerId={formData.manufacturerId}
+          onManufacturerIdChange={(value: string) =>
+            setFormData({ ...formData, manufacturerId: value })
           }
+          manufacturers={manufacturers}
           productTags={formData.productTags}
           onProductTagsChange={(value: string[]) =>
             setFormData({ ...formData, productTags: value })

@@ -12,12 +12,18 @@ import {
   limit,
   Timestamp,
   QueryConstraint,
+  arrayUnion,
+  arrayRemove,
+  increment,
 } from "firebase/firestore";
 import { db } from "@/../firebaseConfig";
 import { Product, ProductBatch } from "@/types";
 
 const PRODUCTS_COLLECTION = "PRODUCTS";
 const BATCHES_COLLECTION = "BATCHES";
+const CATEGORIES_COLLECTION = "CATEGORIES";
+const SUBCATEGORIES_COLLECTION = "SUB_CATEGORIES";
+const MANUFACTURERS_COLLECTION = "MANUFACTURERS";
 
 // Helper: sanitize object for Firestore by removing undefined values
 // and converting Date instances to Firestore Timestamps recursively.
@@ -42,6 +48,127 @@ function sanitizeForFirestore(value: any): any {
   }
   return value; // primitive (number, string, boolean)
 }
+
+// Helper: Parse categoryId to determine if it's a main category or subcategory
+function parseCategoryId(categoryId: string): {
+  categoryId: string;
+  subCategoryId: string | null;
+} {
+  const parts = categoryId.split("/");
+  if (parts.length === 2) {
+    return { categoryId: parts[0], subCategoryId: parts[1] };
+  }
+  return { categoryId: parts[0], subCategoryId: null };
+}
+
+// Helper: Update category/subcategory when adding a product
+async function addProductToCategories(
+  productId: string,
+  categoryIds: string[]
+): Promise<void> {
+  const updatePromises = categoryIds.map(async (categoryId) => {
+    const { categoryId: catId, subCategoryId: subCatId } =
+      parseCategoryId(categoryId);
+
+    if (subCatId) {
+      // Update subcategory
+      const subCatRef = doc(
+        db,
+        CATEGORIES_COLLECTION,
+        catId,
+        SUBCATEGORIES_COLLECTION,
+        subCatId
+      );
+      await updateDoc(subCatRef, {
+        productIds: arrayUnion(productId),
+        productCount: increment(1),
+        updatedAt: Timestamp.now(),
+        updatedBy: "current-user",
+      });
+    } else {
+      // Update main category
+      const catRef = doc(db, CATEGORIES_COLLECTION, catId);
+      await updateDoc(catRef, {
+        productIds: arrayUnion(productId),
+        productCount: increment(1),
+        updatedAt: Timestamp.now(),
+        updatedBy: "current-user",
+      });
+    }
+  });
+
+  await Promise.all(updatePromises);
+}
+
+// Helper: Update category/subcategory when removing a product
+async function removeProductFromCategories(
+  productId: string,
+  categoryIds: string[]
+): Promise<void> {
+  const updatePromises = categoryIds.map(async (categoryId) => {
+    const { categoryId: catId, subCategoryId: subCatId } =
+      parseCategoryId(categoryId);
+
+    if (subCatId) {
+      // Update subcategory
+      const subCatRef = doc(
+        db,
+        CATEGORIES_COLLECTION,
+        catId,
+        SUBCATEGORIES_COLLECTION,
+        subCatId
+      );
+      await updateDoc(subCatRef, {
+        productIds: arrayRemove(productId),
+        productCount: increment(-1),
+        updatedAt: Timestamp.now(),
+        updatedBy: "current-user",
+      });
+    } else {
+      // Update main category
+      const catRef = doc(db, CATEGORIES_COLLECTION, catId);
+      await updateDoc(catRef, {
+        productIds: arrayRemove(productId),
+        productCount: increment(-1),
+        updatedAt: Timestamp.now(),
+        updatedBy: "current-user",
+      });
+    }
+  });
+
+  await Promise.all(updatePromises);
+}
+
+// Helper: Update manufacturer when adding a product
+async function addProductToManufacturer(
+  productId: string,
+  manufacturerId: string
+): Promise<void> {
+  if (!manufacturerId) return;
+
+  const mfgRef = doc(db, MANUFACTURERS_COLLECTION, manufacturerId);
+  await updateDoc(mfgRef, {
+    productCount: increment(1),
+    updatedAt: Timestamp.now(),
+    updatedBy: "current-user",
+  });
+}
+
+// Helper: Update manufacturer when removing a product
+async function removeProductFromManufacturer(
+  productId: string,
+  manufacturerId: string
+): Promise<void> {
+  if (!manufacturerId) return;
+
+  const mfgRef = doc(db, MANUFACTURERS_COLLECTION, manufacturerId);
+  await updateDoc(mfgRef, {
+    productCount: increment(-1),
+    updatedAt: Timestamp.now(),
+    updatedBy: "current-user",
+  });
+}
+
 
 // Product Services
 export const productService = {
@@ -150,11 +277,30 @@ export const productService = {
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
-    return docRef.id;
+
+    const productId = docRef.id;
+
+    // Update related categories/subcategories
+    if (data.info?.categoryIds && data.info.categoryIds.length > 0) {
+      await addProductToCategories(productId, data.info.categoryIds);
+    }
+
+    // Update manufacturer
+    if (data.info?.manufacturerId) {
+      await addProductToManufacturer(productId, data.info.manufacturerId);
+    }
+
+    return productId;
   },
 
   // Update product
   async update(id: string, data: Partial<Product>): Promise<void> {
+    // Get the current product to compare changes
+    const currentProduct = await this.getById(id);
+    if (!currentProduct) {
+      throw new Error("Product not found");
+    }
+
     const docRef = doc(db, PRODUCTS_COLLECTION, id);
     // sanitize update payload (remove undefined values and convert Dates)
     let updateDataAny: any = sanitizeForFirestore(data);
@@ -163,12 +309,70 @@ export const productService = {
       ...updateDataAny,
       updatedAt: Timestamp.now(),
     });
+
+    // Handle category changes
+    if (data.info?.categoryIds) {
+      const oldCategoryIds = currentProduct.info?.categoryIds || [];
+      const newCategoryIds = data.info.categoryIds;
+
+      // Find categories to remove and add
+      const categoriesToRemove = oldCategoryIds.filter(
+        (catId) => !newCategoryIds.includes(catId)
+      );
+      const categoriesToAdd = newCategoryIds.filter(
+        (catId) => !oldCategoryIds.includes(catId)
+      );
+
+      // Remove product from old categories
+      if (categoriesToRemove.length > 0) {
+        await removeProductFromCategories(id, categoriesToRemove);
+      }
+
+      // Add product to new categories
+      if (categoriesToAdd.length > 0) {
+        await addProductToCategories(id, categoriesToAdd);
+      }
+    }
+
+    // Handle manufacturer changes
+    if (data.info?.manufacturerId !== undefined) {
+      const oldManufacturerId = currentProduct.info?.manufacturerId;
+      const newManufacturerId = data.info.manufacturerId;
+
+      if (oldManufacturerId !== newManufacturerId) {
+        // Remove from old manufacturer
+        if (oldManufacturerId) {
+          await removeProductFromManufacturer(id, oldManufacturerId);
+        }
+
+        // Add to new manufacturer
+        if (newManufacturerId) {
+          await addProductToManufacturer(id, newManufacturerId);
+        }
+      }
+    }
   },
 
   // Delete product
   async delete(id: string): Promise<void> {
+    // Get the product to access its categories and manufacturer
+    const product = await this.getById(id);
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
     const docRef = doc(db, PRODUCTS_COLLECTION, id);
     await deleteDoc(docRef);
+
+    // Remove product from all associated categories
+    if (product.info?.categoryIds && product.info.categoryIds.length > 0) {
+      await removeProductFromCategories(id, product.info.categoryIds);
+    }
+
+    // Remove product from manufacturer
+    if (product.info?.manufacturerId) {
+      await removeProductFromManufacturer(id, product.info.manufacturerId);
+    }
   },
 
   // Get low stock products

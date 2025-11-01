@@ -18,6 +18,7 @@ import { Search, Trash2, Eye } from "lucide-react";
 import type { Manufacturer } from "@/types";
 import manufacturerService from "@/services/manufacturerService";
 import { LinkButton } from "@/components/ui/link-button";
+import Image from "next/image";
 
 const DEFAULT_LOGO = "/images/default-manufacturer.svg";
 
@@ -107,10 +108,12 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                       {manufacturer.displayOrder}
                     </TableCell>
                     <TableCell>
-                      <img
+                      <Image
                         src={manufacturer.logo || DEFAULT_LOGO}
                         alt={manufacturer.name}
                         className="w-12 h-12 object-contain rounded border"
+                        width={48}
+                        height={48}
                         onError={(e) => {
                           e.currentTarget.src = DEFAULT_LOGO;
                         }}

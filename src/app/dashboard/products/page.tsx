@@ -9,7 +9,7 @@ export default async function ProductsPage() {
   // Fetch data on the server
   const [products, categories] = await Promise.all([
     productService.getAll(),
-    categoryService.getAllCategories(),
+    categoryService.getAllCategoriesWithSubCategories(),
   ]);
 
   // Serialize data for client component

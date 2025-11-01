@@ -54,7 +54,9 @@ export function ManufacturerEditForm({
       alert("Manufacturer updated successfully!");
       router.refresh();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update manufacturer");
+      alert(
+        err instanceof Error ? err.message : "Failed to update manufacturer"
+      );
     } finally {
       setSaving(false);
     }
@@ -95,7 +97,10 @@ export function ManufacturerEditForm({
         <div className="flex gap-2">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={handleCancel} disabled={saving}>
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                disabled={saving}>
                 <X className="h-4 w-4 mr-2" />
                 Cancel
               </Button>
@@ -143,7 +148,9 @@ export function ManufacturerEditForm({
                     placeholder="Enter manufacturer name"
                   />
                 ) : (
-                  <p className="mt-1 text-lg font-medium">{manufacturer.name}</p>
+                  <p className="mt-1 text-lg font-medium">
+                    {manufacturer.name}
+                  </p>
                 )}
               </div>
 
@@ -180,7 +187,9 @@ export function ManufacturerEditForm({
                     }
                   />
                 ) : (
-                  <p className="mt-1 text-gray-600">{manufacturer.displayOrder}</p>
+                  <p className="mt-1 text-gray-600">
+                    {manufacturer.displayOrder}
+                  </p>
                 )}
               </div>
             </CardContent>
@@ -253,11 +262,14 @@ export function ManufacturerEditForm({
               <div>
                 <Label className="text-xs text-gray-500">Created</Label>
                 <p className="mt-1">
-                  {new Date(manufacturer.createdAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {new Date(manufacturer.createdAt).toLocaleDateString(
+                    "en-US",
+                    {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    }
+                  )}
                 </p>
                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                   <User className="h-3 w-3" />
@@ -267,11 +279,14 @@ export function ManufacturerEditForm({
               <div className="pt-3 border-t">
                 <Label className="text-xs text-gray-500">Last Updated</Label>
                 <p className="mt-1">
-                  {new Date(manufacturer.updatedAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {new Date(manufacturer.updatedAt).toLocaleDateString(
+                    "en-US",
+                    {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    }
+                  )}
                 </p>
                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                   <User className="h-3 w-3" />
