@@ -52,6 +52,20 @@ export interface SubCategory {
   updatedBy?: string;
 }
 
+// Manufacturer interface
+export interface Manufacturer {
+  id: string;
+  name: string;
+  description?: string;
+  logo?: string; // Logo/image URL
+  displayOrder: number;
+  productCount?: number; // Computed count of products
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
 // Product Information Section
 export interface ProductInfo {
   name: string;

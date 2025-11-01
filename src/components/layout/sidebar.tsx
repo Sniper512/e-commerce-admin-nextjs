@@ -28,11 +28,12 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Products",
+    title: "Catalog",
     icon: Package,
     items: [
       { title: "Products", href: "/dashboard/products" },
       { title: "Categories", href: "/dashboard/categories" },
+      { title: "Manufacturers", href: "/dashboard/manufacturers" },
       { title: "Discounts", href: "/dashboard/discounts" },
       { title: "Batches", href: "/dashboard/batches" },
     ],
