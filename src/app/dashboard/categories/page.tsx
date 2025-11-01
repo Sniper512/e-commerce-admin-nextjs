@@ -3,13 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import categoryService from "@/services/categoryService";
 import { CategoriesList } from "@/components/features/categories/categories-list";
+import type { Category, SubCategory } from "@/types";
 
 export default async function CategoriesPage() {
   // Fetch categories on the server
   const categories = await categoryService.getAllCategories();
 
+  // Fetch subcategories for each category
+  const categoriesWithSubCategories: Array<{
+    category: Category;
+    subCategories: SubCategory[];
+  }> = await Promise.all(
+    categories.map(async (category) => ({
+      category,
+      subCategories: category.hasSubCategories
+        ? await categoryService.getSubCategories(category.id)
+        : [],
+    }))
+  );
+
   // Serialize data for client component
-  const serializedCategories = JSON.parse(JSON.stringify(categories));
+  const serializedData = JSON.parse(JSON.stringify(categoriesWithSubCategories));
 
   return (
     <div className="space-y-6">
@@ -30,7 +44,7 @@ export default async function CategoriesPage() {
       </div>
 
       {/* Categories List - Client Component */}
-      <CategoriesList categories={serializedCategories} />
+      <CategoriesList categoriesWithSubCategories={serializedData} />
     </div>
   );
 }

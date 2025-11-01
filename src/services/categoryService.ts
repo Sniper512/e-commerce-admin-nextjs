@@ -412,6 +412,51 @@ export const categoryService = {
     }
   },
 
+  // Delete subcategory
+  async deleteSubCategory(
+    parentCategoryId: string,
+    subCategoryId: string
+  ): Promise<boolean> {
+    try {
+      const subCategory = await this.getSubCategoryById(
+        parentCategoryId,
+        subCategoryId
+      );
+      if (!subCategory) {
+        throw new Error("Subcategory not found");
+      }
+
+      // Check if subcategory has products
+      if (subCategory.productIds.length > 0) {
+        throw new Error("Cannot delete subcategory with products");
+      }
+
+      const docRef = doc(
+        db,
+        COLLECTION_NAME,
+        parentCategoryId,
+        SUBCATEGORIES_COLLECTION,
+        subCategoryId
+      );
+      await deleteDoc(docRef);
+
+      // Update parent category
+      const parentCategory = await this.getCategoryById(parentCategoryId);
+      if (parentCategory) {
+        const newCount = Math.max(0, parentCategory.subCategoryCount - 1);
+        await this.updateCategory(parentCategoryId, {
+          subCategoryCount: newCount,
+          hasSubCategories: newCount > 0,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting subcategory:", error);
+      throw error;
+    }
+  },
+
   // Toggle category publish status
   async togglePublishStatus(id: string): Promise<Category> {
     const category = await this.getCategoryById(id);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,17 +15,64 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Trash2, Eye, ArrowUpDown, Check, X } from "lucide-react";
-import type { Category } from "@/types";
+import {
+  Search,
+  Trash2,
+  Eye,
+  ArrowUpDown,
+  Check,
+  X,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+} from "lucide-react";
+import type { Category, SubCategory } from "@/types";
 import categoryService from "@/services/categoryService";
+import { LinkButton } from "@/components/ui/link-button";
 
 interface CategoriesListProps {
-  categories: Category[];
+  categoriesWithSubCategories: Array<{
+    category: Category;
+    subCategories: SubCategory[];
+  }>;
 }
 
-export function CategoriesList({ categories }: CategoriesListProps) {
+type DisplayItem =
+  | { type: "category"; data: Category }
+  | { type: "subcategory"; data: SubCategory; parentId: string };
+
+export function CategoriesList({
+  categoriesWithSubCategories,
+}: CategoriesListProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Flatten the data structure for display
+  const displayItems = useMemo(() => {
+    const items: DisplayItem[] = [];
+    categoriesWithSubCategories.forEach(({ category, subCategories }) => {
+      items.push({ type: "category", data: category });
+      subCategories.forEach((subCategory) => {
+        items.push({
+          type: "subcategory",
+          data: subCategory,
+          parentId: category.id,
+        });
+      });
+    });
+    return items;
+  }, [categoriesWithSubCategories]);
+
+  // Filter items based on search
+  const filteredItems = useMemo(() => {
+    if (!searchQuery) return displayItems;
+
+    const query = searchQuery.toLowerCase();
+    return displayItems.filter((item) => {
+      const name = item.data.name.toLowerCase();
+      return name.includes(query);
+    });
+  }, [displayItems, searchQuery]);
 
   const handleDeleteCategory = async (categoryId: string) => {
     if (!confirm("Are you sure you want to delete this category?")) {
@@ -38,13 +85,29 @@ export function CategoriesList({ categories }: CategoriesListProps) {
       router.refresh();
     } catch (error) {
       console.error("Error deleting category:", error);
-      alert("Error deleting category");
+      alert(error instanceof Error ? error.message : "Error deleting category");
     }
   };
 
-  const filteredCategories = categories.filter((cat: Category) =>
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleDeleteSubCategory = async (
+    parentCategoryId: string,
+    subCategoryId: string
+  ) => {
+    if (!confirm("Are you sure you want to delete this sub-category?")) {
+      return;
+    }
+
+    try {
+      await categoryService.deleteSubCategory(parentCategoryId, subCategoryId);
+      alert("Sub-category deleted successfully!");
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting sub-category:", error);
+      alert(
+        error instanceof Error ? error.message : "Error deleting sub-category"
+      );
+    }
+  };
 
   return (
     <>
@@ -69,23 +132,18 @@ export function CategoriesList({ categories }: CategoriesListProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>
-                  <button className="flex items-center gap-1 font-semibold">
-                    Display Order
-                    <ArrowUpDown className="h-4 w-4" />
-                  </button>
-                </TableHead>
+                <TableHead>Display Order</TableHead>
                 <TableHead>Category Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Products</TableHead>
+                <TableHead className="text-center">Type</TableHead>
+                <TableHead className="text-center">Products</TableHead>
                 <TableHead className="text-center">Navbar</TableHead>
                 <TableHead className="text-center">Homepage</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCategories.length === 0 ? (
+              {filteredItems.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={8}
@@ -96,72 +154,154 @@ export function CategoriesList({ categories }: CategoriesListProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredCategories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell className="font-medium">
-                      {category.displayOrder}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {category.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          category.type === "special" ? "default" : "secondary"
-                        }>
-                        {category.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {category.productCount || category.productIds.length}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {category.showOnNavbar ? (
-                        <Badge variant="success">
-                          <Check className="h-4 w-4" />
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">
-                          <X className="h-4 w-4" />
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {category.showOnHomepage ? (
-                        <Badge variant="success">
-                          <Check className="h-4 w-4" />
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">
-                          <X className="h-4 w-4" />
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          category.isPublished ? "success" : "secondary"
-                        }>
-                        {category.isPublished ? "Published" : "Unpublished"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link href={`/dashboard/categories/${category.id}`}>
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                        </Link>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteCategory(category.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredItems.map((item, index) => {
+                  if (item.type === "category") {
+                    const category = item.data;
+                    return (
+                      <TableRow
+                        key={`cat-${category.id}`}
+                        className="bg-gray-50">
+                        <TableCell className="font-medium">
+                          {category.displayOrder}
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          <div className="flex items-center gap-2">
+                            {category.hasSubCategories ? (
+                              <FolderOpen className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <Folder className="h-4 w-4 text-gray-500" />
+                            )}
+                            {category.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              category.type === "special"
+                                ? "default"
+                                : "secondary"
+                            }>
+                            {category.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {category.productCount || category.productIds.length}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {category.showOnNavbar ? (
+                            <Badge variant="success">
+                              <Check className="h-4 w-4" />
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              <X className="h-4 w-4" />
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {category.showOnHomepage ? (
+                            <Badge variant="success">
+                              <Check className="h-4 w-4" />
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              <X className="h-4 w-4" />
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              category.isPublished ? "success" : "secondary"
+                            }>
+                            {category.isPublished ? "Published" : "Unpublished"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-center gap-2">
+                            <LinkButton
+                              variant="outline"
+                              size="sm"
+                              href={`/dashboard/categories/${category.id}`}>
+                              <Eye className="h-3 w-3" />
+                            </LinkButton>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteCategory(category.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  } else {
+                    // Subcategory
+                    const subCategory = item.data;
+                    return (
+                      <TableRow
+                        key={`subcat-${subCategory.id}`}
+                        className="hover:bg-blue-50/50">
+                        <TableCell className="pl-8">
+                          {subCategory.displayOrder}
+                        </TableCell>
+                        <TableCell className="pl-12">
+                          {subCategory.name}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="text-gray-500">
+                            —
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {subCategory.productCount ||
+                            subCategory.productIds.length}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="text-gray-400">
+                            —
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="text-gray-400">
+                            —
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              subCategory.isPublished ? "success" : "secondary"
+                            }>
+                            {subCategory.isPublished
+                              ? "Published"
+                              : "Unpublished"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-2">
+                            <LinkButton
+                              variant="outline"
+                              size="sm"
+                              href={`/dashboard/categories/${subCategory.id}`}>
+                              <Eye className="h-3 w-3" />
+                            </LinkButton>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                handleDeleteSubCategory(
+                                  item.parentId,
+                                  subCategory.id
+                                )
+                              }>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+                })
               )}
             </TableBody>
           </Table>
