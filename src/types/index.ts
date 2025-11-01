@@ -22,13 +22,31 @@ export interface Category {
   type: CategoryType; // simple or special (e.g., "Summer Sales")
   displayOrder: number;
   picture?: string; // Category image/picture URL
-  parentId?: string; // Parent category ID (null for root categories)
-  subCategories?: Category[]; // Child categories
+  hasSubCategories: boolean; // Flag to indicate if subcategories exist
+  subCategoryCount: number; // Count of subcategories
   isPublished: boolean; // Whether category is published
   productIds: string[]; // Array of product IDs in this category
   productCount?: number; // Computed count of products
   showOnHomepage: boolean;
   showOnNavbar: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+// SubCategory interface for two-level hierarchy
+export interface SubCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  displayOrder: number;
+  picture?: string;
+  parentCategoryId: string; // Reference to parent category
+  isPublished: boolean;
+  productIds: string[];
+  productCount?: number;
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string;

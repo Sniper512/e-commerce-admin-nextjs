@@ -1,4 +1,4 @@
-﻿import { Category } from "@/types";
+﻿import { Category, SubCategory } from "@/types";
 import {
   collection,
   addDoc,
@@ -58,8 +58,8 @@ const firestoreToCategory = (id: string, data: any): Category => {
     type: data.type || "simple",
     displayOrder: data.displayOrder || 1,
     picture: data.picture || undefined,
-    parentId: data.parentId || undefined,
-    subCategories: data.subCategories || [],
+    hasSubCategories: data.hasSubCategories ?? false,
+    subCategoryCount: data.subCategoryCount || 0,
     isPublished: data.isPublished ?? true,
     productIds: data.productIds || [],
     productCount: data.productCount || 0,
@@ -72,7 +72,42 @@ const firestoreToCategory = (id: string, data: any): Category => {
   };
 };
 
+// Helper function to convert Firestore data to SubCategory
+const firestoreToSubCategory = (
+  id: string,
+  data: any,
+  parentCategoryId: string
+): SubCategory => {
+  const convertTimestamp = (timestamp: any): Date => {
+    if (timestamp instanceof Timestamp) return timestamp.toDate();
+    if (timestamp instanceof Date) return timestamp;
+    if (typeof timestamp === "string") {
+      const parsed = new Date(timestamp);
+      return isNaN(parsed.getTime()) ? new Date() : parsed;
+    }
+    return new Date();
+  };
+
+  return {
+    id,
+    name: data.name || "",
+    slug: data.slug || "",
+    description: data.description || "",
+    displayOrder: data.displayOrder || 1,
+    picture: data.picture || undefined,
+    parentCategoryId,
+    isPublished: data.isPublished ?? true,
+    productIds: data.productIds || [],
+    productCount: data.productCount || 0,
+    createdAt: convertTimestamp(data.createdAt),
+    updatedAt: convertTimestamp(data.updatedAt),
+    createdBy: data.createdBy || "system",
+    updatedBy: data.updatedBy || "system",
+  };
+};
+
 const COLLECTION_NAME = "CATEGORIES";
+const SUBCATEGORIES_COLLECTION = "SUB_CATEGORIES";
 
 // Helper function to generate slug from name
 const generateSlug = (name: string): string => {
@@ -84,26 +119,12 @@ const generateSlug = (name: string): string => {
     .trim();
 };
 
-// Build category hierarchy (helper function)
+// Build category hierarchy (helper function) - No longer needed with new structure
 const buildCategoryHierarchy = (categories: Category[]): Category[] => {
-  const categoryMap = new Map<string, Category>();
-  const result: Category[] = [];
-
-  // First pass: create map
-  categories.forEach((category) => {
-    categoryMap.set(category.id, { ...category, subCategories: [] });
-    result.push(category);
-  });
-
   // Sort by display order
+  const result = [...categories];
   result.sort((a, b) => a.displayOrder - b.displayOrder);
-  result.forEach((category) => {
-    if (category.subCategories) {
-      category.subCategories.sort((a, b) => a.displayOrder - b.displayOrder);
-    }
-  });
-
-  return Array.from(categoryMap.values());
+  return result;
 };
 
 // Category Service Functions using Firebase Firestore
@@ -164,18 +185,19 @@ export const categoryService = {
   },
 
   // Get subcategories of a parent category
-  async getSubCategories(parentId: string): Promise<Category[]> {
+  async getSubCategories(parentId: string): Promise<SubCategory[]> {
     try {
-      const categoriesRef = collection(db, COLLECTION_NAME);
-      const q = query(
-        categoriesRef,
-        where("parentId", "==", parentId),
-        orderBy("displayOrder", "asc")
+      const subCategoriesRef = collection(
+        db,
+        COLLECTION_NAME,
+        parentId,
+        SUBCATEGORIES_COLLECTION
       );
+      const q = query(subCategoriesRef, orderBy("displayOrder", "asc"));
       const snapshot = await getDocs(q);
 
       return snapshot.docs.map((doc) =>
-        firestoreToCategory(doc.id, doc.data())
+        firestoreToSubCategory(doc.id, doc.data(), parentId)
       );
     } catch (error) {
       console.error("Error fetching subcategories:", error);
@@ -195,7 +217,8 @@ export const categoryService = {
         type: categoryData.type || "simple",
         displayOrder: categoryData.displayOrder || 1,
         picture: categoryData.picture || null,
-        parentId: categoryData.parentId || null,
+        hasSubCategories: false,
+        subCategoryCount: 0,
         isPublished: categoryData.isPublished ?? true,
         productIds: categoryData.productIds || [],
         productCount: 0,
@@ -225,6 +248,95 @@ export const categoryService = {
     }
   },
 
+  // Create new subcategory
+  async createSubCategory(
+    parentCategoryId: string,
+    subCategoryData: Partial<SubCategory>
+  ): Promise<SubCategory> {
+    try {
+      // Check if parent category exists
+      const parentCategory = await this.getCategoryById(parentCategoryId);
+      if (!parentCategory) {
+        throw new Error("Parent category not found");
+      }
+
+      const subCategoriesRef = collection(
+        db,
+        COLLECTION_NAME,
+        parentCategoryId,
+        SUBCATEGORIES_COLLECTION
+      );
+
+      const newSubCategoryData = {
+        name: subCategoryData.name || "",
+        slug: generateSlug(subCategoryData.name || ""),
+        description: subCategoryData.description || "",
+        displayOrder: subCategoryData.displayOrder || 1,
+        picture: subCategoryData.picture || null,
+        isPublished: subCategoryData.isPublished ?? true,
+        productIds: subCategoryData.productIds || [],
+        productCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: "current-user",
+        updatedBy: "current-user",
+      };
+
+      const sanitizedData = sanitizeForFirestore(newSubCategoryData);
+      const docRef = await addDoc(subCategoriesRef, sanitizedData);
+
+      // Update parent category flags
+      await this.updateCategory(parentCategoryId, {
+        hasSubCategories: true,
+        subCategoryCount: parentCategory.subCategoryCount + 1,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const createdSubCategory = await this.getSubCategoryById(
+        parentCategoryId,
+        docRef.id
+      );
+      if (!createdSubCategory) {
+        throw new Error("Failed to retrieve created subcategory");
+      }
+
+      return createdSubCategory;
+    } catch (error) {
+      console.error("Error creating subcategory:", error);
+      throw error;
+    }
+  },
+
+  // Get subcategory by ID
+  async getSubCategoryById(
+    parentCategoryId: string,
+    subCategoryId: string
+  ): Promise<SubCategory | null> {
+    try {
+      const docRef = doc(
+        db,
+        COLLECTION_NAME,
+        parentCategoryId,
+        SUBCATEGORIES_COLLECTION,
+        subCategoryId
+      );
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        return firestoreToSubCategory(
+          docSnap.id,
+          docSnap.data(),
+          parentCategoryId
+        );
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching subcategory:", error);
+      throw error;
+    }
+  },
+
   // Update category
   async updateCategory(
     id: string,
@@ -239,6 +351,7 @@ export const categoryService = {
       }
 
       const currentData = docSnap.data();
+
       const updateData: any = {
         ...updates,
         updatedAt: new Date().toISOString(),
@@ -274,15 +387,18 @@ export const categoryService = {
   // Delete category
   async deleteCategory(id: string): Promise<boolean> {
     try {
+      const category = await this.getCategoryById(id);
+      if (!category) {
+        throw new Error("Category not found");
+      }
+
       // Check if category has subcategories
-      const subCategories = await this.getSubCategories(id);
-      if (subCategories.length > 0) {
+      if (category.hasSubCategories || category.subCategoryCount > 0) {
         throw new Error("Cannot delete category with subcategories");
       }
 
       // Check if category has products
-      const category = await this.getCategoryById(id);
-      if (category && category.productIds.length > 0) {
+      if (category.productIds.length > 0) {
         throw new Error("Cannot delete category with products");
       }
 
