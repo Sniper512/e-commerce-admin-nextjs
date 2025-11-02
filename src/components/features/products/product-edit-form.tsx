@@ -120,7 +120,6 @@ export function ProductEditForm({
         },
         similarProducts: similarProducts,
         boughtTogetherProducts: boughtTogetherProducts,
-        isActive: formData.isPublished,
       };
 
       await productService.update(product.id, updatedProduct);

@@ -124,7 +124,6 @@ export function ProductAddForm({
         },
         similarProducts: similarProducts,
         boughtTogetherProducts: boughtTogetherProducts,
-        isActive: formData.isPublished,
         purchaseHistory: [],
         stockHistory: [],
       };

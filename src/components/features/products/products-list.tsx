@@ -172,8 +172,10 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
-                          variant={product.isActive ? "success" : "secondary"}>
-                          {product.isActive ? "Active" : "Inactive"}
+                          variant={
+                            product.info.isPublished ? "success" : "secondary"
+                          }>
+                          {product.info.isPublished ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell>

@@ -200,45 +200,89 @@ export function BatchForm({ batch, products }: BatchFormProps) {
         </div>
       </div>
 
+      {/* Scanner Status - Only show in Add mode */}
+      {!isEditMode && (
+        <Card
+          className={`mb-6 ${
+            scannerActive
+              ? "border-green-500 bg-green-50"
+              : "border-blue-500 bg-blue-50"
+          }`}>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Scan
+                  className={`h-6 w-6 ${
+                    scannerActive
+                      ? "text-green-600"
+                      : "text-blue-600 animate-pulse"
+                  }`}
+                />
+                <div>
+                  <p className="font-medium">
+                    {scannerActive ? "✓ Barcode Scanned!" : "Scanner Active"}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {scannerActive
+                      ? "Batch ID captured successfully!"
+                      : "Listening for barcode scans... Use your scanner device."}
+                  </p>
+                </div>
+              </div>
+              <div
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  scannerActive
+                    ? "bg-green-100 text-green-800"
+                    : "bg-blue-100 text-blue-800"
+                }`}>
+                {scannerActive ? "Scanned ✓" : "Listening..."}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <form onSubmit={handleSubmit}>
-        {/* Batch Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Package className="h-5 w-5 mr-2" />
-              {isEditMode ? "Edit Batch" : "Add New Batch"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content - Left side (2 columns) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Batch Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Package className="h-5 w-5 mr-2" />
+                  Batch Identification
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
             {/* Batch ID */}
             <div className="space-y-2">
               <Label htmlFor="batchId">
-                Batch ID <span className="text-red-500">*</span>
+                Batch ID (Barcode) <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Input
                   id="batchId"
                   value={formData.batchId}
                   onChange={(e) => handleInputChange("batchId", e.target.value)}
-                  placeholder="Enter or scan batch ID"
+                  placeholder={isEditMode ? "Batch ID" : "Scan barcode or enter batch ID manually"}
                   required
                   disabled={isEditMode}
-                  className={scannerActive ? "ring-2 ring-green-500" : ""}
+                  className={scannerActive ? "border-green-500 ring-2 ring-green-500" : ""}
                 />
                 {!isEditMode && (
                   <Scan
-                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${
+                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
                       scannerActive ? "text-green-500" : "text-gray-400"
                     }`}
                   />
                 )}
               </div>
-              {!isEditMode && (
+              {!isEditMode ? (
                 <p className="text-xs text-gray-500">
-                  Scan a barcode or enter manually
+                  Use your barcode scanner device to scan, or type manually
                 </p>
-              )}
-              {isEditMode && (
+              ) : (
                 <p className="text-xs text-gray-500">
                   Batch ID cannot be changed after creation
                 </p>
@@ -417,6 +461,104 @@ export function BatchForm({ batch, products }: BatchFormProps) {
             </div>
           </CardContent>
         </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Instructions - Only in Add mode */}
+          {!isEditMode && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-blue-600" />
+                  Instructions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-gray-600">
+                <div className="flex gap-2">
+                  <span className="font-semibold text-blue-600">1.</span>
+                  <p>
+                    Use your barcode scanner to scan the batch ID, or enter it
+                    manually.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-semibold text-blue-600">2.</span>
+                  <p>
+                    Select the product this batch belongs to from the dropdown.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-semibold text-blue-600">3.</span>
+                  <p>Enter manufacturing and expiry dates accurately.</p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-semibold text-blue-600">4.</span>
+                  <p>Fill in quantity and additional information.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Actions */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-3">
+                <Button
+                  type="submit"
+                  className="w-full gap-2"
+                  disabled={loading}>
+                  <Save className="w-4 h-4" />
+                  {loading 
+                    ? (isEditMode ? "Updating..." : "Creating...") 
+                    : (isEditMode ? "Update Batch" : "Create Batch")
+                  }
+                </Button>
+                <Link href="/dashboard/batches">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={loading}>
+                    Cancel
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Preview */}
+          {formData.batchId && formData.productId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Preview</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div>
+                  <span className="text-gray-600">Batch ID:</span>
+                  <p className="font-medium">{formData.batchId}</p>
+                </div>
+                {selectedProduct && (
+                  <div>
+                    <span className="text-gray-600">Product:</span>
+                    <p className="font-medium">{selectedProduct.info.name}</p>
+                  </div>
+                )}
+                {formData.quantity > 0 && (
+                  <div>
+                    <span className="text-gray-600">Quantity:</span>
+                    <p className="font-medium">{formData.quantity} units</p>
+                  </div>
+                )}
+                {isEditMode && formData.remainingQuantity >= 0 && (
+                  <div>
+                    <span className="text-gray-600">Remaining:</span>
+                    <p className="font-medium">{formData.remainingQuantity} units</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
         {/* Alert for expiring soon */}
         {formData.expiryDate && (
@@ -431,8 +573,8 @@ export function BatchForm({ batch, products }: BatchFormProps) {
                   <CardContent className="pt-6">
                     <div className="flex items-center text-orange-800">
                       <AlertCircle className="h-5 w-5 mr-2" />
-                      <p>
-                        This batch will expire in <strong>{daysUntilExpiry}</strong> days
+                      <p className="text-sm">
+                        Expires in <strong>{daysUntilExpiry}</strong> days
                       </p>
                     </div>
                   </CardContent>
@@ -444,8 +586,8 @@ export function BatchForm({ batch, products }: BatchFormProps) {
                   <CardContent className="pt-6">
                     <div className="flex items-center text-red-800">
                       <AlertCircle className="h-5 w-5 mr-2" />
-                      <p>
-                        This batch has expired or will expire today
+                      <p className="text-sm font-medium">
+                        This batch has expired
                       </p>
                     </div>
                   </CardContent>
@@ -455,28 +597,8 @@ export function BatchForm({ batch, products }: BatchFormProps) {
             return null;
           })()
         )}
-
-        {/* Actions */}
-        <div className="flex justify-end space-x-4">
-          <Link href="/dashboard/batches">
-            <Button type="button" variant="outline" disabled={loading}>
-              Cancel
-            </Button>
-          </Link>
-          <Button type="submit" disabled={loading}>
-            {loading ? (
-              <>
-                <span className="animate-spin mr-2">⏳</span>
-                {isEditMode ? "Updating..." : "Creating..."}
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                {isEditMode ? "Update Batch" : "Create Batch"}
-              </>
-            )}
-          </Button>
         </div>
+      </div>
       </form>
     </div>
   );

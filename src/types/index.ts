@@ -179,7 +179,6 @@ export interface Product {
 
   // Display
   displayOrder: number;
-  isFeatured: boolean;
 
   // Metadata
   createdAt: Date;

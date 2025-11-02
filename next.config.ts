@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "nayabazar.pk",
       },
+      {
+        protocol: "https",
+        hostname: "scontent.fkhi20-1.fna.fbcdn.net",
+      },
     ],
   },
 };
