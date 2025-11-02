@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "scontent.fkhi20-1.fna.fbcdn.net",
       },
+      {
+        protocol: "https",
+        hostname: "www.shangrila.com.pk",
+      },
     ],
   },
 };

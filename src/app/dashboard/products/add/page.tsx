@@ -7,12 +7,14 @@ import { ProductAddForm } from "@/components/features/products/product-add-form"
 
 export default async function AddProductPage() {
   // Fetch data on the server
-  const [allProducts, discounts, categories, manufacturers] = await Promise.all([
-    productService.getAll({ isActive: true }),
-    discountService.getAll(),
-    categoryService.getAllCategoriesWithSubCategories(),
-    manufacturerService.getAllManufacturers(),
-  ]);
+  const [allProducts, discounts, categories, manufacturers] = await Promise.all(
+    [
+      productService.getAll({ isPublished: true }),
+      discountService.getAll(),
+      categoryService.getAllCategoriesWithSubCategories(),
+      manufacturerService.getAllManufacturers(),
+    ]
+  );
 
   // Serialize data for client component
   const serializedAllProducts = JSON.parse(JSON.stringify(allProducts));

@@ -1,13 +1,8 @@
 "use client";
 
+import { Product } from "@/types";
 import Image from "next/image";
 import { useState, useEffect, useRef, useMemo } from "react";
-
-interface Product {
-  id: string;
-  name: string;
-  image: string;
-}
 
 interface ProductSearchDropdownProps {
   availableProducts: Product[];
@@ -55,7 +50,7 @@ export function ProductSearchDropdown({
     if (!searchValue) return availableProducts;
     const search = searchValue.toLowerCase();
     return availableProducts.filter((product) =>
-      product.name.toLowerCase().includes(search)
+      product.info.name.toLowerCase().includes(search)
     );
   }, [searchValue, availableProducts]);
 
@@ -81,7 +76,9 @@ export function ProductSearchDropdown({
         <input
           ref={inputRef}
           type="text"
-          placeholder={selectedProduct ? selectedProduct.name : placeholder}
+          placeholder={
+            selectedProduct ? selectedProduct.info.name : placeholder
+          }
           value={searchValue}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
@@ -98,8 +95,13 @@ export function ProductSearchDropdown({
               onClick={() => handleSelectProduct(product.id)}
               className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 text-left">
               <Image
-                src={product.image}
-                alt={product.name}
+                src={
+                  product.multimedia.images.length > 0
+                    ? product.multimedia.images.find((img) => img.isPrimary)
+                        ?.url || product.multimedia.images[0].url
+                    : defaultProductImage
+                }
+                alt={product.info.name}
                 className="w-10 h-10 object-cover rounded"
                 width={40}
                 height={40}
@@ -108,7 +110,7 @@ export function ProductSearchDropdown({
                 }}
               />
               <div className="flex-1">
-                <div className="font-medium text-sm">{product.name}</div>
+                <div className="font-medium text-sm">{product.info.name}</div>
               </div>
             </button>
           ))}

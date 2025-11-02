@@ -93,35 +93,14 @@ export interface ProductMultimedia {
 }
 
 export interface ProductImage {
-  id: string;
   url: string;
-  altText: string;
   isPrimary: boolean;
   sortOrder: number;
 }
 
 export interface ProductVideo {
-  id: string;
   url: string;
-  title: string;
-  description?: string;
   sortOrder: number;
-}
-
-// Related Products Section
-export interface SimilarProduct {
-  productId: string;
-  productName: string;
-  imageUrl?: string;
-  sortOrder?: number;
-}
-
-// Bought together Section
-export interface BoughtTogetherProduct {
-  productId: string;
-  productName: string;
-  imageUrl?: string;
-  sortOrder?: number;
 }
 
 // Purchase History Section
@@ -162,11 +141,11 @@ export interface Product {
   // Multimedia Section
   multimedia: ProductMultimedia;
 
-  // Related Products Section
-  similarProducts: SimilarProduct[];
+  // Similar Products Section
+  similarProductIds: string[];
 
   // Bought together Section
-  boughtTogetherProducts: BoughtTogetherProduct[];
+  boughtTogetherProductIds: string[];
 
   // Purchase History Section
   purchaseHistory: PurchaseOrderHistory[];

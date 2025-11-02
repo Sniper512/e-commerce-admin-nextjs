@@ -169,13 +169,12 @@ async function removeProductFromManufacturer(
   });
 }
 
-
 // Product Services
 export const productService = {
   // Get all products
   async getAll(filters?: {
     categoryId?: string;
-    isActive?: boolean;
+    isPublished?: boolean;
   }): Promise<Product[]> {
     const constraints: QueryConstraint[] = [];
 
@@ -184,8 +183,8 @@ export const productService = {
         where("categoryIds", "array-contains", filters.categoryId)
       );
     }
-    if (filters?.isActive !== undefined) {
-      constraints.push(where("isActive", "==", filters.isActive));
+    if (filters?.isPublished !== undefined) {
+      constraints.push(where("info.isPublished", "==", filters.isPublished));
     }
 
     const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints);

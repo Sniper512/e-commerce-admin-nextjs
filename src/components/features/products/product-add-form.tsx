@@ -6,12 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
-import type {
-  BoughtTogetherProduct,
-  Product,
-  ProductImage,
-  SimilarProduct,
-} from "@/types";
+import type { Product, ProductImage } from "@/types";
 import { ProductInfoTab } from "./tabs/product-info-tab";
 import { ProductDiscountsTab } from "./tabs/product-discounts-tab";
 import { ProductInventoryTab } from "./tabs/product-inventory-tab";
@@ -61,20 +56,16 @@ export function ProductAddForm({
 
   const [images, setImages] = useState<ProductImage[]>([
     {
-      id: "1",
       url: "",
-      altText: "",
       isPrimary: true,
       sortOrder: 1,
     },
   ]);
 
-  const [similarProducts, setSimilarProducts] = useState<Array<SimilarProduct>>(
-    []
-  );
+  const [similarProductIds, setSimilarProductIds] = useState<string[]>([]);
 
-  const [boughtTogetherProducts, setBoughtTogetherProducts] = useState<
-    Array<BoughtTogetherProduct>
+  const [boughtTogetherProductIds, setBoughtTogetherProductIds] = useState<
+    string[]
   >([]);
 
   const [selectedDiscountIds, setSelectedDiscountIds] = useState<string[]>([]);
@@ -114,16 +105,14 @@ export function ProductAddForm({
           images: images
             .filter((img) => img.url)
             .map((img) => ({
-              id: img.id,
               url: img.url,
-              altText: img.altText,
               isPrimary: img.isPrimary,
               sortOrder: img.sortOrder,
             })),
           videos: [],
         },
-        similarProducts: similarProducts,
-        boughtTogetherProducts: boughtTogetherProducts,
+        similarProductIds: similarProductIds,
+        boughtTogetherProductIds: boughtTogetherProductIds,
         purchaseHistory: [],
         stockHistory: [],
       };
@@ -245,18 +234,18 @@ export function ProductAddForm({
       {activeTab === "multimedia" && (
         <ProductMultimediaTab images={images} onImagesChange={setImages} />
       )}
-      {activeTab === "related" && (
+      {activeTab === "similar" && (
         <ProductSimilarTab
-          similarProducts={similarProducts}
-          onSimilarProductsChange={setSimilarProducts}
+          similarProductIds={similarProductIds}
+          onSimilarProductIdsChange={setSimilarProductIds}
           availableProducts={availableProducts}
           defaultImage=""
         />
       )}
       {activeTab === "bought-together" && (
         <ProductBoughtTogetherTab
-          boughtTogetherProducts={boughtTogetherProducts}
-          onboughtTogetherProductsChange={setBoughtTogetherProducts}
+          boughtTogetherProductIds={boughtTogetherProductIds}
+          onBoughtTogetherProductIdsChange={setBoughtTogetherProductIds}
           availableProducts={availableProducts}
           defaultImage=""
         />

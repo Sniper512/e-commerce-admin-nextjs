@@ -61,7 +61,7 @@ export function ProductInfoTab({
   // Helper function to get category/subcategory name by ID string
   const getCategoryName = (categoryIdString: string): string => {
     const parsed = parseCategoryId(categoryIdString);
-    
+
     if (parsed.isSubCategory) {
       const category = categories.find((cat) => cat.id === parsed.categoryId);
       const subCategory = (category as any)?.subcategories?.find(
@@ -71,7 +71,7 @@ export function ProductInfoTab({
         ? `${category.name} >> ${subCategory.name}`
         : "Unknown";
     }
-    
+
     const category = categories.find((cat) => cat.id === parsed.categoryId);
     return category?.name || "Unknown";
   };
@@ -141,7 +141,7 @@ export function ProductInfoTab({
             <Label htmlFor="categories" className="form-label">
               Categories
             </Label>
-            
+
             {/* Selected Categories */}
             {categoryIds.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
@@ -161,7 +161,7 @@ export function ProductInfoTab({
                 ))}
               </div>
             )}
-            
+
             {/* Category Dropdown */}
             <select
               id="categories"
@@ -173,15 +173,20 @@ export function ProductInfoTab({
                 <optgroup key={category.id} label={category.name}>
                   {/* Main Category Option */}
                   <option value={category.id}>{category.name}</option>
-                  
+
                   {/* Subcategory Options */}
-                  {(category as any).subcategories?.map((subCategory: SubCategory) => (
-                    <option
-                      key={subCategory.id}
-                      value={createCategoryIdString(category.id, subCategory.id)}>
-                      {category.name} &gt;&gt; {subCategory.name}
-                    </option>
-                  ))}
+                  {(category as any).subcategories?.map(
+                    (subCategory: SubCategory) => (
+                      <option
+                        key={subCategory.id}
+                        value={createCategoryIdString(
+                          category.id,
+                          subCategory.id
+                        )}>
+                        {category.name} &gt;&gt; {subCategory.name}
+                      </option>
+                    )
+                  )}
                 </optgroup>
               ))}
             </select>
@@ -261,7 +266,7 @@ export function ProductInfoTab({
               type="date"
               value={
                 markAsNewStartDate
-                  ? markAsNewStartDate.toISOString().split("T")[0]
+                  ? new Date(markAsNewStartDate).toISOString().split("T")[0]
                   : ""
               }
               onChange={(e) =>
@@ -281,7 +286,7 @@ export function ProductInfoTab({
               type="date"
               value={
                 markAsNewEndDate
-                  ? markAsNewEndDate.toISOString().split("T")[0]
+                  ? new Date(markAsNewEndDate).toISOString().split("T")[0]
                   : ""
               }
               onChange={(e) =>

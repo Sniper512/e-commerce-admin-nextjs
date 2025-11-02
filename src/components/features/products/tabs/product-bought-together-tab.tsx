@@ -6,54 +6,42 @@ import { Button } from "@/components/ui/button";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
-import { BoughtTogetherProduct } from "@/types";
 import Image from "next/image";
-
-// Simplified product type for dropdown
-interface SimpleProduct {
-  id: string;
-  name: string;
-  image: string;
-}
+import { Product } from "@/types";
 
 interface ProductBoughtTogetherTabProps {
-  boughtTogetherProducts: BoughtTogetherProduct[];
-  onboughtTogetherProductsChange: (value: BoughtTogetherProduct[]) => void;
-  availableProducts: SimpleProduct[];
+  boughtTogetherProductIds: string[];
+  onBoughtTogetherProductIdsChange: (value: string[]) => void;
+  availableProducts: Product[];
   defaultImage: string;
 }
 
 export function ProductBoughtTogetherTab({
-  boughtTogetherProducts,
-  onboughtTogetherProductsChange,
+  boughtTogetherProductIds,
+  onBoughtTogetherProductIdsChange,
   availableProducts,
   defaultImage,
 }: ProductBoughtTogetherTabProps) {
   const [searchValue, setSearchValue] = useState("");
 
   const addBoughtTogetherProduct = (productId: string) => {
-    if (boughtTogetherProducts.some((p) => p.productId === productId)) {
+    if (boughtTogetherProductIds?.includes(productId)) {
       return; // Already added
     }
 
     const product = availableProducts.find((p) => p.id === productId);
     if (product) {
-      onboughtTogetherProductsChange([
-        ...boughtTogetherProducts,
-        {
-          productId: product.id,
-          productName: product.name,
-          imageUrl: product.image,
-          sortOrder: boughtTogetherProducts.length + 1,
-        },
+      onBoughtTogetherProductIdsChange([
+        ...(boughtTogetherProductIds || []),
+        product.id,
       ]);
     }
     setSearchValue("");
   };
 
   const removeBoughtTogetherProduct = (productId: string) => {
-    onboughtTogetherProductsChange(
-      boughtTogetherProducts.filter((p) => p.productId !== productId)
+    onBoughtTogetherProductIdsChange(
+      (boughtTogetherProductIds || []).filter((id) => id !== productId)
     );
   };
 
@@ -82,13 +70,13 @@ export function ProductBoughtTogetherTab({
             />
           </div>
 
-          {boughtTogetherProducts.length > 0 ? (
+          {boughtTogetherProductIds && boughtTogetherProductIds.length > 0 ? (
             <div className="space-y-3">
-              {boughtTogetherProducts.map((product) => (
+              {boughtTogetherProductIds.map((productId) => (
                 <div
-                  key={product.productId}
+                  key={productId}
                   className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <Image
+                  {/* <Image
                     src={product.imageUrl || defaultImage}
                     alt={product.productName}
                     className="w-16 h-16 object-cover rounded"
@@ -97,20 +85,15 @@ export function ProductBoughtTogetherTab({
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = defaultImage;
                     }}
-                  />
+                  /> */}
                   <div className="flex-1">
-                    <h4 className="font-medium">{product.productName}</h4>
-                    <p className="text-xs text-gray-500">
-                      Sort Order: {product.sortOrder}
-                    </p>
+                    <h4 className="font-medium">{productId}</h4>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() =>
-                      removeBoughtTogetherProduct(product.productId)
-                    }>
+                    onClick={() => removeBoughtTogetherProduct(productId)}>
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
                 </div>

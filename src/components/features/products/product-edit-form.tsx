@@ -56,20 +56,18 @@ export function ProductEditForm({
 
   const [images, setImages] = useState(
     product.multimedia.images?.map((img: any, index: number) => ({
-      id: index.toString(),
       url: img.url,
-      altText: img.altText || "",
       isPrimary: img.isPrimary,
       sortOrder: img.sortOrder,
     })) || []
   );
 
-  const [similarProducts, setSimilarProducts] = useState(
-    product.similarProducts || []
+  const [similarProductIds, setSimilarProductIds] = useState(
+    product.similarProductIds || []
   );
 
-  const [boughtTogetherProducts, setBoughtTogetherProducts] = useState(
-    product.boughtTogetherProducts || []
+  const [boughtTogetherProductIds, setBoughtTogetherProductIds] = useState(
+    product.boughtTogetherProductIds || []
   );
 
   const [selectedDiscountIds, setSelectedDiscountIds] = useState(
@@ -110,16 +108,14 @@ export function ProductEditForm({
         },
         multimedia: {
           images: images.map((img: ProductImage) => ({
-            id: img.id,
             url: img.url,
-            altText: img.altText,
             isPrimary: img.isPrimary,
             sortOrder: img.sortOrder,
           })),
           videos: product.multimedia.videos || [],
         },
-        similarProducts: similarProducts,
-        boughtTogetherProducts: boughtTogetherProducts,
+        similarProductIds: similarProductIds,
+        boughtTogetherProductIds: boughtTogetherProductIds,
       };
 
       await productService.update(product.id, updatedProduct);
@@ -239,18 +235,18 @@ export function ProductEditForm({
       {activeTab === "multimedia" && (
         <ProductMultimediaTab images={images} onImagesChange={setImages} />
       )}
-      {activeTab === "related" && (
+      {activeTab === "similar" && (
         <ProductSimilarTab
-          similarProducts={similarProducts}
-          onSimilarProductsChange={setSimilarProducts}
+          similarProductIds={similarProductIds}
+          onSimilarProductIdsChange={setSimilarProductIds}
           availableProducts={availableProducts}
           defaultImage=""
         />
       )}
       {activeTab === "bought-together" && (
         <ProductBoughtTogetherTab
-          boughtTogetherProducts={boughtTogetherProducts}
-          onboughtTogetherProductsChange={setBoughtTogetherProducts}
+          boughtTogetherProductIds={boughtTogetherProductIds}
+          onBoughtTogetherProductIdsChange={setBoughtTogetherProductIds}
           availableProducts={availableProducts}
           defaultImage=""
         />

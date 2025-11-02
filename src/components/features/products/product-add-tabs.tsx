@@ -15,7 +15,7 @@ const tabs = [
   { id: "discounts", label: "Discounts", icon: DollarSign },
   { id: "inventory", label: "Inventory", icon: ShoppingCart },
   { id: "multimedia", label: "Multimedia", icon: ImageIcon },
-  { id: "related", label: "Similar Products", icon: Sparkles },
+  { id: "similar", label: "Similar Products", icon: Sparkles },
   { id: "bought-together", label: "Bought Together Products", icon: ShoppingBag },
 ];
 

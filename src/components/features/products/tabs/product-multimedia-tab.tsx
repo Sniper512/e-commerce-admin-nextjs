@@ -23,35 +23,33 @@ export function ProductMultimediaTab({
     onImagesChange([
       ...images,
       {
-        id: crypto.randomUUID(),
         url: "",
-        altText: "",
         isPrimary: images.length === 0,
         sortOrder: images.length,
       },
     ]);
   };
 
-  const removeImage = (id: string) => {
-    onImagesChange(images.filter((img) => img.id !== id));
+  const removeImage = (url: string) => {
+    onImagesChange(images.filter((img) => img.url !== url));
     // Clean up error state
     const newErrors = { ...imageErrors };
-    delete newErrors[id];
+    delete newErrors[url];
     setImageErrors(newErrors);
   };
 
   const updateImage = (
-    id: string,
+    url: string,
     field: "url" | "altText" | "isPrimary" | "sortOrder",
     value: string | boolean | number
   ) => {
     // Reset error state when URL changes
     if (field === "url") {
-      setImageErrors((prev) => ({ ...prev, [id]: false }));
+      setImageErrors((prev) => ({ ...prev, [url]: false }));
     }
 
     const updated = images.map((img) => {
-      if (img.id === id) {
+      if (img.url === url) {
         if (field === "isPrimary" && value === true) {
           // Make this primary and unset others
           return { ...img, [field]: value };
@@ -86,16 +84,16 @@ export function ProductMultimediaTab({
           <div className="space-y-4">
             {images.map((image, index) => (
               <div
-                key={image.id}
+                key={image.url}
                 className="flex items-start gap-4 p-4 border rounded-lg bg-white">
                 <div className="flex-shrink-0">
                   <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center border-2 border-gray-200">
-                    {image.url && !imageErrors[image.id] ? (
+                    {image.url && !imageErrors[image.url] ? (
                       <img
                         src={image.url}
-                        alt={image.altText || "Product image"}
+                        alt={"Product image"}
                         className="w-full h-full object-cover"
-                        onError={() => handleImageError(image.id)}
+                        onError={() => handleImageError(image.url)}
                       />
                     ) : (
                       <ImageIcon className="h-8 w-8 text-gray-400" />
@@ -108,32 +106,16 @@ export function ProductMultimediaTab({
                 <div className="flex-1 space-y-3">
                   <div>
                     <Label
-                      htmlFor={`url-${image.id}`}
+                      htmlFor={`url-${image.url}`}
                       className="text-sm font-medium">
                       Image URL *
                     </Label>
                     <Input
-                      id={`url-${image.id}`}
+                      id={`url-${image.url}`}
                       placeholder="https://example.com/image.jpg"
                       value={image.url}
                       onChange={(e) =>
-                        updateImage(image.id, "url", e.target.value)
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label
-                      htmlFor={`alt-${image.id}`}
-                      className="text-sm font-medium">
-                      Alt Text
-                    </Label>
-                    <Input
-                      id={`alt-${image.id}`}
-                      placeholder="Descriptive text for the image"
-                      value={image.altText}
-                      onChange={(e) =>
-                        updateImage(image.id, "altText", e.target.value)
+                        updateImage(image.url, "url", e.target.value)
                       }
                       className="mt-1"
                     />
@@ -143,7 +125,7 @@ export function ProductMultimediaTab({
                       type="checkbox"
                       checked={image.isPrimary}
                       onChange={(e) =>
-                        updateImage(image.id, "isPrimary", e.target.checked)
+                        updateImage(image.url, "isPrimary", e.target.checked)
                       }
                       className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                     />
@@ -153,7 +135,7 @@ export function ProductMultimediaTab({
                   </label>
                 </div>
                 <Button
-                  onClick={() => removeImage(image.id)}
+                  onClick={() => removeImage(image.url)}
                   variant="ghost"
                   size="sm"
                   className="text-red-600 hover:text-red-700 hover:bg-red-50">
@@ -206,25 +188,6 @@ export function ProductMultimediaTab({
               <Input
                 id="videoUrl"
                 placeholder="https://youtube.com/watch?v=..."
-              />
-            </div>
-
-            <div className="form-group">
-              <Label htmlFor="videoTitle" className="form-label">
-                Video Title
-              </Label>
-              <Input id="videoTitle" placeholder="Product demo video" />
-            </div>
-
-            <div className="form-group">
-              <Label htmlFor="videoDesc" className="form-label">
-                Video Description
-              </Label>
-              <textarea
-                id="videoDesc"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Describe the video content"
               />
             </div>
           </div>

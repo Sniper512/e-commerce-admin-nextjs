@@ -6,54 +6,38 @@ import { Button } from "@/components/ui/button";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
-import { SimilarProduct } from "@/types";
-import Image from "next/image";
-
-// Simplified product type for dropdown
-interface SimpleProduct {
-  id: string;
-  name: string;
-  image: string;
-}
+import { Product } from "@/types";
 
 interface ProductSimilarTabProps {
-  similarProducts: SimilarProduct[];
-  onSimilarProductsChange: (value: SimilarProduct[]) => void;
-  availableProducts: SimpleProduct[];
+  similarProductIds: string[];
+  onSimilarProductIdsChange: (value: string[]) => void;
+  availableProducts: Product[];
   defaultImage: string;
 }
 
 export function ProductSimilarTab({
-  similarProducts,
-  onSimilarProductsChange,
+  similarProductIds,
+  onSimilarProductIdsChange,
   availableProducts,
   defaultImage,
 }: ProductSimilarTabProps) {
   const [searchValue, setSearchValue] = useState("");
 
-  const addRelatedProduct = (productId: string) => {
-    if (similarProducts.some((p) => p.productId === productId)) {
+  const addSimilarProduct = (productId: string) => {
+    if (similarProductIds?.includes(productId)) {
       return; // Already added
     }
 
     const product = availableProducts.find((p) => p.id === productId);
     if (product) {
-      onSimilarProductsChange([
-        ...similarProducts,
-        {
-          productId: product.id,
-          productName: product.name,
-          imageUrl: product.image,
-          sortOrder: similarProducts.length + 1,
-        },
-      ]);
+      onSimilarProductIdsChange([...(similarProductIds || []), product.id]);
     }
     setSearchValue("");
   };
 
-  const removeRelatedProduct = (productId: string) => {
-    onSimilarProductsChange(
-      similarProducts.filter((p) => p.productId !== productId)
+  const removeSimilarProduct = (productId: string) => {
+    onSimilarProductIdsChange(
+      (similarProductIds || []).filter((p) => p !== productId)
     );
   };
 
@@ -73,7 +57,7 @@ export function ProductSimilarTab({
             <ProductSearchDropdown
               availableProducts={availableProducts}
               selectedProductId=""
-              onSelect={addRelatedProduct}
+              onSelect={addSimilarProduct}
               placeholder="Search for a product to add..."
               searchValue={searchValue}
               onSearchChange={setSearchValue}
@@ -81,13 +65,13 @@ export function ProductSimilarTab({
             />
           </div>
 
-          {similarProducts.length > 0 ? (
+          {similarProductIds && similarProductIds.length > 0 ? (
             <div className="space-y-3">
-              {similarProducts.map((product) => (
+              {similarProductIds.map((productId) => (
                 <div
-                  key={product.productId}
+                  key={productId}
                   className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <Image
+                  {/* <Image
                     src={product.imageUrl || defaultImage}
                     alt={product.productName}
                     className="w-16 h-16 object-cover rounded"
@@ -96,15 +80,15 @@ export function ProductSimilarTab({
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = defaultImage;
                     }}
-                  />
+                  /> */}
                   <div className="flex-1">
-                    <h4 className="font-medium">{product.productName}</h4>
+                    <h4 className="font-medium">{productId}</h4>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeRelatedProduct(product.productId)}>
+                    onClick={() => removeSimilarProduct(productId)}>
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
                 </div>
