@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
-import Image from "next/image";
 import { Product } from "@/types";
 
 interface ProductBoughtTogetherTabProps {
@@ -23,6 +22,16 @@ export function ProductBoughtTogetherTab({
   defaultImage,
 }: ProductBoughtTogetherTabProps) {
   const [searchValue, setSearchValue] = useState("");
+
+  // Convert products to the format expected by ProductSearchDropdown
+  // Filter out already selected products
+  const availableProductsForDropdown = availableProducts
+    .filter((product) => !boughtTogetherProductIds.includes(product.id))
+    .map((product) => ({
+      id: product.id,
+      name: product.info.name,
+      image: product.multimedia.images[0]?.url || "/images/default-image.svg",
+    }));
 
   const addBoughtTogetherProduct = (productId: string) => {
     if (boughtTogetherProductIds?.includes(productId)) {
@@ -60,7 +69,7 @@ export function ProductBoughtTogetherTab({
           <div className="space-y-2">
             <Label className="form-label">Search and Add Product</Label>
             <ProductSearchDropdown
-              availableProducts={availableProducts}
+              availableProducts={availableProductsForDropdown}
               selectedProductId=""
               onSelect={addBoughtTogetherProduct}
               placeholder="Search for a product to add..."

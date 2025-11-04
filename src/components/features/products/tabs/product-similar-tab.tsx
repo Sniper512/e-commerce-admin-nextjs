@@ -23,6 +23,16 @@ export function ProductSimilarTab({
 }: ProductSimilarTabProps) {
   const [searchValue, setSearchValue] = useState("");
 
+  // Convert products to the format expected by ProductSearchDropdown
+  // Filter out already selected products
+  const availableProductsForDropdown = availableProducts
+    .filter((product) => !similarProductIds.includes(product.id))
+    .map((product) => ({
+      id: product.id,
+      name: product.info.name,
+      image: product.multimedia.images[0]?.url || "/images/default-image.svg",
+    }));
+
   const addSimilarProduct = (productId: string) => {
     if (similarProductIds?.includes(productId)) {
       return; // Already added
@@ -55,7 +65,7 @@ export function ProductSimilarTab({
           <div className="space-y-2">
             <Label className="form-label">Search and Add Product</Label>
             <ProductSearchDropdown
-              availableProducts={availableProducts}
+              availableProducts={availableProductsForDropdown}
               selectedProductId=""
               onSelect={addSimilarProduct}
               placeholder="Search for a product to add..."

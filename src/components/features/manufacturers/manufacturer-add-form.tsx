@@ -12,42 +12,72 @@ import { ArrowLeft, Save, Loader2, Upload, X } from "lucide-react";
 import manufacturerService from "@/services/manufacturerService";
 import Image from "next/image";
 
-const DEFAULT_LOGO = "/images/default-image.svg";
-
 export function ManufacturerAddForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     displayOrder: 1,
   });
 
+  const handleFileValidation = (file: File): boolean => {
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return false;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size must be less than 5MB");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleFilePreview = (file: File) => {
+    setLogoFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        alert("Please select an image file");
-        return;
-      }
+    if (file && handleFileValidation(file)) {
+      handleFilePreview(file);
+    }
+  };
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image size must be less than 5MB");
-        return;
-      }
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
 
-      setLogoFile(file);
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
 
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && handleFileValidation(file)) {
+      handleFilePreview(file);
     }
   };
 
@@ -178,21 +208,41 @@ export function ManufacturerAddForm() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center relative">
-                    <Image
-                      src={logoPreview || DEFAULT_LOGO}
-                      alt="Manufacturer logo"
-                      className="w-full h-full object-contain p-4"
-                      width={300}
-                      height={300}
-                    />
-                    {logoPreview && (
-                      <button
-                        type="button"
-                        onClick={handleRemoveLogo}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
-                        <X className="h-4 w-4" />
-                      </button>
+                  <div
+                    className={`aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center relative border-2 border-dashed transition-colors ${
+                      isDragging
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-300"
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}>
+                    {logoPreview ? (
+                      <>
+                        <Image
+                          src={logoPreview}
+                          alt="Manufacturer logo"
+                          className="w-full h-full object-contain p-4"
+                          width={300}
+                          height={300}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center p-6">
+                        <Upload className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-600 mb-1">
+                          Drag and drop logo here
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          or click below to browse
+                        </p>
+                      </div>
                     )}
                   </div>
                   <div>

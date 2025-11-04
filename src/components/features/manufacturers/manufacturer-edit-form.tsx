@@ -37,6 +37,7 @@ export function ManufacturerEditForm({
   const [isEditing, setIsEditing] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
 
   const [formData, setFormData] = useState({
     name: manufacturer.name,
@@ -44,29 +45,64 @@ export function ManufacturerEditForm({
     displayOrder: manufacturer.displayOrder,
   });
 
+  const handleFileValidation = (file: File): boolean => {
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return false;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size must be less than 5MB");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleFilePreview = (file: File) => {
+    setLogoFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        alert("Please select an image file");
-        return;
-      }
+    if (file && handleFileValidation(file)) {
+      handleFilePreview(file);
+    }
+  };
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image size must be less than 5MB");
-        return;
-      }
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isEditing) {
+      setIsDragging(true);
+    }
+  };
 
-      setLogoFile(file);
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
 
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (!isEditing) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && handleFileValidation(file)) {
+      handleFilePreview(file);
     }
   };
 
@@ -261,24 +297,52 @@ export function ManufacturerEditForm({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center relative">
-                  <Image
-                    src={logoPreview || manufacturer.logo || DEFAULT_LOGO}
-                    alt={manufacturer.name}
-                    className="w-full h-full object-contain p-4"
-                    onError={(e) => {
-                      e.currentTarget.src = DEFAULT_LOGO;
-                    }}
-                    width={300}
-                    height={300}
-                  />
-                  {isEditing && logoPreview && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveLogo}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
-                      <X className="h-4 w-4" />
-                    </button>
+                <div
+                  className={`aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center relative border-2 ${
+                    isEditing
+                      ? isDragging
+                        ? "border-dashed border-blue-500 bg-blue-50"
+                        : "border-dashed border-gray-300"
+                      : "border-solid border-gray-200"
+                  } transition-colors`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}>
+                  {logoPreview || manufacturer.logo ? (
+                    <>
+                      <Image
+                        src={logoPreview || manufacturer.logo || DEFAULT_LOGO}
+                        alt={manufacturer.name}
+                        className="w-full h-full object-contain p-4"
+                        onError={(e) => {
+                          e.currentTarget.src = DEFAULT_LOGO;
+                        }}
+                        width={300}
+                        height={300}
+                      />
+                      {isEditing && logoPreview && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center p-6">
+                      <Upload className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        {isEditing
+                          ? "Drag and drop logo here"
+                          : "No logo uploaded"}
+                      </p>
+                      {isEditing && (
+                        <p className="text-xs text-gray-500">
+                          or click below to browse
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
                 {isEditing && (

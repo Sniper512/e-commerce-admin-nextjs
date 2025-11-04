@@ -84,7 +84,7 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-16">Order</TableHead>
+                <TableHead>Order</TableHead>
                 <TableHead>Logo</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
@@ -111,9 +111,9 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                       <Image
                         src={manufacturer.logo || DEFAULT_LOGO}
                         alt={manufacturer.name}
-                        className="w-12 h-12 object-contain rounded border"
-                        width={48}
-                        height={48}
+                        className="w-10 h-10 object-contain rounded border"
+                        width={40}
+                        height={40}
                         onError={(e) => {
                           e.currentTarget.src = DEFAULT_LOGO;
                         }}

@@ -74,7 +74,7 @@ const manufacturerService = {
   async getAllManufacturers(): Promise<Manufacturer[]> {
     try {
       const manufacturersRef = collection(db, COLLECTION_NAME);
-      const q = query(manufacturersRef, orderBy("name", "asc"));
+      const q = query(manufacturersRef, orderBy("displayOrder", "asc"));
       const snapshot = await getDocs(q);
 
       return snapshot.docs.map((doc) =>

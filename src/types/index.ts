@@ -21,7 +21,7 @@ export interface Category {
   description?: string;
   type: CategoryType; // simple or special (e.g., "Summer Sales")
   displayOrder: number;
-  picture?: string; // Category image/picture URL
+  image?: string; // Category image URL
   subCategoryCount: number; // Count of subcategories
   isPublished: boolean; // Whether category is published
   productIds: string[]; // Array of product IDs in this category
@@ -41,7 +41,7 @@ export interface SubCategory {
   slug: string;
   description?: string;
   displayOrder: number;
-  picture?: string;
+  image?: string;
   parentCategoryId: string; // Reference to parent category
   isPublished: boolean;
   productIds: string[];

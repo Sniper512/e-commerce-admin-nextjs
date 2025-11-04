@@ -29,14 +29,16 @@ import {
   User,
   BarChart3,
   Plus,
+  Upload,
 } from "lucide-react";
 import type { Category, SubCategory, Product } from "@/types";
 import categoryService from "@/services/categoryService";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { LinkButton } from "@/components/ui/link-button";
+import Image from "next/image";
 
-const DEFAULT_CATEGORY_IMAGE = "/images/default-category.svg";
+const DEFAULT_CATEGORY_IMAGE = "/images/default-image.svg";
 const DEFAULT_PRODUCT_IMAGE = "/images/default-image.svg";
 
 interface CategoryEditFormProps {
@@ -57,6 +59,9 @@ export function CategoryEditForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
 
   // Use different form data based on whether it's a category or subcategory
   const [formData, setFormData] = useState(
@@ -64,7 +69,7 @@ export function CategoryEditForm({
       ? {
           name: subCategory.name,
           description: subCategory.description || "",
-          picture: subCategory.picture || "",
+          image: subCategory.image || "",
           displayOrder: subCategory.displayOrder,
           isPublished: subCategory.isPublished,
         }
@@ -72,13 +77,79 @@ export function CategoryEditForm({
           name: category.name,
           description: category.description || "",
           type: category.type,
-          picture: category.picture || "",
+          image: category.image || "",
           displayOrder: category.displayOrder,
           isPublished: category.isPublished,
           showOnHomepage: category.showOnHomepage || false,
           showOnNavbar: category.showOnNavbar || false,
         }
   );
+
+  const handleFileValidation = (file: File): boolean => {
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return false;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size must be less than 5MB");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleFilePreview = (file: File) => {
+    setImageFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && handleFileValidation(file)) {
+      handleFilePreview(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isEditing) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (!isEditing) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && handleFileValidation(file)) {
+      handleFilePreview(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+  };
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -96,14 +167,17 @@ export function CategoryEditForm({
         await categoryService.updateSubCategory(
           category.id,
           subCategory.id,
-          formData
+          formData,
+          imageFile
         );
       } else {
         // Update main category
-        await categoryService.updateCategory(category.id, formData);
+        await categoryService.updateCategory(category.id, formData, imageFile);
       }
 
       setIsEditing(false);
+      setImageFile(null);
+      setImagePreview("");
       alert(
         `${isSubCategory ? "Subcategory" : "Category"} updated successfully!`
       );
@@ -125,7 +199,7 @@ export function CategoryEditForm({
         ? {
             name: subCategory.name,
             description: subCategory.description || "",
-            picture: subCategory.picture || "",
+            image: subCategory.image || "",
             displayOrder: subCategory.displayOrder,
             isPublished: subCategory.isPublished,
           }
@@ -133,13 +207,15 @@ export function CategoryEditForm({
             name: category.name,
             description: category.description || "",
             type: category.type,
-            picture: category.picture || "",
+            image: category.image || "",
             displayOrder: category.displayOrder,
             isPublished: category.isPublished,
             showOnHomepage: category.showOnHomepage || false,
             showOnNavbar: category.showOnNavbar || false,
           }
     );
+    setImageFile(null);
+    setImagePreview("");
     setIsEditing(false);
   };
 
@@ -310,9 +386,9 @@ export function CategoryEditForm({
                         <option value="special">Special</option>
                       </select>
                     ) : (
-                      <Badge variant="default" className="mt-1">
-                        {category.type}
-                      </Badge>
+                      <div className="mt-2">
+                        <Badge variant="default">{category.type}</Badge>
+                      </div>
                     )}
                   </div>
                 )}
@@ -339,23 +415,6 @@ export function CategoryEditForm({
                     </p>
                   )}
                 </div>
-              </div>
-
-              <div>
-                <Label>Picture URL</Label>
-                {isEditing ? (
-                  <Input
-                    value={formData.picture}
-                    onChange={(e) =>
-                      setFormData({ ...formData, picture: e.target.value })
-                    }
-                    placeholder="Enter image URL"
-                  />
-                ) : (
-                  <p className="mt-1 text-gray-600 break-all">
-                    {category.picture || "No image"}
-                  </p>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -389,13 +448,18 @@ export function CategoryEditForm({
                       <TableRow key={product.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <img
+                            <Image
                               src={
+                                product.multimedia?.images.find(
+                                  (img) => img.isPrimary
+                                )?.url ||
                                 product.multimedia?.images[0]?.url ||
                                 DEFAULT_PRODUCT_IMAGE
                               }
                               alt={product.info.name}
-                              className="w-12 h-12 object-cover rounded border"
+                              className="w-10 h-10 object-cover rounded border"
+                              width={40}
+                              height={40}
                               onError={(e) => {
                                 e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
                               }}
@@ -502,25 +566,99 @@ export function CategoryEditForm({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
-                <img
-                  src={
+              <div className="space-y-4">
+                <div
+                  className={`aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center relative border-2 ${
                     isEditing
-                      ? formData.picture || DEFAULT_CATEGORY_IMAGE
-                      : isSubCategory && subCategory
-                      ? subCategory.picture || DEFAULT_CATEGORY_IMAGE
-                      : category.picture || DEFAULT_CATEGORY_IMAGE
-                  }
-                  alt={
-                    isSubCategory && subCategory
-                      ? subCategory.name
-                      : category.name
-                  }
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = DEFAULT_CATEGORY_IMAGE;
-                  }}
-                />
+                      ? isDragging
+                        ? "border-dashed border-blue-500 bg-blue-50"
+                        : "border-dashed border-gray-300"
+                      : "border-solid border-gray-200"
+                  } transition-colors`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}>
+                  {imagePreview ||
+                  (isSubCategory && subCategory
+                    ? subCategory.image
+                    : category.image) ? (
+                    <>
+                      <Image
+                        src={
+                          imagePreview ||
+                          (isSubCategory && subCategory
+                            ? subCategory.image
+                            : category.image) ||
+                          DEFAULT_CATEGORY_IMAGE
+                        }
+                        alt={
+                          isSubCategory && subCategory
+                            ? subCategory.name
+                            : category.name
+                        }
+                        className="w-full h-full object-contain p-4"
+                        width={300}
+                        height={300}
+                        onError={(e) => {
+                          e.currentTarget.src = DEFAULT_CATEGORY_IMAGE;
+                        }}
+                      />
+                      {isEditing && imagePreview && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center p-6">
+                      <Upload className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        {isEditing
+                          ? "Drag and drop image here"
+                          : "No image uploaded"}
+                      </p>
+                      {isEditing && (
+                        <p className="text-xs text-gray-500">
+                          or click below to browse
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {isEditing && (
+                  <div>
+                    <Label htmlFor="category-image-edit">
+                      Upload New Image
+                    </Label>
+                    <div className="mt-2">
+                      <input
+                        id="category-image-edit"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() =>
+                          document
+                            .getElementById("category-image-edit")
+                            ?.click()
+                        }>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {imageFile ? "Change Image" : "Upload New Image"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Recommended: Square image, max 5MB
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

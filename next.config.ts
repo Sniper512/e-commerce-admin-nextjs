@@ -8,22 +8,13 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "nayabazar.pk",
-      },
-      {
-        protocol: "https",
-        hostname: "scontent.fkhi20-1.fna.fbcdn.net",
-      },
-      {
-        protocol: "https",
-        hostname: "www.shangrila.com.pk",
-      },
-      {
         protocol: "http",
         hostname: "localhost",
       },
     ],
+    dangerouslyAllowSVG: true, // Add this
+    contentDispositionType: "attachment", // Add this for security
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;", // Add this for security
   },
 };
 

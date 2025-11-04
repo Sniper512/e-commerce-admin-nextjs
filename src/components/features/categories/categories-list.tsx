@@ -27,6 +27,7 @@ import {
 import type { Category, SubCategory } from "@/types";
 import categoryService from "@/services/categoryService";
 import { LinkButton } from "@/components/ui/link-button";
+import Image from "next/image";
 
 interface CategoriesListProps {
   categoriesWithSubCategories: Array<{
@@ -38,6 +39,8 @@ interface CategoriesListProps {
 type DisplayItem =
   | { type: "category"; data: Category }
   | { type: "subcategory"; data: SubCategory; parentId: string };
+
+const DEFAULT_CATEGORY_IMAGE = "/images/default-image.svg";
 
 export function CategoriesList({
   categoriesWithSubCategories,
@@ -128,8 +131,9 @@ export function CategoriesList({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Display Order</TableHead>
-                <TableHead>Category Name</TableHead>
+                <TableHead>Order</TableHead>
+                <TableHead>Image</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead className="text-center">Type</TableHead>
                 <TableHead className="text-center">Products</TableHead>
                 <TableHead className="text-center">Navbar</TableHead>
@@ -159,6 +163,18 @@ export function CategoriesList({
                         className="bg-gray-50">
                         <TableCell className="font-medium">
                           {category.displayOrder}
+                        </TableCell>
+                        <TableCell>
+                          <Image
+                            src={category.image || DEFAULT_CATEGORY_IMAGE}
+                            alt={category.name}
+                            className="w-10 h-10 object-contain rounded border"
+                            width={40}
+                            height={40}
+                            onError={(e) => {
+                              e.currentTarget.src = DEFAULT_CATEGORY_IMAGE;
+                            }}
+                          />
                         </TableCell>
                         <TableCell className="font-semibold">
                           <div className="flex items-center gap-2">
@@ -240,6 +256,18 @@ export function CategoriesList({
                         className="hover:bg-blue-50/50">
                         <TableCell className="pl-8">
                           {subCategory.displayOrder}
+                        </TableCell>
+                        <TableCell>
+                          <Image
+                            src={subCategory.image || DEFAULT_CATEGORY_IMAGE}
+                            alt={subCategory.name}
+                            className="w-10 h-10 object-contain rounded border"
+                            width={40}
+                            height={40}
+                            onError={(e) => {
+                              e.currentTarget.src = DEFAULT_CATEGORY_IMAGE;
+                            }}
+                          />
                         </TableCell>
                         <TableCell className="pl-12">
                           {subCategory.name}

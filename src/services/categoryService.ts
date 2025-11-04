@@ -12,8 +12,18 @@ import {
   orderBy,
   Timestamp,
 } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
-import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import { db, storage } from "../../firebaseConfig";
+import {
+  sanitizeForFirestore,
+  convertTimestamp,
+  generateSlug,
+} from "@/lib/firestore-utils";
 
 // Helper function to convert Firestore data to Category
 const firestoreToCategory = (id: string, data: any): Category => {
@@ -24,7 +34,7 @@ const firestoreToCategory = (id: string, data: any): Category => {
     description: data.description || "",
     type: data.type || "simple",
     displayOrder: data.displayOrder || 1,
-    picture: data.picture || undefined,
+    image: data.image || undefined,
     subCategoryCount: data.subCategoryCount || 0,
     isPublished: data.isPublished ?? true,
     productIds: data.productIds || [],
@@ -60,7 +70,7 @@ const firestoreToSubCategory = (
     slug: data.slug || "",
     description: data.description || "",
     displayOrder: data.displayOrder || 1,
-    picture: data.picture || undefined,
+    image: data.image || undefined,
     parentCategoryId,
     isPublished: data.isPublished ?? true,
     productIds: data.productIds || [],
@@ -75,16 +85,6 @@ const firestoreToSubCategory = (
 const COLLECTION_NAME = "CATEGORIES";
 const SUBCATEGORIES_COLLECTION = "SUB_CATEGORIES";
 
-// Helper function to generate slug from name
-const generateSlug = (name: string): string => {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9 -]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
-};
-
 // Build category hierarchy (helper function) - No longer needed with new structure
 const buildCategoryHierarchy = (categories: Category[]): Category[] => {
   // Sort by display order
@@ -95,6 +95,84 @@ const buildCategoryHierarchy = (categories: Category[]): Category[] => {
 
 // Category Service Functions using Firebase Firestore
 export const categoryService = {
+  // Upload category image to Firebase Storage
+  async uploadCategoryImage(categoryId: string, file: File): Promise<string> {
+    try {
+      const storagePath = `CATEGORIES/${categoryId}/category`;
+      const storageRef = ref(storage, storagePath);
+
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading category image:", error);
+      throw new Error("Failed to upload category image");
+    }
+  },
+
+  // Upload subcategory image to Firebase Storage
+  async uploadSubCategoryImage(
+    categoryId: string,
+    subCategoryId: string,
+    file: File
+  ): Promise<string> {
+    try {
+      const storagePath = `CATEGORIES/${categoryId}/${subCategoryId}`;
+      const storageRef = ref(storage, storagePath);
+
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading subcategory image:", error);
+      throw new Error("Failed to upload subcategory image");
+    }
+  },
+
+  // Delete category image from Firebase Storage
+  async deleteCategoryImage(categoryId: string): Promise<void> {
+    try {
+      const storagePath = `CATEGORIES/${categoryId}/category`;
+      const storageRef = ref(storage, storagePath);
+      await deleteObject(storageRef);
+    } catch (error) {
+      // If file doesn't exist, it's okay to continue
+      if ((error as any)?.code !== "storage/object-not-found") {
+        console.error("Error deleting category image:", error);
+      }
+    }
+  },
+
+  // Delete subcategory image from Firebase Storage
+  async deleteSubCategoryImage(
+    categoryId: string,
+    subCategoryId: string
+  ): Promise<void> {
+    try {
+      const storagePath = `CATEGORIES/${categoryId}/${subCategoryId}`;
+      const storageRef = ref(storage, storagePath);
+      await deleteObject(storageRef);
+    } catch (error) {
+      // If file doesn't exist, it's okay to continue
+      if ((error as any)?.code !== "storage/object-not-found") {
+        console.error("Error deleting subcategory image:", error);
+      }
+    }
+  },
+
+  // Delete entire category folder (category + all subcategory images)
+  async deleteCategoryFolder(categoryId: string): Promise<void> {
+    try {
+      // Delete main category image
+      await this.deleteCategoryImage(categoryId);
+
+      // Note: Firebase Storage doesn't support folder deletion directly
+      // Subcategory images will be deleted individually when subcategories are deleted
+    } catch (error) {
+      console.error("Error deleting category folder:", error);
+    }
+  },
+
   // Get all categories
   async getAllCategories(): Promise<Category[]> {
     try {
@@ -213,13 +291,13 @@ export const categoryService = {
       const categories = await Promise.all(
         snapshot.docs.map(async (docSnap) => {
           const category = firestoreToCategory(docSnap.id, docSnap.data());
-          
+
           // Fetch subcategories for this category
           const subcategories = await this.getSubCategories(category.id);
-          
+
           return {
             ...category,
-            subcategories
+            subcategories,
           };
         })
       );
@@ -253,7 +331,10 @@ export const categoryService = {
   },
 
   // Create new category
-  async createCategory(categoryData: Partial<Category>): Promise<Category> {
+  async createCategory(
+    categoryData: Partial<Category>,
+    imageFile?: File | null
+  ): Promise<void> {
     try {
       // Check if category name already exists
       const nameExists = await this.checkCategoryNameExists(
@@ -273,7 +354,7 @@ export const categoryService = {
         description: categoryData.description || "",
         type: categoryData.type || "simple",
         displayOrder: categoryData.displayOrder || 1,
-        picture: categoryData.picture || null,
+        image: null,
         subCategoryCount: 0,
         isPublished: categoryData.isPublished ?? true,
         productIds: categoryData.productIds || [],
@@ -289,15 +370,14 @@ export const categoryService = {
       const sanitizedData = sanitizeForFirestore(newCategoryData);
       const docRef = await addDoc(categoriesRef, sanitizedData);
 
-      // Wait a moment for serverTimestamp to be written
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const createdCategory = await this.getCategoryById(docRef.id);
-      if (!createdCategory) {
-        throw new Error("Failed to retrieve created category");
+      // Upload image if provided
+      let imageURL = null;
+      if (imageFile) {
+        imageURL = await this.uploadCategoryImage(docRef.id, imageFile);
+        await updateDoc(docRef, { image: imageURL });
       }
 
-      return createdCategory;
+      return;
     } catch (error) {
       console.error("Error creating category:", error);
       throw error;
@@ -307,8 +387,9 @@ export const categoryService = {
   // Create new subcategory
   async createSubCategory(
     parentCategoryId: string,
-    subCategoryData: Partial<SubCategory>
-  ): Promise<SubCategory> {
+    subCategoryData: Partial<SubCategory>,
+    imageFile?: File | null
+  ): Promise<void> {
     try {
       // Check if parent category exists
       const parentCategory = await this.getCategoryById(parentCategoryId);
@@ -339,7 +420,7 @@ export const categoryService = {
         slug: generateSlug(subCategoryData.name || ""),
         description: subCategoryData.description || "",
         displayOrder: subCategoryData.displayOrder || 1,
-        picture: subCategoryData.picture || null,
+        image: null,
         isPublished: subCategoryData.isPublished ?? true,
         productIds: subCategoryData.productIds || [],
         productCount: 0,
@@ -352,22 +433,23 @@ export const categoryService = {
       const sanitizedData = sanitizeForFirestore(newSubCategoryData);
       const docRef = await addDoc(subCategoriesRef, sanitizedData);
 
+      // Upload image if provided
+      let imageURL = null;
+      if (imageFile) {
+        imageURL = await this.uploadSubCategoryImage(
+          parentCategoryId,
+          docRef.id,
+          imageFile
+        );
+        await updateDoc(docRef, { image: imageURL });
+      }
+
       // Update parent category count
       await this.updateCategory(parentCategoryId, {
         subCategoryCount: parentCategory.subCategoryCount + 1,
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const createdSubCategory = await this.getSubCategoryById(
-        parentCategoryId,
-        docRef.id
-      );
-      if (!createdSubCategory) {
-        throw new Error("Failed to retrieve created subcategory");
-      }
-
-      return createdSubCategory;
+      return;
     } catch (error) {
       console.error("Error creating subcategory:", error);
       throw error;
@@ -406,8 +488,9 @@ export const categoryService = {
   // Update category
   async updateCategory(
     id: string,
-    updates: Partial<Category>
-  ): Promise<Category> {
+    updates: Partial<Category>,
+    imageFile?: File | null
+  ): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
       const docSnap = await getDoc(docRef);
@@ -428,8 +511,20 @@ export const categoryService = {
         }
       }
 
+      // Upload new image if provided
+      let imageURL = currentData.image;
+      if (imageFile) {
+        // Delete old image if exists
+        if (currentData.image) {
+          await this.deleteCategoryImage(id);
+        }
+        // Upload new image
+        imageURL = await this.uploadCategoryImage(id, imageFile);
+      }
+
       const updateData: any = {
         ...updates,
+        image: imageURL,
         updatedAt: new Date().toISOString(),
         updatedBy: "current-user",
       };
@@ -443,12 +538,7 @@ export const categoryService = {
       const sanitizedUpdate = sanitizeForFirestore(updateData);
       await updateDoc(docRef, sanitizedUpdate);
 
-      const updatedCategory = await this.getCategoryById(id);
-      if (!updatedCategory) {
-        throw new Error("Failed to retrieve updated category");
-      }
-
-      return updatedCategory;
+      return;
     } catch (error) {
       console.error("Error updating category:", error);
       throw error;
@@ -459,8 +549,9 @@ export const categoryService = {
   async updateSubCategory(
     parentCategoryId: string,
     subCategoryId: string,
-    updates: Partial<SubCategory>
-  ): Promise<SubCategory> {
+    updates: Partial<SubCategory>,
+    imageFile?: File | null
+  ): Promise<void> {
     try {
       const docRef = doc(
         db,
@@ -491,8 +582,24 @@ export const categoryService = {
         }
       }
 
+      // Upload new image if provided
+      let imageURL = currentData.image;
+      if (imageFile) {
+        // Delete old image if exists
+        if (currentData.image) {
+          await this.deleteSubCategoryImage(parentCategoryId, subCategoryId);
+        }
+        // Upload new image
+        imageURL = await this.uploadSubCategoryImage(
+          parentCategoryId,
+          subCategoryId,
+          imageFile
+        );
+      }
+
       const updateData: any = {
         ...updates,
+        image: imageURL,
         updatedAt: new Date().toISOString(),
         updatedBy: "current-user",
       };
@@ -505,15 +612,7 @@ export const categoryService = {
       const sanitizedUpdate = sanitizeForFirestore(updateData);
       await updateDoc(docRef, sanitizedUpdate);
 
-      const updatedSubCategory = await this.getSubCategoryById(
-        parentCategoryId,
-        subCategoryId
-      );
-      if (!updatedSubCategory) {
-        throw new Error("Failed to retrieve updated subcategory");
-      }
-
-      return updatedSubCategory;
+      return;
     } catch (error) {
       console.error("Error updating subcategory:", error);
       throw error;
@@ -536,6 +635,11 @@ export const categoryService = {
       // Check if category has products
       if (category.productIds.length > 0) {
         throw new Error("Cannot delete category with products");
+      }
+
+      // Delete category image from storage
+      if (category.image) {
+        await this.deleteCategoryImage(id);
       }
 
       const docRef = doc(db, COLLECTION_NAME, id);
@@ -567,6 +671,11 @@ export const categoryService = {
         throw new Error("Cannot delete subcategory with products");
       }
 
+      // Delete subcategory image from storage
+      if (subCategory.image) {
+        await this.deleteSubCategoryImage(parentCategoryId, subCategoryId);
+      }
+
       const docRef = doc(
         db,
         COLLECTION_NAME,
@@ -593,13 +702,13 @@ export const categoryService = {
   },
 
   // Toggle category publish status
-  async togglePublishStatus(id: string): Promise<Category> {
+  async togglePublishStatus(id: string): Promise<void> {
     const category = await this.getCategoryById(id);
     if (!category) {
       throw new Error("Category not found");
     }
 
-    return this.updateCategory(id, {
+    await this.updateCategory(id, {
       isPublished: !category.isPublished,
     });
   },

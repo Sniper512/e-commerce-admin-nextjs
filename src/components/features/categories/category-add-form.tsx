@@ -7,12 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Loader2, Upload, Settings, Info } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Upload,
+  Settings,
+  Info,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import categoryService from "@/services/categoryService";
 import type { Category } from "@/types";
-
-const DEFAULT_CATEGORY_IMAGE = "/images/default-category.svg";
+import Image from "next/image";
 
 interface CategoryAddFormProps {
   categories: Category[];
@@ -23,20 +30,80 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
   const [loading, setLoading] = useState(false);
   const [isSubCategory, setIsSubCategory] = useState(false);
   const [parentCategoryId, setParentCategoryId] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     type: "simple" as "simple" | "special",
-    picture: "",
     displayOrder: 1,
     isPublished: true,
     showOnHomepage: false,
     showOnNavbar: true,
   });
 
-  const selectedParentCategory = categories.find(
-    (cat) => cat.id === parentCategoryId
-  );
+  const handleFileValidation = (file: File): boolean => {
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return false;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size must be less than 5MB");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleFilePreview = (file: File) => {
+    setImageFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && handleFileValidation(file)) {
+      handleFilePreview(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && handleFileValidation(file)) {
+      handleFilePreview(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+  };
 
   const handleSaveCategory = async () => {
     if (!formData.name.trim()) {
@@ -57,7 +124,6 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
         const subCategoryData = {
           name: formData.name,
           description: formData.description,
-          picture: formData.picture,
           displayOrder: formData.displayOrder,
           isPublished: formData.isPublished,
           productIds: [],
@@ -65,7 +131,8 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
 
         await categoryService.createSubCategory(
           parentCategoryId,
-          subCategoryData
+          subCategoryData,
+          imageFile
         );
         alert("Subcategory created successfully!");
       } else {
@@ -74,7 +141,6 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
           name: formData.name,
           description: formData.description,
           type: formData.type,
-          picture: formData.picture,
           displayOrder: formData.displayOrder,
           isPublished: formData.isPublished,
           showOnHomepage: formData.showOnHomepage,
@@ -82,7 +148,7 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
           productIds: [],
         };
 
-        await categoryService.createCategory(categoryData);
+        await categoryService.createCategory(categoryData, imageFile);
         alert("Category created successfully!");
       }
 
@@ -130,9 +196,9 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
       </div>
 
       {/* Form Content */}
-      <div className="grid grid-cols-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Category Details */}
-        <div className="space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -316,39 +382,6 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
                   />
                 </div>
               )}
-
-              <div>
-                <Label htmlFor="picture" className="text-sm font-medium">
-                  Picture URL
-                </Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    id="picture"
-                    value={formData.picture}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        picture: e.target.value,
-                      }))
-                    }
-                    placeholder="Image URL"
-                    className="flex-1"
-                  />
-                  <Button variant="outline" size="sm" title="Upload image">
-                    <Upload className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="mt-3">
-                  <img
-                    src={formData.picture || DEFAULT_CATEGORY_IMAGE}
-                    alt="Category preview"
-                    className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200"
-                    onError={(e) => {
-                      e.currentTarget.src = DEFAULT_CATEGORY_IMAGE;
-                    }}
-                  />
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -422,6 +455,81 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
                   </label>
                 </>
               )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Image Upload */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Category Image</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div
+                  className={`aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center relative border-2 border-dashed transition-colors ${
+                    isDragging
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-300"
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}>
+                  {imagePreview ? (
+                    <>
+                      <Image
+                        src={imagePreview}
+                        alt="Category preview"
+                        className="w-full h-full object-contain p-4"
+                        width={300}
+                        height={300}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="text-center p-6">
+                      <Upload className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        Drag and drop image here
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        or click below to browse
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="picture">Upload Image</Label>
+                  <div className="mt-2">
+                    <input
+                      id="picture"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() =>
+                        document.getElementById("picture")?.click()
+                      }>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {imageFile ? "Change Image" : "Upload Image"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Recommended: Square image, max 5MB
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
