@@ -18,36 +18,13 @@ import {
 } from "firebase/firestore";
 import { db } from "@/../firebaseConfig";
 import { Product, ProductBatch } from "@/types";
+import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
 
 const PRODUCTS_COLLECTION = "PRODUCTS";
 const BATCHES_COLLECTION = "BATCHES";
 const CATEGORIES_COLLECTION = "CATEGORIES";
 const SUBCATEGORIES_COLLECTION = "SUB_CATEGORIES";
 const MANUFACTURERS_COLLECTION = "MANUFACTURERS";
-
-// Helper: sanitize object for Firestore by removing undefined values
-// and converting Date instances to Firestore Timestamps recursively.
-function sanitizeForFirestore(value: any): any {
-  if (value === undefined) return undefined; // caller can skip
-  if (value === null) return null;
-  if (value instanceof Date) return Timestamp.fromDate(value);
-  if (Array.isArray(value)) {
-    // map and filter out undefined entries
-    const arr = value
-      .map((v) => sanitizeForFirestore(v))
-      .filter((v) => v !== undefined);
-    return arr;
-  }
-  if (typeof value === "object") {
-    const out: any = {};
-    for (const k of Object.keys(value)) {
-      const v = sanitizeForFirestore(value[k]);
-      if (v !== undefined) out[k] = v;
-    }
-    return out;
-  }
-  return value; // primitive (number, string, boolean)
-}
 
 // Helper: Parse categoryId to determine if it's a main category or subcategory
 function parseCategoryId(categoryId: string): {

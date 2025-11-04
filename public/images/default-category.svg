@@ -3,5 +3,4 @@
   <path d="M200 120L280 160V280L200 320L120 280V160L200 120Z" fill="#D1D5DB" stroke="#9CA3AF" stroke-width="3" stroke-linejoin="round"/>
   <path d="M200 120V200M200 200L280 160M200 200L120 160" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"/>
   <circle cx="200" cy="200" r="20" fill="#6B7280"/>
-  <text x="200" y="360" font-family="Arial, sans-serif" font-size="18" fill="#6B7280" text-anchor="middle">Category</text>
 </svg>

@@ -7,39 +7,22 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where,
   orderBy,
-  serverTimestamp,
-  Timestamp,
 } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import { db, storage } from "../../firebaseConfig";
 import type { Manufacturer } from "@/types";
+import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
 
 const COLLECTION_NAME = "MANUFACTURERS";
 
-// Helper function to sanitize data for Firestore
-const sanitizeForFirestore = (data: any) => {
-  const sanitized: any = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (value !== undefined) {
-      sanitized[key] = value === null ? null : value;
-    }
-  }
-  return sanitized;
-};
-
 // Helper function to convert Firestore data to Manufacturer
 const firestoreToManufacturer = (id: string, data: any): Manufacturer => {
-  const convertTimestamp = (timestamp: any): Date => {
-    if (timestamp instanceof Timestamp) {
-      return timestamp.toDate();
-    }
-    if (typeof timestamp === "string") {
-      return new Date(timestamp);
-    }
-    return new Date();
-  };
-
   return {
     id,
     name: data.name || "",
@@ -55,6 +38,38 @@ const firestoreToManufacturer = (id: string, data: any): Manufacturer => {
 };
 
 const manufacturerService = {
+  // Upload logo to Firebase Storage
+  async uploadLogo(manufacturerId: string, file: File): Promise<string> {
+    try {
+      const storagePath = `MANUFACTURERS/${manufacturerId}`;
+      const storageRef = ref(storage, storagePath);
+
+      // Upload file
+      await uploadBytes(storageRef, file);
+
+      // Get download URL
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      throw new Error("Failed to upload logo");
+    }
+  },
+
+  // Delete logo from Firebase Storage
+  async deleteLogo(manufacturerId: string): Promise<void> {
+    try {
+      const storagePath = `MANUFACTURERS/${manufacturerId}`;
+      const storageRef = ref(storage, storagePath);
+      await deleteObject(storageRef);
+    } catch (error) {
+      // If file doesn't exist, it's okay to continue
+      if ((error as any)?.code !== "storage/object-not-found") {
+        console.error("Error deleting logo:", error);
+      }
+    }
+  },
+
   // Get all manufacturers
   async getAllManufacturers(): Promise<Manufacturer[]> {
     try {
@@ -93,10 +108,10 @@ const manufacturerService = {
     try {
       const manufacturersRef = collection(db, COLLECTION_NAME);
       const nameLower = name.toLowerCase().trim();
-      
+
       // Get all manufacturers and check manually since Firestore queries are case-sensitive
       const snapshot = await getDocs(manufacturersRef);
-      
+
       for (const doc of snapshot.docs) {
         const data = doc.data();
         if (data.name.toLowerCase().trim() === nameLower) {
@@ -116,8 +131,9 @@ const manufacturerService = {
 
   // Create new manufacturer
   async createManufacturer(
-    manufacturerData: Partial<Manufacturer>
-  ): Promise<Manufacturer> {
+    manufacturerData: Partial<Manufacturer>,
+    logoFile?: File | null
+  ): Promise<void> {
     try {
       // Check if manufacturer name already exists
       const nameExists = await this.checkManufacturerNameExists(
@@ -134,8 +150,8 @@ const manufacturerService = {
       const newManufacturerData = {
         name: manufacturerData.name || "",
         description: manufacturerData.description || "",
-        logo: manufacturerData.logo || null,
         displayOrder: manufacturerData.displayOrder || 1,
+        logo: null,
         productCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -146,16 +162,15 @@ const manufacturerService = {
       const sanitizedData = sanitizeForFirestore(newManufacturerData);
       const docRef = await addDoc(manufacturersRef, sanitizedData);
 
-      // Wait a moment for serverTimestamp to be written
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const createdManufacturer = await this.getManufacturerById(docRef.id);
-      if (!createdManufacturer) {
-        throw new Error("Failed to retrieve created manufacturer");
+      // Upload logo if provided
+      let logoURL = null;
+      if (logoFile) {
+        logoURL = await this.uploadLogo(docRef.id, logoFile);
+        await updateDoc(docRef, { logo: logoURL });
       }
-
-      return createdManufacturer;
+      return;
     } catch (error) {
+      console.error("Error creating manufacturer:", error);
       throw error;
     }
   },
@@ -163,8 +178,9 @@ const manufacturerService = {
   // Update manufacturer
   async updateManufacturer(
     id: string,
-    updates: Partial<Manufacturer>
-  ): Promise<Manufacturer> {
+    updates: Partial<Manufacturer>,
+    logoFile?: File | null
+  ): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
       const docSnap = await getDoc(docRef);
@@ -188,8 +204,20 @@ const manufacturerService = {
         }
       }
 
+      // Upload new logo if provided
+      let logoURL = currentData.logo;
+      if (logoFile) {
+        // Delete old logo if exists
+        if (currentData.logo) {
+          await this.deleteLogo(id);
+        }
+        // Upload new logo
+        logoURL = await this.uploadLogo(id, logoFile);
+      }
+
       const updateData: any = {
         ...updates,
+        logo: logoURL,
         updatedAt: new Date().toISOString(),
         updatedBy: "current-user",
       };
@@ -197,12 +225,7 @@ const manufacturerService = {
       const sanitizedUpdate = sanitizeForFirestore(updateData);
       await updateDoc(docRef, sanitizedUpdate);
 
-      const updatedManufacturer = await this.getManufacturerById(id);
-      if (!updatedManufacturer) {
-        throw new Error("Failed to retrieve updated manufacturer");
-      }
-
-      return updatedManufacturer;
+      return;
     } catch (error) {
       throw error;
     }
@@ -214,6 +237,11 @@ const manufacturerService = {
       const manufacturer = await this.getManufacturerById(id);
       if (!manufacturer) {
         throw new Error("Manufacturer not found");
+      }
+
+      // Delete logo from storage if exists
+      if (manufacturer.logo) {
+        await this.deleteLogo(id);
       }
 
       const docRef = doc(db, COLLECTION_NAME, id);

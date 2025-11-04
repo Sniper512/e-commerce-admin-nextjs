@@ -37,7 +37,7 @@ import { formatCurrency } from "@/lib/utils";
 import { LinkButton } from "@/components/ui/link-button";
 
 const DEFAULT_CATEGORY_IMAGE = "/images/default-category.svg";
-const DEFAULT_PRODUCT_IMAGE = "/images/default-product.svg";
+const DEFAULT_PRODUCT_IMAGE = "/images/default-image.svg";
 
 interface CategoryEditFormProps {
   category: Category;

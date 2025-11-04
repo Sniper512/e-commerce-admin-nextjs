@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_IMAGES = {
-	product: "/images/default-product.svg",
+	product: "/images/default-image.svg",
 	category: "/images/default-category.svg",
 	user: "/images/default-user.svg",
 	brand: "/images/default-brand.svg",

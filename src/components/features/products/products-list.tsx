@@ -123,7 +123,7 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                   const isLowStock = stock < minStock;
                   const productImage =
                     product.multimedia?.images?.[0]?.url ||
-                    "/images/default-product.svg";
+                    "/images/default-image.svg";
 
                   return (
                     <TableRow key={product.id}>

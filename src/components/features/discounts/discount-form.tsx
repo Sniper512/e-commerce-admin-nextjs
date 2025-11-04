@@ -261,7 +261,7 @@ export function DiscountForm({
     .map((product) => ({
       id: product.id,
       name: product.info.name,
-      image: product.multimedia.images[0]?.url || "/images/default-product.svg",
+      image: product.multimedia.images[0]?.url || "/images/default-image.svg",
     }));
 
   const handleAddProduct = (productId: string) => {
@@ -496,7 +496,7 @@ export function DiscountForm({
                       onSelect={handleAddProduct}
                       searchValue={productSearchValue}
                       onSearchChange={setProductSearchValue}
-                      defaultProductImage="/images/default-product.svg"
+                      defaultProductImage="/images/default-image.svg"
                     />
                     {formData.applicableProducts.length > 0 && (
                       <div className="mt-3 space-y-2">

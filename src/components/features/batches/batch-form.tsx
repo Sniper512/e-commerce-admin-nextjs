@@ -181,7 +181,7 @@ export function BatchForm({ batch, products }: BatchFormProps) {
   const availableProductsForDropdown = products.map((product) => ({
     id: product.id,
     name: product.info.name,
-    image: product.multimedia.images[0]?.url || "/images/default-product.svg",
+    image: product.multimedia.images[0]?.url || "/images/default-image.svg",
   }));
 
   const selectedProduct = products.find((p) => p.id === formData.productId);
@@ -300,7 +300,7 @@ export function BatchForm({ batch, products }: BatchFormProps) {
                 onSelect={handleProductSelect}
                 searchValue={productSearchValue}
                 onSearchChange={setProductSearchValue}
-                defaultProductImage="/images/default-product.svg"
+                defaultProductImage="/images/default-image.svg"
               />
               {selectedProduct && (
                 <div className="text-sm text-gray-600 mt-2">

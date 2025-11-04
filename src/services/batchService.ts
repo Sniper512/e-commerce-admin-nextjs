@@ -14,6 +14,7 @@ import {
 	Timestamp,
 } from "firebase/firestore";
 import { Batch, BatchStatus } from "@/types";
+import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
 
 const BATCHES_COLLECTION = "batches";
 
@@ -24,33 +25,19 @@ const firestoreToBatch = (id: string, data: any): Batch => {
 		batchId: data.batchId || "",
 		productId: data.productId || "",
 		productName: data.productName,
-		manufacturingDate: data.manufacturingDate?.toDate() || new Date(),
-		expiryDate: data.expiryDate?.toDate() || new Date(),
+		manufacturingDate: convertTimestamp(data.manufacturingDate),
+		expiryDate: convertTimestamp(data.expiryDate),
 		quantity: data.quantity || 0,
 		remainingQuantity: data.remainingQuantity ?? data.quantity ?? 0,
 		supplier: data.supplier,
 		location: data.location,
 		notes: data.notes,
 		status: data.status || "active",
-		createdAt: data.createdAt?.toDate() || new Date(),
-		updatedAt: data.updatedAt?.toDate() || new Date(),
+		createdAt: convertTimestamp(data.createdAt),
+		updatedAt: convertTimestamp(data.updatedAt),
 		createdBy: data.createdBy,
 		updatedBy: data.updatedBy,
 	};
-};
-
-// Helper to sanitize data for Firestore
-const sanitizeForFirestore = (data: any) => {
-	const sanitized: any = { ...data };
-
-	// Remove undefined values
-	Object.keys(sanitized).forEach((key) => {
-		if (sanitized[key] === undefined) {
-			delete sanitized[key];
-		}
-	});
-
-	return sanitized;
 };
 
 export const batchService = {

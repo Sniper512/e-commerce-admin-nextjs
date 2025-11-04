@@ -13,43 +13,10 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
-
-// Helper function to sanitize data for Firestore (remove undefined values)
-const sanitizeForFirestore = (data: any): any => {
-  if (data === null || data === undefined) return null;
-  if (data instanceof Date) return Timestamp.fromDate(data);
-  if (Array.isArray(data)) return data.map(sanitizeForFirestore);
-  if (typeof data === "object") {
-    const sanitized: any = {};
-    Object.keys(data).forEach((key) => {
-      const value = sanitizeForFirestore(data[key]);
-      if (value !== undefined) {
-        sanitized[key] = value;
-      }
-    });
-    return sanitized;
-  }
-  return data;
-};
+import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
 
 // Helper function to convert Firestore data to Category
 const firestoreToCategory = (id: string, data: any): Category => {
-  // Handle timestamp conversion
-  const convertTimestamp = (timestamp: any): Date => {
-    if (timestamp instanceof Timestamp) {
-      return timestamp.toDate();
-    }
-    if (timestamp instanceof Date) {
-      return timestamp;
-    }
-    if (typeof timestamp === "string") {
-      const parsed = new Date(timestamp);
-      return isNaN(parsed.getTime()) ? new Date() : parsed;
-    }
-    // If timestamp is null, undefined, or serverTimestamp placeholder
-    return new Date();
-  };
-
   return {
     id,
     name: data.name || "",

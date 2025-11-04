@@ -17,9 +17,11 @@ import {
   Loader2,
   Calendar,
   User,
+  Upload,
 } from "lucide-react";
 import type { Manufacturer } from "@/types";
 import manufacturerService from "@/services/manufacturerService";
+import Image from "next/image";
 
 const DEFAULT_LOGO = "/images/default-manufacturer.svg";
 
@@ -33,13 +35,45 @@ export function ManufacturerEditForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
 
   const [formData, setFormData] = useState({
     name: manufacturer.name,
     description: manufacturer.description || "",
-    logo: manufacturer.logo || "",
     displayOrder: manufacturer.displayOrder,
   });
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        alert("Please select an image file");
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size must be less than 5MB");
+        return;
+      }
+
+      setLogoFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview("");
+  };
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -49,8 +83,14 @@ export function ManufacturerEditForm({
 
     try {
       setSaving(true);
-      await manufacturerService.updateManufacturer(manufacturer.id, formData);
+      await manufacturerService.updateManufacturer(
+        manufacturer.id,
+        formData,
+        logoFile
+      );
       setIsEditing(false);
+      setLogoFile(null);
+      setLogoPreview("");
       alert("Manufacturer updated successfully!");
       router.refresh();
     } catch (err) {
@@ -66,9 +106,10 @@ export function ManufacturerEditForm({
     setFormData({
       name: manufacturer.name,
       description: manufacturer.description || "",
-      logo: manufacturer.logo || "",
       displayOrder: manufacturer.displayOrder,
     });
+    setLogoFile(null);
+    setLogoPreview("");
     setIsEditing(false);
   };
 
@@ -220,30 +261,51 @@ export function ManufacturerEditForm({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                  <img
-                    src={
-                      isEditing
-                        ? formData.logo || DEFAULT_LOGO
-                        : manufacturer.logo || DEFAULT_LOGO
-                    }
+                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center relative">
+                  <Image
+                    src={logoPreview || manufacturer.logo || DEFAULT_LOGO}
                     alt={manufacturer.name}
                     className="w-full h-full object-contain p-4"
                     onError={(e) => {
                       e.currentTarget.src = DEFAULT_LOGO;
                     }}
+                    width={300}
+                    height={300}
                   />
+                  {isEditing && logoPreview && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
                 {isEditing && (
                   <div>
-                    <Label>Logo URL</Label>
-                    <Input
-                      value={formData.logo}
-                      onChange={(e) =>
-                        setFormData({ ...formData, logo: e.target.value })
-                      }
-                      placeholder="https://example.com/logo.png"
-                    />
+                    <Label htmlFor="logo-edit">Upload New Logo</Label>
+                    <div className="mt-2">
+                      <input
+                        id="logo-edit"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() =>
+                          document.getElementById("logo-edit")?.click()
+                        }>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {logoFile ? "Change Logo" : "Upload New Logo"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Recommended: Square image, max 5MB
+                    </p>
                   </div>
                 )}
               </div>
