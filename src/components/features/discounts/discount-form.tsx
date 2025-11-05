@@ -261,7 +261,7 @@ export function DiscountForm({
     .map((product) => ({
       id: product.id,
       name: product.info.name,
-      image: product.multimedia.images[0]?.url || "/images/default-image.svg",
+      image: product.multimedia.images[0] || "/images/default-image.svg",
     }));
 
   const handleAddProduct = (productId: string) => {

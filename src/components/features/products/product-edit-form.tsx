@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
-import type { Product, ProductImage } from "@/types";
+import type { Product } from "@/types";
+import type {
+  ProductImageWithFile,
+  ProductVideoWithFile,
+} from "./tabs/product-multimedia-tab";
 import { ProductEditTabs } from "./product-edit-tabs";
 import { ProductInfoTab } from "./tabs/product-info-tab";
 import { ProductDiscountsTab } from "./tabs/product-discounts-tab";
@@ -54,12 +58,18 @@ export function ProductEditForm({
     minimumStockQuantity: product.inventory.minimumStockQuantity,
   });
 
-  const [images, setImages] = useState(
-    product.multimedia.images?.map((img: any, index: number) => ({
-      url: img.url,
-      isPrimary: img.isPrimary,
-      sortOrder: img.sortOrder,
+  const [images, setImages] = useState<ProductImageWithFile[]>(
+    product.multimedia.images?.map((url: string) => ({
+      url: url,
     })) || []
+  );
+
+  const [video, setVideo] = useState<ProductVideoWithFile | null>(
+    product.multimedia.video
+      ? {
+          url: product.multimedia.video,
+        }
+      : null
   );
 
   const [similarProductIds, setSimilarProductIds] = useState(
@@ -107,18 +117,15 @@ export function ProductEditForm({
           minimumStockQuantity: formData.minimumStockQuantity,
         },
         multimedia: {
-          images: images.map((img: ProductImage) => ({
-            url: img.url,
-            isPrimary: img.isPrimary,
-            sortOrder: img.sortOrder,
-          })),
-          videos: product.multimedia.videos || [],
+          images: [],
+          video: "",
         },
         similarProductIds: similarProductIds,
         boughtTogetherProductIds: boughtTogetherProductIds,
       };
 
-      await productService.update(product.id, updatedProduct);
+      // Pass images and video to service for upload
+      await productService.update(product.id, updatedProduct, images, video);
       alert("Product updated successfully!");
       router.push("/dashboard/products");
     } catch (err) {
@@ -233,7 +240,12 @@ export function ProductEditForm({
         />
       )}
       {activeTab === "multimedia" && (
-        <ProductMultimediaTab images={images} onImagesChange={setImages} />
+        <ProductMultimediaTab
+          images={images}
+          onImagesChange={setImages}
+          video={video}
+          onVideoChange={setVideo}
+        />
       )}
       {activeTab === "similar" && (
         <ProductSimilarTab

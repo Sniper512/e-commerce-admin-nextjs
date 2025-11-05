@@ -122,7 +122,7 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                   const minStock = product.inventory.minimumStockQuantity;
                   const isLowStock = stock < minStock;
                   const productImage =
-                    product.multimedia?.images?.[0]?.url ||
+                    product.multimedia?.images?.[0] ||
                     "/images/default-image.svg";
 
                   return (

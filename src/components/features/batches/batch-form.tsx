@@ -198,10 +198,7 @@ export function BatchForm({ batch, products }: BatchFormProps) {
   const availableProductsForDropdown = products.map((product) => ({
     id: product.id,
     name: product.info.name,
-    image:
-      product.multimedia.images.find((img) => img.isPrimary)?.url ||
-      product.multimedia.images[0]?.url ||
-      "/images/default-image.svg",
+    image: product.multimedia.images[0] || "/images/default-image.svg",
   }));
 
   const selectedProduct = products.find((p) => p.id === formData.productId);

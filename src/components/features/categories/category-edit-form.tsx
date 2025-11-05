@@ -450,10 +450,7 @@ export function CategoryEditForm({
                           <div className="flex items-center gap-3">
                             <Image
                               src={
-                                product.multimedia?.images.find(
-                                  (img) => img.isPrimary
-                                )?.url ||
-                                product.multimedia?.images[0]?.url ||
+                                product.multimedia?.images[0] ||
                                 DEFAULT_PRODUCT_IMAGE
                               }
                               alt={product.info.name}

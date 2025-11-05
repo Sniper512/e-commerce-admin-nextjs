@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
-import type { Product, ProductImage } from "@/types";
+import type { Product } from "@/types";
+import type {
+  ProductImageWithFile,
+  ProductVideoWithFile,
+} from "./tabs/product-multimedia-tab";
 import { ProductInfoTab } from "./tabs/product-info-tab";
 import { ProductDiscountsTab } from "./tabs/product-discounts-tab";
 import { ProductInventoryTab } from "./tabs/product-inventory-tab";
@@ -54,13 +58,9 @@ export function ProductAddForm({
 
   const [formData, setFormData] = useState(initialFormData);
 
-  const [images, setImages] = useState<ProductImage[]>([
-    {
-      url: "",
-      isPrimary: true,
-      sortOrder: 1,
-    },
-  ]);
+  const [images, setImages] = useState<ProductImageWithFile[]>([]);
+
+  const [video, setVideo] = useState<ProductVideoWithFile | null>(null);
 
   const [similarProductIds, setSimilarProductIds] = useState<string[]>([]);
 
@@ -102,14 +102,8 @@ export function ProductAddForm({
           minimumStockQuantity: formData.minimumStockQuantity,
         },
         multimedia: {
-          images: images
-            .filter((img) => img.url)
-            .map((img) => ({
-              url: img.url,
-              isPrimary: img.isPrimary,
-              sortOrder: img.sortOrder,
-            })),
-          videos: [],
+          images: [],
+          video: "",
         },
         similarProductIds: similarProductIds,
         boughtTogetherProductIds: boughtTogetherProductIds,
@@ -117,8 +111,11 @@ export function ProductAddForm({
         stockHistory: [],
       };
 
+      // Pass images and video to service for upload
       await productService.create(
-        newProduct as Omit<Product, "id" | "createdAt" | "updatedAt">
+        newProduct as Omit<Product, "id" | "createdAt" | "updatedAt">,
+        images,
+        video
       );
       alert("Product created successfully!");
       router.push("/dashboard/products");
@@ -232,7 +229,12 @@ export function ProductAddForm({
         />
       )}
       {activeTab === "multimedia" && (
-        <ProductMultimediaTab images={images} onImagesChange={setImages} />
+        <ProductMultimediaTab
+          images={images}
+          onImagesChange={setImages}
+          video={video}
+          onVideoChange={setVideo}
+        />
       )}
       {activeTab === "similar" && (
         <ProductSimilarTab

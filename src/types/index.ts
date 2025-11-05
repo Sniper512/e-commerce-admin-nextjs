@@ -88,19 +88,8 @@ export interface ProductInventory {
 
 // Multimedia Section
 export interface ProductMultimedia {
-  images: ProductImage[];
-  videos: ProductVideo[];
-}
-
-export interface ProductImage {
-  url: string;
-  isPrimary: boolean;
-  sortOrder: number;
-}
-
-export interface ProductVideo {
-  url: string;
-  sortOrder: number;
+  images: string[];
+  video: string;
 }
 
 // Purchase History Section

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { useState } from "react";
 import type { Category, Manufacturer, SubCategory } from "@/types";
 import { parseCategoryId, createCategoryIdString } from "@/types";
 
@@ -87,6 +88,16 @@ export function ProductInfoTab({
   const handleRemoveCategory = (categoryIdString: string) => {
     onCategoryIdsChange(categoryIds.filter((id) => id !== categoryIdString));
   };
+  // Local input for creating tags via Enter
+  const [tagInput, setTagInput] = useState("");
+  const commitTag = (raw: string) => {
+    const newTag = raw.trim().replace(/,$/, "");
+    if (!newTag) return;
+    const lowerExisting = productTags.map((t) => t.toLowerCase());
+    if (!lowerExisting.includes(newTag.toLowerCase())) {
+      onProductTagsChange([...productTags, newTag]);
+    }
+  };
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
@@ -142,26 +153,6 @@ export function ProductInfoTab({
               Categories
             </Label>
 
-            {/* Selected Categories */}
-            {categoryIds.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {categoryIds.map((categoryIdString) => (
-                  <Badge
-                    key={categoryIdString}
-                    variant="secondary"
-                    className="flex items-center gap-1">
-                    {getCategoryName(categoryIdString)}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveCategory(categoryIdString)}
-                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-
             {/* Category Dropdown */}
             <select
               id="categories"
@@ -190,25 +181,75 @@ export function ProductInfoTab({
                 </optgroup>
               ))}
             </select>
+
+            {/* Selected Categories */}
+            {categoryIds.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {categoryIds.map((categoryIdString) => (
+                  <Badge
+                    key={categoryIdString}
+                    variant="secondary"
+                    className="flex items-center gap-1">
+                    {getCategoryName(categoryIdString)}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCategory(categoryIdString)}
+                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
             <Label htmlFor="tags" className="form-label">
               Product Tags
             </Label>
+
             <Input
               id="tags"
-              placeholder="Enter tags separated by commas"
-              value={productTags.join(", ")}
-              onChange={(e) =>
-                onProductTagsChange(
-                  e.target.value
-                    .split(",")
-                    .map((tag) => tag.trim())
-                    .filter((tag) => tag)
-                )
-              }
+              placeholder="Type a tag and press Enter"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  commitTag(tagInput);
+                  setTagInput("");
+                }
+              }}
+              onBlur={() => {
+                if (tagInput.trim()) {
+                  commitTag(tagInput);
+                  setTagInput("");
+                }
+              }}
             />
+
+            {productTags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {productTags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="flex items-center gap-1">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onProductTagsChange(
+                          productTags.filter((t) => t !== tag)
+                        )
+                      }
+                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
