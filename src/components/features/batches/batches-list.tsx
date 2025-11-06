@@ -30,8 +30,8 @@ import Link from "next/link";
 import Image from "next/image";
 
 interface EnrichedBatch extends Batch {
-  productName?: string;
-  productImage?: string;
+  productName: string;
+  productImage: string;
 }
 
 interface BatchesListProps {
@@ -193,6 +193,7 @@ export function BatchesList({ batches }: BatchesListProps) {
                   Manufacturing Date
                 </TableHead>
                 <TableHead className="text-center">Expiry Date</TableHead>
+                <TableHead className="text-center">Price</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
@@ -218,11 +219,6 @@ export function BatchesList({ batches }: BatchesListProps) {
                     <TableRow key={batch.id}>
                       <TableCell className="font-medium">
                         <div>{batch.batchId}</div>
-                        {batch.supplier && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Supplier: {batch.supplier}
-                          </div>
-                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3 justify-center">
@@ -235,15 +231,12 @@ export function BatchesList({ batches }: BatchesListProps) {
                             height={48}
                             className="object-cover rounded"
                           />
-                          <div className="text-left">
-                            <div className="font-medium">
-                              {batch.productName || "N/A"}
-                            </div>
-                            {batch.location && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Location: {batch.location}
-                              </div>
-                            )}
+                          <div className="font-medium">
+                            {batch.productName.length > 25
+                              ? batch.productName.slice(0, 20) +
+                                "..." +
+                                batch.productName.slice(-5)
+                              : batch.productName}
                           </div>
                         </div>
                       </TableCell>
@@ -266,7 +259,7 @@ export function BatchesList({ batches }: BatchesListProps) {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center text-sm">
-                          <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                           {new Date(
                             batch.manufacturingDate
                           ).toLocaleDateString()}
@@ -274,7 +267,7 @@ export function BatchesList({ batches }: BatchesListProps) {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center text-sm">
-                          <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                           {new Date(batch.expiryDate).toLocaleDateString()}
                         </div>
                         {!expired && daysUntilExpiry <= 30 && (
@@ -289,6 +282,11 @@ export function BatchesList({ batches }: BatchesListProps) {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
+                        <div className="font-medium text-gray-900">
+                          {batch.price}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
                         <Badge
                           variant={
                             batch.status === "active" &&
@@ -297,7 +295,7 @@ export function BatchesList({ batches }: BatchesListProps) {
                               ? "success"
                               : batch.status === "active" && expiringSoon
                               ? "warning"
-                              : "secondary"
+                              : "danger"
                           }>
                           {expired || batch.status === "expired"
                             ? "Expired"

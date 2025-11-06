@@ -15,8 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Trash2, Eye, ArrowUpDown } from "lucide-react";
-import type { Product, Category, SubCategory } from "@/types";
+import { Search, Trash2, Eye } from "lucide-react";
+import type { Product, SubCategory } from "@/types";
 import { parseCategoryId } from "@/types";
 import { productService } from "@/services/productService";
 import Image from "next/image";
@@ -98,6 +98,7 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                 <TableHead>Product Name</TableHead>
                 <TableHead className="text-center">Image</TableHead>
                 <TableHead className="text-center">Category</TableHead>
+                <TableHead className="text-center">Price</TableHead>
                 <TableHead className="text-center">Stock</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
@@ -154,6 +155,9 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                         ) : (
                           <span className="text-gray-500">Uncategorized</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-center font-medium">
+                        {product.price || "0"}
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-col items-center">

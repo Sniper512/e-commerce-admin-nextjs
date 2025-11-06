@@ -55,6 +55,7 @@ export function BatchForm({ batch, products }: BatchFormProps) {
     expiryDate: formatDateForInput(batch?.expiryDate) || "",
     quantity: batch?.quantity ?? "",
     remainingQuantity: batch?.remainingQuantity ?? "",
+    price: batch?.price ?? "", // Add price field
     status: (batch?.status || "active") as BatchStatus,
     supplier: batch?.supplier || "",
     location: batch?.location || "",
@@ -119,17 +120,21 @@ export function BatchForm({ batch, products }: BatchFormProps) {
     // Parse numeric fields here (allowing empty input while typing)
     const quantityNum = Number(formData.quantity);
     const remainingNum = Number(formData.remainingQuantity);
+    const priceNum = Number(formData.price);
 
     if (!quantityNum || quantityNum <= 0) {
       alert("Please enter a valid quantity");
       return;
     }
 
+    if (!priceNum || priceNum <= 0) {
+      alert("Please enter a valid price");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const product = products.find((p) => p.id === formData.productId);
-
       // Check if batch ID already exists (only for new batches)
       const existingBatch = await batchService.getBatchByBatchId(
         formData.batchId
@@ -148,6 +153,7 @@ export function BatchForm({ batch, products }: BatchFormProps) {
         expiryDate: expDate,
         quantity: quantityNum,
         remainingQuantity: quantityNum,
+        price: priceNum,
         supplier: formData.supplier.trim() || undefined,
         location: formData.location.trim() || undefined,
         notes: formData.notes.trim() || undefined,
@@ -333,7 +339,7 @@ export function BatchForm({ batch, products }: BatchFormProps) {
                   </div>
                 </div>
 
-                {/* Quantity */}
+                {/* Quantity and Price */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="quantity">
@@ -353,6 +359,34 @@ export function BatchForm({ batch, products }: BatchFormProps) {
                       placeholder="Enter total quantity"
                       required
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="price">
+                      Price per Unit <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        PKR
+                      </span>
+                      <Input
+                        id="price"
+                        type="number"
+                        min="0"
+                        value={formData.price}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "price",
+                            e.target.value === ""
+                              ? ""
+                              : parseInt(e.target.value)
+                          )
+                        }
+                        placeholder="0"
+                        required
+                        className="pl-12"
+                      />
+                    </div>
                   </div>
                 </div>
 

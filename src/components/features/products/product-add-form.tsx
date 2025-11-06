@@ -80,6 +80,25 @@ export function ProductAddForm({
 
   const handleSave = async () => {
     try {
+      // Validation for required fields
+      if (!formData.name.trim()) {
+        alert("Product Name is required!");
+        return;
+      }
+
+      if (formData.categoryIds.length === 0) {
+        alert("Please select at least one category!");
+        return;
+      }
+
+      if (
+        formData.minimumStockQuantity === undefined ||
+        formData.minimumStockQuantity < 0
+      ) {
+        alert("Minimum Stock Quantity is required and must be 0 or greater!");
+        return;
+      }
+
       setSaving(true);
 
       const newProduct: Partial<Product> = {
@@ -223,9 +242,14 @@ export function ProductAddForm({
         <ProductInventoryTab
           stockQuantity={formData.stockQuantity}
           minimumStockQuantity={formData.minimumStockQuantity}
-          onMinimumStockQuantityChange={(value: number) =>
-            setFormData({ ...formData, minimumStockQuantity: value })
+          onMinimumStockQuantityChange={(value: number | "") =>
+            setFormData({
+              ...formData,
+              minimumStockQuantity: typeof value === "number" ? value : 0,
+            })
           }
+          batches={[]}
+          productId={undefined}
         />
       )}
       {activeTab === "multimedia" && (

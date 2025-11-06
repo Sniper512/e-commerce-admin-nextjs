@@ -33,6 +33,7 @@ interface ProductInfoTabProps {
   onMarkAsNewStartDateChange: (value: Date | undefined) => void;
   markAsNewEndDate?: Date;
   onMarkAsNewEndDateChange: (value: Date | undefined) => void;
+  price?: number; // Optional price display
 }
 
 export function ProductInfoTab({
@@ -58,6 +59,7 @@ export function ProductInfoTab({
   onMarkAsNewStartDateChange,
   markAsNewEndDate,
   onMarkAsNewEndDateChange,
+  price,
 }: ProductInfoTabProps) {
   // Helper function to get category/subcategory name by ID string
   const getCategoryName = (categoryIdString: string): string => {
@@ -116,6 +118,27 @@ export function ProductInfoTab({
               onChange={(e) => onProductNameChange(e.target.value)}
             />
           </div>
+
+          {/* Price Display - Auto-synced from batches */}
+          {price !== undefined && (
+            <div className="form-group">
+              <Label className="form-label">Current Price</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold">
+                  $
+                </span>
+                <Input
+                  type="text"
+                  value={price.toFixed(2)}
+                  disabled
+                  className="pl-8 bg-gray-50 font-semibold text-lg"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Auto-synced from highest batch price. Managed in batches.
+              </p>
+            </div>
+          )}
 
           <div className="form-group">
             <Label htmlFor="description" className="form-label">

@@ -400,6 +400,7 @@ export const productService = {
     // Prepare product data with uploaded media URLs
     const productData = {
       ...data,
+      price: 0, // Initialize price to 0, will be updated when first batch is added
       multimedia: {
         images: uploadedImages,
         video: uploadedVideo,

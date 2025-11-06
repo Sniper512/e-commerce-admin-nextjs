@@ -9,11 +9,13 @@ import {
   query,
   where,
   orderBy,
+  addDoc,
 } from "firebase/firestore";
 import { Batch, BatchStatus } from "@/types";
 import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
 
 const BATCHES_COLLECTION = "BATCHES";
+const PRODUCTS_COLLECTION = "PRODUCTS";
 
 // Helper to convert Firestore timestamp to Date
 const firestoreToBatch = (id: string, data: any): Batch => {
@@ -25,12 +27,43 @@ const firestoreToBatch = (id: string, data: any): Batch => {
     expiryDate: convertTimestamp(data.expiryDate),
     quantity: data.quantity || 0,
     remainingQuantity: data.remainingQuantity ?? data.quantity ?? 0,
+    price: data.price || 0,
     supplier: data.supplier,
     location: data.location,
     notes: data.notes,
     status: data.status || "active",
   };
 };
+
+// Helper function to update product price based on batches
+async function updateProductPrice(productId: string): Promise<void> {
+  try {
+    // Get all batches for this product
+    const batchesRef = collection(db, BATCHES_COLLECTION);
+    const q = query(batchesRef, where("productId", "==", productId));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      // No batches, set price to 0
+      const productRef = doc(db, PRODUCTS_COLLECTION, productId);
+      await updateDoc(productRef, { price: 0 });
+      return;
+    }
+
+    // Get the highest price from all batches
+    const batches = snapshot.docs.map((doc) =>
+      firestoreToBatch(doc.id, doc.data())
+    );
+    const highestPrice = Math.max(...batches.map((batch) => batch.price || 0));
+
+    // Update product price
+    const productRef = doc(db, PRODUCTS_COLLECTION, productId);
+    await updateDoc(productRef, { price: highestPrice });
+  } catch (error) {
+    console.error("Error updating product price:", error);
+    throw error;
+  }
+}
 
 export const batchService = {
   // Get all batches
@@ -142,11 +175,17 @@ export const batchService = {
         expiryDate: batchData.expiryDate, // Will be converted to Timestamp
         quantity: batchData.quantity,
         remainingQuantity: batchData.remainingQuantity,
+        price: batchData.price, // Include price
         supplier: batchData.supplier,
         location: batchData.location,
         notes: batchData.notes,
         status: batchData.status || "active",
       });
+
+      await addDoc(batchesRef, sanitizedData);
+
+      // Update product price (sets to highest batch price or first batch price)
+      await updateProductPrice(batchData.productId);
 
       return;
     } catch (error) {
@@ -158,8 +197,17 @@ export const batchService = {
   // Delete batch
   async deleteBatch(id: string): Promise<void> {
     try {
+      // Get the batch to know which product it belongs to
+      const batch = await this.getBatchById(id);
+      if (!batch) {
+        throw new Error("Batch not found");
+      }
+
       const batchRef = doc(db, BATCHES_COLLECTION, id);
       await deleteDoc(batchRef);
+
+      // Recalculate product price after deletion
+      await updateProductPrice(batch.productId);
     } catch (error) {
       console.error("Error deleting batch:", error);
       throw error;

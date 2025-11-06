@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
-import type { Product } from "@/types";
+import type { Product, Batch } from "@/types";
 import type {
   ProductImageWithFile,
   ProductVideoWithFile,
@@ -28,6 +28,7 @@ interface ProductEditFormProps {
   availableDiscounts: any[];
   categories: any[];
   manufacturers: any[];
+  batches: Batch[]; // Add batches prop
 }
 
 export function ProductEditForm({
@@ -38,6 +39,7 @@ export function ProductEditForm({
   availableDiscounts,
   categories,
   manufacturers,
+  batches,
 }: ProductEditFormProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -223,6 +225,7 @@ export function ProductEditForm({
           onMarkAsNewEndDateChange={(value: Date | undefined) =>
             setFormData({ ...formData, markAsNewEndDate: value })
           }
+          price={product.price}
         />
       )}
       {activeTab === "discounts" && (
@@ -238,9 +241,14 @@ export function ProductEditForm({
         <ProductInventoryTab
           stockQuantity={formData.stockQuantity}
           minimumStockQuantity={formData.minimumStockQuantity}
-          onMinimumStockQuantityChange={(value: number) =>
-            setFormData({ ...formData, minimumStockQuantity: value })
+          onMinimumStockQuantityChange={(value: number | "") =>
+            setFormData({
+              ...formData,
+              minimumStockQuantity: typeof value === "number" ? value : 0,
+            })
           }
+          batches={batches}
+          productId={product.id}
         />
       )}
       {activeTab === "multimedia" && (

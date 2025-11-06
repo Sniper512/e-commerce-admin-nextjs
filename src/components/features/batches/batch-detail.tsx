@@ -10,7 +10,6 @@ import batchService from "@/services/batchService";
 import type { Batch, Product } from "@/types";
 import {
   ArrowLeft,
-  Edit,
   Trash2,
   Package,
   Calendar,
@@ -19,7 +18,6 @@ import {
   FileText,
   AlertTriangle,
   CheckCircle,
-  TrendingDown,
   Box,
 } from "lucide-react";
 
@@ -61,33 +59,6 @@ export function BatchDetail({ batch, product }: BatchDetailProps) {
       alert("Failed to delete batch");
       setDeleting(false);
     }
-  };
-
-  const getStatusBadge = () => {
-    if (isExpired) {
-      return (
-        <Badge className="bg-red-100 text-red-800 border-red-200">
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          Expired
-        </Badge>
-      );
-    }
-
-    if (isExpiringSoon) {
-      return (
-        <Badge className="bg-orange-100 text-orange-800 border-orange-200">
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          Expiring Soon ({daysUntilExpiry} days)
-        </Badge>
-      );
-    }
-
-    return (
-      <Badge className="bg-green-100 text-green-800 border-green-200">
-        <CheckCircle className="w-3 h-3 mr-1" />
-        Active
-      </Badge>
-    );
   };
 
   const formatDate = (date: Date | string) => {
