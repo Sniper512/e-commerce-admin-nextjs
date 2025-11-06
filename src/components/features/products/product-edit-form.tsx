@@ -53,7 +53,7 @@ export function ProductEditForm({
     categoryIds: product.info.categoryIds || [],
     manufacturerId: product.info.manufacturerId || "",
     productTags: product.info.productTags || [],
-    isPublished: product.info.isPublished,
+    isActive: product.info.isActive,
     allowCustomerReviews: product.info.allowCustomerReviews,
     markAsNew: product.info.markAsNew,
     markAsNewStartDate: product.info.markAsNewStartDate,
@@ -109,7 +109,7 @@ export function ProductEditForm({
           categoryIds: formData.categoryIds,
           manufacturerId: formData.manufacturerId,
           productTags: formData.productTags,
-          isPublished: formData.isPublished,
+          isActive: formData.isActive,
           allowCustomerReviews: formData.allowCustomerReviews,
           markAsNew: formData.markAsNew,
           markAsNewStartDate: formData.markAsNewStartDate,
@@ -203,9 +203,9 @@ export function ProductEditForm({
           onProductTagsChange={(value: string[]) =>
             setFormData({ ...formData, productTags: value })
           }
-          isPublished={formData.isPublished}
-          onIsPublishedChange={(value: boolean) =>
-            setFormData({ ...formData, isPublished: value })
+          isActive={formData.isActive}
+          onIsActiveChange={(value: boolean) =>
+            setFormData({ ...formData, isActive: value })
           }
           allowCustomerReviews={formData.allowCustomerReviews}
           onAllowCustomerReviewsChange={(value: boolean) =>

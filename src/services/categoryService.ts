@@ -36,7 +36,7 @@ const firestoreToCategory = (id: string, data: any): Category => {
     displayOrder: data.displayOrder || 1,
     image: data.image || undefined,
     subCategoryCount: data.subCategoryCount || 0,
-    isPublished: data.isPublished ?? true,
+    isActive: data.isActive ?? true,
     productIds: data.productIds || [],
     productCount: data.productCount || 0,
     showOnHomepage: data.showOnHomepage ?? false,
@@ -72,7 +72,7 @@ const firestoreToSubCategory = (
     displayOrder: data.displayOrder || 1,
     image: data.image || undefined,
     parentCategoryId,
-    isPublished: data.isPublished ?? true,
+    isActive: data.isActive ?? true,
     productIds: data.productIds || [],
     productCount: data.productCount || 0,
     createdAt: convertTimestamp(data.createdAt),
@@ -356,7 +356,7 @@ export const categoryService = {
         displayOrder: categoryData.displayOrder || 1,
         image: null,
         subCategoryCount: 0,
-        isPublished: categoryData.isPublished ?? true,
+        isActive: categoryData.isActive ?? true,
         productIds: categoryData.productIds || [],
         productCount: 0,
         showOnHomepage: categoryData.showOnHomepage ?? false,
@@ -421,7 +421,7 @@ export const categoryService = {
         description: subCategoryData.description || "",
         displayOrder: subCategoryData.displayOrder || 1,
         image: null,
-        isPublished: subCategoryData.isPublished ?? true,
+        isActive: subCategoryData.isActive ?? true,
         productIds: subCategoryData.productIds || [],
         productCount: 0,
         createdAt: new Date().toISOString(),
@@ -701,15 +701,15 @@ export const categoryService = {
     }
   },
 
-  // Toggle category publish status
-  async togglePublishStatus(id: string): Promise<void> {
+  // Toggle category active status
+  async toggleActiveStatus(id: string): Promise<void> {
     const category = await this.getCategoryById(id);
     if (!category) {
       throw new Error("Category not found");
     }
 
     await this.updateCategory(id, {
-      isPublished: !category.isPublished,
+      isActive: !category.isActive,
     });
   },
 
@@ -750,8 +750,8 @@ export const categoryService = {
   // Get category statistics
   async getCategoryStats(): Promise<{
     totalCategories: number;
-    publishedCategories: number;
-    unpublishedCategories: number;
+    activeCategories: number;
+    inactiveCategories: number;
     categoriesWithProducts: number;
     emptyCategories: number;
   }> {
@@ -760,10 +760,8 @@ export const categoryService = {
 
       return {
         totalCategories: allCategories.length,
-        publishedCategories: allCategories.filter((cat) => cat.isPublished)
-          .length,
-        unpublishedCategories: allCategories.filter((cat) => !cat.isPublished)
-          .length,
+        activeCategories: allCategories.filter((cat) => cat.isActive).length,
+        inactiveCategories: allCategories.filter((cat) => !cat.isActive).length,
         categoriesWithProducts: allCategories.filter(
           (cat) => cat.productIds.length > 0
         ).length,

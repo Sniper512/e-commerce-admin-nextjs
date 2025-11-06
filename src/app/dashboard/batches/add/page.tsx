@@ -3,7 +3,7 @@ import { BatchForm } from "@/components/features/batches/batch-form";
 
 export default async function AddBatchPage() {
   // Fetch products on the server
-  const products = await productService.getAll({ isPublished: true });
+  const products = await productService.getAll({ isActive: true });
 
   // Serialize data for client component
   const serializedProducts = JSON.parse(JSON.stringify(products));

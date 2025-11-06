@@ -71,7 +71,7 @@ export function CategoryEditForm({
           description: subCategory.description || "",
           image: subCategory.image || "",
           displayOrder: subCategory.displayOrder,
-          isPublished: subCategory.isPublished,
+          isActive: subCategory.isActive,
         }
       : {
           name: category.name,
@@ -79,7 +79,7 @@ export function CategoryEditForm({
           type: category.type,
           image: category.image || "",
           displayOrder: category.displayOrder,
-          isPublished: category.isPublished,
+          isActive: category.isActive,
           showOnHomepage: category.showOnHomepage || false,
           showOnNavbar: category.showOnNavbar || false,
         }
@@ -201,7 +201,7 @@ export function CategoryEditForm({
             description: subCategory.description || "",
             image: subCategory.image || "",
             displayOrder: subCategory.displayOrder,
-            isPublished: subCategory.isPublished,
+            isActive: subCategory.isActive,
           }
         : {
             name: category.name,
@@ -209,7 +209,7 @@ export function CategoryEditForm({
             type: category.type,
             image: category.image || "",
             displayOrder: category.displayOrder,
-            isPublished: category.isPublished,
+            isActive: category.isActive,
             showOnHomepage: category.showOnHomepage || false,
             showOnNavbar: category.showOnNavbar || false,
           }
@@ -483,9 +483,9 @@ export function CategoryEditForm({
                         <TableCell>
                           <Badge
                             variant={
-                              product.info.isPublished ? "success" : "secondary"
+                              product.info.isActive ? "success" : "secondary"
                             }>
-                            {product.info.isPublished ? "Active" : "Inactive"}
+                            {product.info.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -667,15 +667,15 @@ export function CategoryEditForm({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Published</Label>
+                <Label>Status</Label>
                 {isEditing ? (
                   <input
                     type="checkbox"
-                    checked={formData.isPublished}
+                    checked={formData.isActive}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        isPublished: e.target.checked,
+                        isActive: e.target.checked,
                       })
                     }
                     className="w-4 h-4"
@@ -685,19 +685,19 @@ export function CategoryEditForm({
                     variant={
                       (
                         isSubCategory && subCategory
-                          ? subCategory.isPublished
-                          : category.isPublished
+                          ? subCategory.isActive
+                          : category.isActive
                       )
                         ? "success"
                         : "secondary"
                     }>
                     {(
                       isSubCategory && subCategory
-                        ? subCategory.isPublished
-                        : category.isPublished
+                        ? subCategory.isActive
+                        : category.isActive
                     )
-                      ? "Published"
-                      : "Unpublished"}
+                      ? "Active"
+                      : "Inactive"}
                   </Badge>
                 )}
               </div>

@@ -23,7 +23,7 @@ export interface Category {
   displayOrder: number;
   image?: string; // Category image URL
   subCategoryCount: number; // Count of subcategories
-  isPublished: boolean; // Whether category is published
+  isActive: boolean; // Whether category is active
   productIds: string[]; // Array of product IDs in this category
   productCount?: number; // Computed count of products
   showOnHomepage: boolean;
@@ -43,7 +43,7 @@ export interface SubCategory {
   displayOrder: number;
   image?: string;
   parentCategoryId: string; // Reference to parent category
-  isPublished: boolean;
+  isActive: boolean;
   productIds: string[];
   productCount?: number;
   createdAt: Date;
@@ -72,7 +72,7 @@ export interface ProductInfo {
   description: string;
   categoryIds: string[]; // Format: "categoryId" or "parentCategoryId/subCategoryId"
   manufacturerId: string; // Reference to manufacturer ID
-  isPublished: boolean;
+  isActive: boolean;
   productTags: string[];
   allowCustomerReviews: boolean;
   markAsNew: boolean;

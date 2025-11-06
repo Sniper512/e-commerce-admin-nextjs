@@ -6,7 +6,7 @@ export default async function AddDiscountPage() {
   // Fetch data on the server
   const [categories, products] = await Promise.all([
     categoryService.getAllCategories(),
-    productService.getAll({ isPublished: true }),
+    productService.getAll({ isActive: true }),
   ]);
 
   // Serialize data for client component

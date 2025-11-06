@@ -23,8 +23,8 @@ interface ProductInfoTabProps {
   manufacturers: Manufacturer[];
   productTags: string[];
   onProductTagsChange: (value: string[]) => void;
-  isPublished: boolean;
-  onIsPublishedChange: (value: boolean) => void;
+  isActive: boolean;
+  onIsActiveChange: (value: boolean) => void;
   allowCustomerReviews: boolean;
   onAllowCustomerReviewsChange: (value: boolean) => void;
   markAsNew: boolean;
@@ -48,8 +48,8 @@ export function ProductInfoTab({
   manufacturers,
   productTags,
   onProductTagsChange,
-  isPublished,
-  onIsPublishedChange,
+  isActive,
+  onIsActiveChange,
   allowCustomerReviews,
   onAllowCustomerReviewsChange,
   markAsNew,
@@ -256,19 +256,19 @@ export function ProductInfoTab({
 
       <Card>
         <CardHeader>
-          <CardTitle>Publishing & Display</CardTitle>
+          <CardTitle>Status & Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
-              id="published"
+              id="isActive"
               className="h-4 w-4 text-blue-600"
-              checked={isPublished}
-              onChange={(e) => onIsPublishedChange(e.target.checked)}
+              checked={isActive}
+              onChange={(e) => onIsActiveChange(e.target.checked)}
             />
-            <Label htmlFor="published" className="form-label">
-              Is Published
+            <Label htmlFor="isActive" className="form-label">
+              Is Active
             </Label>
           </div>
 

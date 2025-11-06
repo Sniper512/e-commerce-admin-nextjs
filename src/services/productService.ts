@@ -298,7 +298,7 @@ export const productService = {
   // Get all products
   async getAll(filters?: {
     categoryId?: string;
-    isPublished?: boolean;
+    isActive?: boolean;
   }): Promise<Product[]> {
     const constraints: QueryConstraint[] = [];
 
@@ -307,8 +307,8 @@ export const productService = {
         where("categoryIds", "array-contains", filters.categoryId)
       );
     }
-    if (filters?.isPublished !== undefined) {
-      constraints.push(where("info.isPublished", "==", filters.isPublished));
+    if (filters?.isActive !== undefined) {
+      constraints.push(where("info.isActive", "==", filters.isActive));
     }
 
     const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints);
@@ -694,7 +694,7 @@ export const productService = {
   > {
     const q = query(
       collection(db, PRODUCTS_COLLECTION),
-      where("info.isPublished", "==", true)
+      where("info.isActive", "==", true)
     );
     const querySnapshot = await getDocs(q);
 

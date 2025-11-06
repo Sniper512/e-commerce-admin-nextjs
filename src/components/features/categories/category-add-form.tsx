@@ -38,7 +38,7 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
     description: "",
     type: "simple" as "simple" | "special",
     displayOrder: 1,
-    isPublished: true,
+    isActive: true,
     showOnHomepage: false,
     showOnNavbar: true,
   });
@@ -125,7 +125,7 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
           name: formData.name,
           description: formData.description,
           displayOrder: formData.displayOrder,
-          isPublished: formData.isPublished,
+          isActive: formData.isActive,
           productIds: [],
         };
 
@@ -142,7 +142,7 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
           description: formData.description,
           type: formData.type,
           displayOrder: formData.displayOrder,
-          isPublished: formData.isPublished,
+          isActive: formData.isActive,
           showOnHomepage: formData.showOnHomepage,
           showOnNavbar: formData.showOnNavbar,
           productIds: [],
@@ -394,17 +394,17 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
               <label className="flex items-center gap-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={formData.isPublished}
+                  checked={formData.isActive}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      isPublished: e.target.checked,
+                      isActive: e.target.checked,
                     }))
                   }
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
                 <div>
-                  <span className="font-medium">Published</span>
+                  <span className="font-medium">Category Active</span>
                   <p className="text-sm text-gray-500">
                     Make this {isSubCategory ? "sub-category" : "category"}{" "}
                     visible to customers

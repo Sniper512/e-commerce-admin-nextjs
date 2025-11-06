@@ -45,7 +45,7 @@ export default async function CategoryDetailPage({
 
     // Load products for subcategory
     if (subCategory.productIds && subCategory.productIds.length > 0) {
-      const allProducts = await productService.getAll({ isPublished: true });
+      const allProducts = await productService.getAll({ isActive: true });
       categoryProducts = allProducts.filter((p) =>
         subCategory!.productIds.includes(p.id)
       );
@@ -53,7 +53,7 @@ export default async function CategoryDetailPage({
   } else {
     // Load products for category
     if (category.productIds && category.productIds.length > 0) {
-      const allProducts = await productService.getAll({ isPublished: true });
+      const allProducts = await productService.getAll({ isActive: true });
       categoryProducts = allProducts.filter((p) =>
         category.productIds.includes(p.id)
       );

@@ -224,9 +224,9 @@ export function CategoriesList({
                         <TableCell className="text-center">
                           <Badge
                             variant={
-                              category.isPublished ? "success" : "secondary"
+                              category.isActive ? "success" : "secondary"
                             }>
-                            {category.isPublished ? "Published" : "Unpublished"}
+                            {category.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -294,11 +294,9 @@ export function CategoriesList({
                         <TableCell className="text-center">
                           <Badge
                             variant={
-                              subCategory.isPublished ? "success" : "secondary"
+                              subCategory.isActive ? "success" : "secondary"
                             }>
-                            {subCategory.isPublished
-                              ? "Published"
-                              : "Unpublished"}
+                            {subCategory.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell>
