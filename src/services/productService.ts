@@ -3,12 +3,10 @@ import {
   doc,
   getDocs,
   getDoc,
-  addDoc,
   updateDoc,
   deleteDoc,
   query,
   where,
-  orderBy,
   Timestamp,
   QueryConstraint,
   arrayUnion,
@@ -23,7 +21,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "@/../firebaseConfig";
-import { Product, ProductBatch } from "@/types";
+import { Product } from "@/types";
 import { sanitizeForFirestore } from "@/lib/firestore-utils";
 
 const PRODUCTS_COLLECTION = "PRODUCTS";
@@ -690,107 +688,58 @@ export const productService = {
     }
   },
 
-  // Get low stock products
-  async getLowStock(): Promise<Product[]> {
-    const products = await this.getAll();
-    return products.filter(
-      (p) => p.inventory.stockQuantity <= p.inventory.minimumStockQuantity
-    );
-  },
-
-  // Update stock quantity
-  async updateStock(id: string, quantity: number): Promise<void> {
-    const docRef = doc(db, PRODUCTS_COLLECTION, id);
-    await updateDoc(docRef, {
-      "inventory.stockQuantity": quantity,
-      updatedAt: Timestamp.now(),
-    });
-  },
-};
-
-// Batch Services
-export const batchService = {
-  // Get all batches
-  async getAll(productId?: string): Promise<ProductBatch[]> {
-    const constraints: QueryConstraint[] = [];
-
-    if (productId) {
-      constraints.push(where("productId", "==", productId));
-    }
-
-    constraints.push(orderBy("expiryDate", "asc"));
-
-    const q = query(collection(db, BATCHES_COLLECTION), ...constraints);
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      manufacturingDate: doc.data().manufacturingDate?.toDate(),
-      expiryDate: doc.data().expiryDate?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
-    })) as ProductBatch[];
-  },
-
-  // Get expiring soon batches
-  async getExpiringSoon(daysThreshold: number = 30): Promise<ProductBatch[]> {
-    const thresholdDate = new Date();
-    thresholdDate.setDate(thresholdDate.getDate() + daysThreshold);
-
+  // Get lightweight product list for search (id, name, first image only)
+  async getProductSearchList(): Promise<
+    Array<{ id: string; name: string; image: string }>
+  > {
     const q = query(
-      collection(db, BATCHES_COLLECTION),
-      where("expiryDate", "<=", Timestamp.fromDate(thresholdDate)),
-      orderBy("expiryDate", "asc")
+      collection(db, PRODUCTS_COLLECTION),
+      where("info.isPublished", "==", true)
     );
+    const querySnapshot = await getDocs(q);
 
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      manufacturingDate: doc.data().manufacturingDate?.toDate(),
-      expiryDate: doc.data().expiryDate?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
-    })) as ProductBatch[];
-  },
-
-  // Create batch
-  async create(
-    data: Omit<ProductBatch, "id" | "createdAt" | "updatedAt">
-  ): Promise<string> {
-    const docRef = await addDoc(collection(db, BATCHES_COLLECTION), {
-      ...data,
-      manufacturingDate: Timestamp.fromDate(data.manufacturingDate),
-      expiryDate: Timestamp.fromDate(data.expiryDate),
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.info?.name || "",
+        image: data.multimedia?.images?.[0] || "",
+      };
     });
-    return docRef.id;
   },
 
-  // Update batch
-  async update(id: string, data: Partial<ProductBatch>): Promise<void> {
-    const docRef = doc(db, BATCHES_COLLECTION, id);
-    const updateData: any = {
-      ...data,
-      updatedAt: Timestamp.now(),
-    };
+  // Get product details by IDs (for populating similar/bought-together products)
+  async getProductsByIds(
+    productIds: string[]
+  ): Promise<Array<{ id: string; name: string; image: string }>> {
+    if (!productIds || productIds.length === 0) return [];
 
-    if (data.manufacturingDate) {
-      updateData.manufacturingDate = Timestamp.fromDate(data.manufacturingDate);
-    }
-    if (data.expiryDate) {
-      updateData.expiryDate = Timestamp.fromDate(data.expiryDate);
+    // Firestore 'in' query supports max 30 items, so batch if needed
+    const batchSize = 30;
+    const batches: string[][] = [];
+    for (let i = 0; i < productIds.length; i += batchSize) {
+      batches.push(productIds.slice(i, i + batchSize));
     }
 
-    await updateDoc(docRef, updateData);
-  },
+    const allProducts: Array<{ id: string; name: string; image: string }> = [];
 
-  // Delete batch
-  async delete(id: string): Promise<void> {
-    const docRef = doc(db, BATCHES_COLLECTION, id);
-    await deleteDoc(docRef);
+    for (const batch of batches) {
+      const q = query(
+        collection(db, PRODUCTS_COLLECTION),
+        where("__name__", "in", batch)
+      );
+      const querySnapshot = await getDocs(q);
+
+      querySnapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        allProducts.push({
+          id: doc.id,
+          name: data.info?.name || "",
+          image: data.multimedia?.images?.[0] || "",
+        });
+      });
+    }
+
+    return allProducts;
   },
 };

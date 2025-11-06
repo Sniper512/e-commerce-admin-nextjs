@@ -18,28 +18,41 @@ export default async function ProductDetailPage({
   const { id: productId } = await params;
 
   // Fetch data on the server
-  const [allProducts, product, discounts, categories, manufacturers] = await Promise.all([
-    productService.getAll({ isPublished: true }),
-    productService.getById(productId),
-    discountService.getAll(),
-    categoryService.getAllCategoriesWithSubCategories(),
-    manufacturerService.getAllManufacturers(),
-  ]);
+  const [productSearchList, product, discounts, categories, manufacturers] =
+    await Promise.all([
+      productService.getProductSearchList(), // Lightweight: only id, name, first image
+      productService.getById(productId),
+      discountService.getAll(),
+      categoryService.getAllCategoriesWithSubCategories(),
+      manufacturerService.getAllManufacturers(),
+    ]);
 
   // If product not found, show 404
   if (!product) {
     notFound();
   }
 
+  // Get populated data for similar and bought-together products
+  const [similarProducts, boughtTogetherProducts] = await Promise.all([
+    productService.getProductsByIds(product.similarProductIds || []),
+    productService.getProductsByIds(product.boughtTogetherProductIds || []),
+  ]);
+
   // Serialize data for client component
   const serializedProduct = JSON.parse(JSON.stringify(product));
-  const serializedAllProducts = JSON.parse(JSON.stringify(allProducts));
+  const serializedProductSearchList = JSON.parse(
+    JSON.stringify(productSearchList)
+  );
+  const serializedSimilarProducts = JSON.parse(JSON.stringify(similarProducts));
+  const serializedBoughtTogetherProducts = JSON.parse(
+    JSON.stringify(boughtTogetherProducts)
+  );
   const serializedDiscounts = JSON.parse(JSON.stringify(discounts));
   const serializedCategories = JSON.parse(JSON.stringify(categories));
   const serializedManufacturers = JSON.parse(JSON.stringify(manufacturers));
 
   // Filter out current product from available products
-  const availableProducts = serializedAllProducts.filter(
+  const availableProducts = serializedProductSearchList.filter(
     (p: any) => p.id !== productId
   );
 
@@ -48,6 +61,8 @@ export default async function ProductDetailPage({
       <ProductEditForm
         product={serializedProduct}
         availableProducts={availableProducts}
+        similarProducts={serializedSimilarProducts}
+        boughtTogetherProducts={serializedBoughtTogetherProducts}
         availableDiscounts={serializedDiscounts}
         categories={serializedCategories}
         manufacturers={serializedManufacturers}

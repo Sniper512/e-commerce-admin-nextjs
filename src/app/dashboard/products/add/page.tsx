@@ -7,17 +7,18 @@ import { ProductAddForm } from "@/components/features/products/product-add-form"
 
 export default async function AddProductPage() {
   // Fetch data on the server
-  const [allProducts, discounts, categories, manufacturers] = await Promise.all(
-    [
-      productService.getAll({ isPublished: true }),
+  const [productSearchList, discounts, categories, manufacturers] =
+    await Promise.all([
+      productService.getProductSearchList(), // Lightweight: only id, name, first image
       discountService.getAll(),
       categoryService.getAllCategoriesWithSubCategories(),
       manufacturerService.getAllManufacturers(),
-    ]
-  );
+    ]);
 
   // Serialize data for client component
-  const serializedAllProducts = JSON.parse(JSON.stringify(allProducts));
+  const serializedProductSearchList = JSON.parse(
+    JSON.stringify(productSearchList)
+  );
   const serializedDiscounts = JSON.parse(JSON.stringify(discounts));
   const serializedCategories = JSON.parse(JSON.stringify(categories));
   const serializedManufacturers = JSON.parse(JSON.stringify(manufacturers));
@@ -25,7 +26,7 @@ export default async function AddProductPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <ProductAddForm
-        availableProducts={serializedAllProducts}
+        availableProducts={serializedProductSearchList}
         availableDiscounts={serializedDiscounts}
         categories={serializedCategories}
         manufacturers={serializedManufacturers}

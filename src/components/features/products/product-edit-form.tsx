@@ -22,7 +22,9 @@ import { ProductOrderHistoryTab } from "./tabs/product-order-history-tab";
 
 interface ProductEditFormProps {
   product: Product; // Serialized product
-  availableProducts: any[];
+  availableProducts: Array<{ id: string; name: string; image: string }>;
+  similarProducts: Array<{ id: string; name: string; image: string }>; // Populated similar products
+  boughtTogetherProducts: Array<{ id: string; name: string; image: string }>; // Populated bought-together products
   availableDiscounts: any[];
   categories: any[];
   manufacturers: any[];
@@ -31,6 +33,8 @@ interface ProductEditFormProps {
 export function ProductEditForm({
   product,
   availableProducts,
+  similarProducts,
+  boughtTogetherProducts,
   availableDiscounts,
   categories,
   manufacturers,
@@ -252,6 +256,7 @@ export function ProductEditForm({
           similarProductIds={similarProductIds}
           onSimilarProductIdsChange={setSimilarProductIds}
           availableProducts={availableProducts}
+          selectedProducts={similarProducts}
           defaultImage=""
         />
       )}
@@ -260,6 +265,7 @@ export function ProductEditForm({
           boughtTogetherProductIds={boughtTogetherProductIds}
           onBoughtTogetherProductIdsChange={setBoughtTogetherProductIds}
           availableProducts={availableProducts}
+          selectedProducts={boughtTogetherProducts}
           defaultImage=""
         />
       )}

@@ -1,6 +1,5 @@
 "use client";
 
-import { Product } from "@/types";
 import Image from "next/image";
 import { useState, useEffect, useRef, useMemo } from "react";
 
@@ -18,6 +17,9 @@ interface ProductSearchDropdownProps {
   defaultProductImage: string;
 }
 
+const MIN_SEARCH_LENGTH = 2;
+const MAX_RESULTS = 20;
+
 export function ProductSearchDropdown({
   availableProducts,
   selectedProductId,
@@ -28,8 +30,17 @@ export function ProductSearchDropdown({
   defaultProductImage,
 }: ProductSearchDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchValue]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -49,14 +60,23 @@ export function ProductSearchDropdown({
     }
   }, [isOpen]);
 
-  // Memoize filtered products to prevent unnecessary recalculations
-  const filteredProducts = useMemo(() => {
-    if (!searchValue) return availableProducts;
-    const search = searchValue.toLowerCase();
-    return availableProducts.filter((product) =>
+  // Memoize filtered products with min search length and result limit
+  const { displayedProducts, totalFiltered } = useMemo(() => {
+    // Don't filter if search is too short
+    if (debouncedSearch.length < MIN_SEARCH_LENGTH) {
+      return { displayedProducts: [], totalFiltered: 0 };
+    }
+
+    const search = debouncedSearch.toLowerCase();
+    const filtered = availableProducts.filter((product) =>
       product.name.toLowerCase().includes(search)
     );
-  }, [searchValue, availableProducts]);
+
+    return {
+      displayedProducts: filtered.slice(0, MAX_RESULTS),
+      totalFiltered: filtered.length,
+    };
+  }, [debouncedSearch, availableProducts]);
 
   const selectedProduct = availableProducts.find(
     (p) => p.id === selectedProductId
@@ -71,8 +91,16 @@ export function ProductSearchDropdown({
   const handleSelectProduct = (productId: string) => {
     onSelect(productId);
     onSearchChange(""); // Clear search after selection
-    // Don't close dropdown to allow multiple selections
+    setIsOpen(false);
   };
+
+  const shouldShowDropdown =
+    isOpen &&
+    searchValue.length >= MIN_SEARCH_LENGTH &&
+    displayedProducts.length > 0;
+
+  const showMinLengthHint =
+    isOpen && searchValue.length > 0 && searchValue.length < MIN_SEARCH_LENGTH;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -88,9 +116,17 @@ export function ProductSearchDropdown({
         />
       </div>
 
-      {isOpen && filteredProducts.length > 0 && (
+      {showMinLengthHint && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-3">
+          <p className="text-sm text-gray-500 text-center">
+            Type at least {MIN_SEARCH_LENGTH} characters to search...
+          </p>
+        </div>
+      )}
+
+      {shouldShowDropdown && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-          {filteredProducts.map((product) => (
+          {displayedProducts.map((product) => (
             <button
               key={product.id}
               type="button"
@@ -111,6 +147,14 @@ export function ProductSearchDropdown({
               </div>
             </button>
           ))}
+          {totalFiltered > MAX_RESULTS && (
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
+              <p className="text-xs text-gray-600 text-center">
+                Showing {MAX_RESULTS} of {totalFiltered} results. Keep typing to
+                narrow down...
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

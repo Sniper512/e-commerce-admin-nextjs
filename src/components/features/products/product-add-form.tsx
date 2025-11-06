@@ -20,7 +20,7 @@ import { ProductBoughtTogetherTab } from "./tabs/product-bought-together-tab";
 import { ProductAddTabs } from "./product-add-tabs";
 
 interface ProductAddFormProps {
-  availableProducts: any[];
+  availableProducts: Array<{ id: string; name: string; image: string }>;
   availableDiscounts: any[];
   categories: any[];
   manufacturers: any[];
@@ -241,6 +241,7 @@ export function ProductAddForm({
           similarProductIds={similarProductIds}
           onSimilarProductIdsChange={setSimilarProductIds}
           availableProducts={availableProducts}
+          selectedProducts={[]} // Empty for new product
           defaultImage=""
         />
       )}
@@ -249,6 +250,7 @@ export function ProductAddForm({
           boughtTogetherProductIds={boughtTogetherProductIds}
           onBoughtTogetherProductIdsChange={setBoughtTogetherProductIds}
           availableProducts={availableProducts}
+          selectedProducts={[]} // Empty for new product
           defaultImage=""
         />
       )}
