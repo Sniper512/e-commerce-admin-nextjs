@@ -81,27 +81,3 @@ export function generateSlug(text: string): string {
     .replace(/-+/g, "-")
     .trim();
 }
-
-/**
- * Create a Firestore-ready update object with timestamp
- */
-export function createUpdatePayload(updates: any) {
-  return {
-    ...sanitizeForFirestore(updates),
-    updatedAt: new Date().toISOString(),
-    updatedBy: "current-user", // TODO: Get from auth context
-  };
-}
-
-/**
- * Create a Firestore-ready create object with timestamps
- */
-export function createCreatePayload(data: any) {
-  return {
-    ...sanitizeForFirestore(data),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    createdBy: "current-user", // TODO: Get from auth context
-    updatedBy: "current-user",
-  };
-}

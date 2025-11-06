@@ -9,7 +9,9 @@ interface BatchDetailPageProps {
   };
 }
 
-export default async function BatchDetailPage({ params }: BatchDetailPageProps) {
+export default async function BatchDetailPage({
+  params,
+}: BatchDetailPageProps) {
   const { id } = await params;
 
   // Fetch data on the server
@@ -28,7 +30,9 @@ export default async function BatchDetailPage({ params }: BatchDetailPageProps) 
 
   // Serialize data for client component
   const serializedBatch = JSON.parse(JSON.stringify(batch));
-  const serializedProduct = product ? JSON.parse(JSON.stringify(product)) : null;
+  const serializedProduct = product
+    ? JSON.parse(JSON.stringify(product))
+    : null;
 
   return <BatchDetail batch={serializedBatch} product={serializedProduct} />;
 }

@@ -73,7 +73,7 @@ export const orderService = {
 
 	// Create order
 	async create(
-		data: Omit<Order, "id" | "createdAt" | "updatedAt">
+		data: Omit<Order, "id">
 	): Promise<string> {
 		const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
 			...data,
@@ -169,7 +169,7 @@ export const customerService = {
 
 	// Create customer
 	async create(
-		data: Omit<Customer, "id" | "createdAt" | "updatedAt">
+		data: Omit<Customer, "id">
 	): Promise<string> {
 		const docRef = await addDoc(collection(db, CUSTOMERS_COLLECTION), {
 			...data,
@@ -247,7 +247,7 @@ export const paymentService = {
 
 	// Create payment
 	async create(
-		data: Omit<Payment, "id" | "createdAt" | "updatedAt">
+		data: Omit<Payment, "id">
 	): Promise<string> {
 		const docRef = await addDoc(collection(db, PAYMENTS_COLLECTION), {
 			...data,
@@ -308,7 +308,7 @@ export const refundService = {
 
 	// Create refund request
 	async create(
-		data: Omit<Refund, "id" | "createdAt" | "updatedAt">
+		data: Omit<Refund, "id">
 	): Promise<string> {
 		const docRef = await addDoc(collection(db, REFUNDS_COLLECTION), {
 			...data,

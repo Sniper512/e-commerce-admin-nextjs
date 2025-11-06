@@ -783,58 +783,6 @@ export function CategoryEditForm({
               )}
             </CardContent>
           </Card>
-
-          {/* Metadata Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Metadata
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <Label className="text-xs text-gray-500">Created</Label>
-                <p className="mt-1">
-                  {new Date(
-                    isSubCategory && subCategory
-                      ? subCategory.createdAt
-                      : category.createdAt
-                  ).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </p>
-                <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                  <User className="h-3 w-3" />
-                  {isSubCategory && subCategory
-                    ? subCategory.createdBy || "N/A"
-                    : category.createdBy || "N/A"}
-                </p>
-              </div>
-              <div className="pt-3 border-t">
-                <Label className="text-xs text-gray-500">Last Updated</Label>
-                <p className="mt-1">
-                  {new Date(
-                    isSubCategory && subCategory
-                      ? subCategory.updatedAt
-                      : category.updatedAt
-                  ).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </p>
-                <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                  <User className="h-3 w-3" />
-                  {isSubCategory && subCategory
-                    ? subCategory.updatedBy || "N/A"
-                    : category.updatedBy || "N/A"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

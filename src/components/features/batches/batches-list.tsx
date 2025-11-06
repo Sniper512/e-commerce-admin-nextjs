@@ -1,11 +1,18 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Plus,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Search,
   Trash2,
   Eye,
@@ -14,22 +21,26 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
-  Box,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import batchService from "@/services/batchService";
 import type { Batch } from "@/types";
 import Link from "next/link";
+import Image from "next/image";
+
+interface EnrichedBatch extends Batch {
+  productName?: string;
+  productImage?: string;
+}
 
 interface BatchesListProps {
-  batches: Batch[];
+  batches: EnrichedBatch[];
 }
 
 export function BatchesList({ batches }: BatchesListProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this batch?")) {
@@ -71,29 +82,24 @@ export function BatchesList({ batches }: BatchesListProps) {
     );
   };
 
+  // Filter batches based on search
   const filteredBatches = batches.filter((batch) => {
-    const matchesSearch =
-      batch.batchId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (batch.productName &&
-        batch.productName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (batch.supplier &&
-        batch.supplier.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesFilter =
-      filterStatus === "all" ||
-      (filterStatus === "active" && batch.status === "active") ||
-      (filterStatus === "expired" && batch.status === "expired") ||
-      (filterStatus === "recalled" && batch.status === "recalled") ||
-      (filterStatus === "expiring" && isExpiringSoon(batch));
-    return matchesSearch && matchesFilter;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      batch.batchId.toLowerCase().includes(searchLower) ||
+      batch.productName?.toLowerCase().includes(searchLower) ||
+      batch.supplier?.toLowerCase().includes(searchLower)
+    );
   });
 
-  // Calculate stats
+  // Calculate stats based on filtered batches
   const stats = {
-    total: batches.length,
-    active: batches.filter((b) => b.status === "active").length,
-    expiring: batches.filter(isExpiringSoon).length,
-    expired: batches.filter((b) => b.status === "expired" || isExpired(b))
-      .length,
+    total: filteredBatches.length,
+    active: filteredBatches.filter((b) => b.status === "active").length,
+    expiring: filteredBatches.filter(isExpiringSoon).length,
+    expired: filteredBatches.filter(
+      (b) => b.status === "expired" || isExpired(b)
+    ).length,
   };
 
   return (
@@ -161,197 +167,170 @@ export function BatchesList({ batches }: BatchesListProps) {
 
       {/* Filters */}
       <Card>
-        <CardContent className="p-0">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search by batch ID, product, or supplier..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="expiring">Expiring Soon</option>
-              <option value="expired">Expired</option>
-              <option value="recalled">Recalled</option>
-            </select>
+        <CardContent className="p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              placeholder="Search by batch ID, product, or supplier..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </CardContent>
       </Card>
 
       {/* Batches Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Batches</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredBatches.length === 0 ? (
-            <div className="text-center py-8">
-              <Box className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">
-                {searchTerm || filterStatus !== "all"
-                  ? "No batches found matching your filters"
-                  : "No batches found"}
-              </p>
-              {batches.length === 0 && (
-                <Button onClick={() => router.push("/dashboard/batches/add")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Batch
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Batch ID
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Product
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Quantity
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Manufacturing Date
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Expiry Date
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Status
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBatches.map((batch) => {
-                    const daysUntilExpiry = getDaysUntilExpiry(batch);
-                    const expired = isExpired(batch);
-                    const expiringSoon = isExpiringSoon(batch);
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Batch ID</TableHead>
+                <TableHead className="text-center">Product</TableHead>
+                <TableHead className="text-center">Quantity</TableHead>
+                <TableHead className="text-center">
+                  Manufacturing Date
+                </TableHead>
+                <TableHead className="text-center">Expiry Date</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredBatches.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-8 text-gray-500">
+                    {searchTerm
+                      ? "No batches found matching your search"
+                      : "No batches yet. Create your first batch!"}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredBatches.map((batch) => {
+                  const daysUntilExpiry = getDaysUntilExpiry(batch);
+                  const expired = isExpired(batch);
+                  const expiringSoon = isExpiringSoon(batch);
 
-                    return (
-                      <tr key={batch.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div className="font-medium">{batch.batchId}</div>
-                          {batch.supplier && (
-                            <div className="text-xs text-gray-600">
-                              Supplier: {batch.supplier}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-medium">
-                            {batch.productName || "N/A"}
+                  return (
+                    <TableRow key={batch.id}>
+                      <TableCell className="font-medium">
+                        <div>{batch.batchId}</div>
+                        {batch.supplier && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Supplier: {batch.supplier}
                           </div>
-                          {batch.location && (
-                            <div className="text-xs text-gray-600">
-                              Location: {batch.location}
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3 justify-center">
+                          <Image
+                            src={
+                              batch.productImage || "/images/default-image.svg"
+                            }
+                            alt={batch.productName || "Product"}
+                            width={48}
+                            height={48}
+                            className="object-cover rounded"
+                          />
+                          <div className="text-left">
+                            <div className="font-medium">
+                              {batch.productName || "N/A"}
                             </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div>
-                            <span className="font-medium">
-                              {batch.remainingQuantity}
-                            </span>
-                            <span className="text-gray-600">
-                              {" "}
-                              / {batch.quantity}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {Math.round(
-                              (batch.remainingQuantity / batch.quantity) * 100
+                            {batch.location && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Location: {batch.location}
+                              </div>
                             )}
-                            % remaining
                           </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center text-sm">
-                            <Calendar className="h-3 w-3 mr-1 text-gray-400" />
-                            {new Date(
-                              batch.manufacturingDate
-                            ).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center text-sm">
-                            <Calendar className="h-3 w-3 mr-1 text-gray-400" />
-                            {new Date(batch.expiryDate).toLocaleDateString()}
-                          </div>
-                          {!expired && daysUntilExpiry <= 30 && (
-                            <div className="text-xs text-orange-600 font-medium mt-1">
-                              Expires in {daysUntilExpiry} days
-                            </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div>
+                          <span className="font-medium">
+                            {batch.remainingQuantity}
+                          </span>
+                          <span className="text-gray-500">
+                            {" "}
+                            / {batch.quantity}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {Math.round(
+                            (batch.remainingQuantity / batch.quantity) * 100
                           )}
-                          {expired && (
-                            <div className="text-xs text-red-600 font-medium mt-1">
-                              Expired {Math.abs(daysUntilExpiry)} days ago
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge
-                            className={
-                              batch.status === "active" &&
-                              !expired &&
-                              !expiringSoon
-                                ? "bg-green-100 text-green-800"
-                                : batch.status === "active" && expiringSoon
-                                ? "bg-orange-100 text-orange-800"
-                                : batch.status === "recalled"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-gray-100 text-gray-800"
-                            }>
-                            {expired || batch.status === "expired"
-                              ? "Expired"
-                              : expiringSoon
-                              ? "Expiring Soon"
-                              : batch.status === "recalled"
-                              ? "Recalled"
-                              : "Active"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <Link href={`/dashboard/batches/${batch.id}`}>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                title="View details">
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                            </Link>
+                          % remaining
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center text-sm">
+                          <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                          {new Date(
+                            batch.manufacturingDate
+                          ).toLocaleDateString()}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center text-sm">
+                          <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                          {new Date(batch.expiryDate).toLocaleDateString()}
+                        </div>
+                        {!expired && daysUntilExpiry <= 30 && (
+                          <div className="text-xs text-orange-600 font-medium mt-1">
+                            Expires in {daysUntilExpiry} days
+                          </div>
+                        )}
+                        {expired && (
+                          <div className="text-xs text-red-600 font-medium mt-1">
+                            Expired {Math.abs(daysUntilExpiry)} days ago
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={
+                            batch.status === "active" &&
+                            !expired &&
+                            !expiringSoon
+                              ? "success"
+                              : batch.status === "active" && expiringSoon
+                              ? "warning"
+                              : "secondary"
+                          }>
+                          {expired || batch.status === "expired"
+                            ? "Expired"
+                            : expiringSoon
+                            ? "Expiring Soon"
+                            : "Active"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-center gap-2">
+                          <Link href={`/dashboard/batches/${batch.id}`}>
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDelete(batch.id)}
-                              title="Delete batch">
-                              <Trash2 className="h-3 w-3" />
+                              title="View details">
+                              <Eye className="h-3 w-3" />
                             </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                          </Link>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(batch.id)}
+                            title="Delete batch">
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </>

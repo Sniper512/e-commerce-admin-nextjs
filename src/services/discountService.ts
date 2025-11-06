@@ -35,8 +35,6 @@ const firestoreToDiscount = (id: string, data: any): Discount => {
     startDate: convertTimestamp(data.startDate),
     endDate: convertTimestamp(data.endDate),
     isActive: data.isActive ?? true,
-    createdAt: convertTimestamp(data.createdAt),
-    updatedAt: convertTimestamp(data.updatedAt),
   };
 };
 
@@ -48,7 +46,7 @@ export const discountService = {
   async getAll(): Promise<Discount[]> {
     try {
       const discountsRef = collection(db, COLLECTION_NAME);
-      const q = query(discountsRef, orderBy("createdAt", "desc"));
+      const q = query(discountsRef, orderBy("startDate", "desc"));
       const snapshot = await getDocs(q);
 
       return snapshot.docs.map((doc) =>
@@ -146,14 +144,10 @@ export const discountService = {
   },
 
   // Create a new discount
-  async create(
-    discountData: Omit<Discount, "id" | "createdAt" | "updatedAt">
-  ): Promise<string> {
+  async create(discountData: Omit<Discount, "id">): Promise<string> {
     try {
       const sanitizedData = sanitizeForFirestore({
         ...discountData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
       });
 
       const discountsRef = collection(db, COLLECTION_NAME);
@@ -169,13 +163,12 @@ export const discountService = {
   // Update an existing discount
   async update(
     id: string,
-    discountData: Partial<Omit<Discount, "id" | "createdAt" | "updatedAt">>
+    discountData: Partial<Omit<Discount, "id">>
   ): Promise<void> {
     try {
       const discountRef = doc(db, COLLECTION_NAME, id);
       const sanitizedData = sanitizeForFirestore({
         ...discountData,
-        updatedAt: serverTimestamp(),
       });
 
       await updateDoc(discountRef, sanitizedData);

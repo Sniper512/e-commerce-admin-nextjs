@@ -113,7 +113,7 @@ export function ProductAddForm({
 
       // Pass images and video to service for upload
       await productService.create(
-        newProduct as Omit<Product, "id" | "createdAt" | "updatedAt">,
+        newProduct as Omit<Product, "id">,
         images,
         video
       );

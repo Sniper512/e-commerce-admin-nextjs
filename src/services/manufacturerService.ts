@@ -30,10 +30,6 @@ const firestoreToManufacturer = (id: string, data: any): Manufacturer => {
     logo: data.logo || undefined,
     displayOrder: data.displayOrder || 1,
     productCount: data.productCount || 0,
-    createdAt: convertTimestamp(data.createdAt),
-    updatedAt: convertTimestamp(data.updatedAt),
-    createdBy: data.createdBy || "system",
-    updatedBy: data.updatedBy || "system",
   };
 };
 
@@ -153,10 +149,6 @@ const manufacturerService = {
         displayOrder: manufacturerData.displayOrder || 1,
         logo: null,
         productCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        createdBy: "current-user",
-        updatedBy: "current-user",
       };
 
       const sanitizedData = sanitizeForFirestore(newManufacturerData);
@@ -218,8 +210,6 @@ const manufacturerService = {
       const updateData: any = {
         ...updates,
         logo: logoURL,
-        updatedAt: new Date().toISOString(),
-        updatedBy: "current-user",
       };
 
       const sanitizedUpdate = sanitizeForFirestore(updateData);

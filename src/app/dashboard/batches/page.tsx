@@ -2,14 +2,34 @@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import batchService from "@/services/batchService";
+import { productService } from "@/services/productService";
 import { BatchesList } from "@/components/features/batches/batches-list";
 
 export default async function BatchesPage() {
   // Fetch batches on the server
   const batches = await batchService.getAllBatches();
 
+  // Get unique product IDs from batches
+  const productIds = [...new Set(batches.map((b) => b.productId))];
+
+  // Fetch product data (name and image) for all products
+  const products = await productService.getProductsByIds(productIds);
+
+  // Create a map for quick lookup
+  const productMap = new Map(
+    products.map((p) => [p.id, { name: p.name, image: p.image }])
+  );
+
+  // Enrich batches with product info
+  const enrichedBatches = batches.map((batch) => ({
+    ...batch,
+    productName: productMap.get(batch.productId)?.name || "Unknown Product",
+    productImage:
+      productMap.get(batch.productId)?.image || "/images/default-image.svg",
+  }));
+
   // Serialize data for client component
-  const serializedBatches = JSON.parse(JSON.stringify(batches));
+  const serializedBatches = JSON.parse(JSON.stringify(enrichedBatches));
 
   return (
     <div className="space-y-6">

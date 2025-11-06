@@ -288,140 +288,91 @@ export function ManufacturerEditForm({
           </Card>
         </div>
 
-        {/* Right Column - Logo & Metadata */}
-        <div className="space-y-6">
-          {/* Logo Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Logo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div
-                  className={`aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center relative border-2 ${
-                    isEditing
-                      ? isDragging
-                        ? "border-dashed border-blue-500 bg-blue-50"
-                        : "border-dashed border-gray-300"
-                      : "border-solid border-gray-200"
-                  } transition-colors`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}>
-                  {logoPreview || manufacturer.logo ? (
-                    <>
-                      <Image
-                        src={logoPreview || manufacturer.logo || DEFAULT_LOGO}
-                        alt={manufacturer.name}
-                        className="w-full h-full object-contain p-4"
-                        onError={(e) => {
-                          e.currentTarget.src = DEFAULT_LOGO;
-                        }}
-                        width={300}
-                        height={300}
-                      />
-                      {isEditing && logoPreview && (
-                        <button
-                          type="button"
-                          onClick={handleRemoveLogo}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center p-6">
-                      <Upload className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600 mb-1">
-                        {isEditing
-                          ? "Drag and drop logo here"
-                          : "No logo uploaded"}
-                      </p>
-                      {isEditing && (
-                        <p className="text-xs text-gray-500">
-                          or click below to browse
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {isEditing && (
-                  <div>
-                    <Label htmlFor="logo-edit">Upload New Logo</Label>
-                    <div className="mt-2">
-                      <input
-                        id="logo-edit"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoChange}
-                        className="hidden"
-                      />
-                      <Button
+        {/* Logo Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Logo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div
+                className={`aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center relative border-2 ${
+                  isEditing
+                    ? isDragging
+                      ? "border-dashed border-blue-500 bg-blue-50"
+                      : "border-dashed border-gray-300"
+                    : "border-solid border-gray-200"
+                } transition-colors`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}>
+                {logoPreview || manufacturer.logo ? (
+                  <>
+                    <Image
+                      src={logoPreview || manufacturer.logo || DEFAULT_LOGO}
+                      alt={manufacturer.name}
+                      className="w-full h-full object-contain p-4"
+                      onError={(e) => {
+                        e.currentTarget.src = DEFAULT_LOGO;
+                      }}
+                      width={300}
+                      height={300}
+                    />
+                    {isEditing && logoPreview && (
+                      <button
                         type="button"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() =>
-                          document.getElementById("logo-edit")?.click()
-                        }>
-                        <Upload className="h-4 w-4 mr-2" />
-                        {logoFile ? "Change Logo" : "Upload New Logo"}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Recommended: Square image, max 5MB
+                        onClick={handleRemoveLogo}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center p-6">
+                    <Upload className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-600 mb-1">
+                      {isEditing
+                        ? "Drag and drop logo here"
+                        : "No logo uploaded"}
                     </p>
+                    {isEditing && (
+                      <p className="text-xs text-gray-500">
+                        or click below to browse
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Metadata Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Metadata
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <Label className="text-xs text-gray-500">Created</Label>
-                <p className="mt-1">
-                  {new Date(manufacturer.createdAt).toLocaleDateString(
-                    "en-US",
-                    {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    }
-                  )}
-                </p>
-                <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                  <User className="h-3 w-3" />
-                  {manufacturer.createdBy || "N/A"}
-                </p>
-              </div>
-              <div className="pt-3 border-t">
-                <Label className="text-xs text-gray-500">Last Updated</Label>
-                <p className="mt-1">
-                  {new Date(manufacturer.updatedAt).toLocaleDateString(
-                    "en-US",
-                    {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    }
-                  )}
-                </p>
-                <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                  <User className="h-3 w-3" />
-                  {manufacturer.updatedBy || "N/A"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              {isEditing && (
+                <div>
+                  <Label htmlFor="logo-edit">Upload New Logo</Label>
+                  <div className="mt-2">
+                    <input
+                      id="logo-edit"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() =>
+                        document.getElementById("logo-edit")?.click()
+                      }>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {logoFile ? "Change Logo" : "Upload New Logo"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Recommended: Square image, max 5MB
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

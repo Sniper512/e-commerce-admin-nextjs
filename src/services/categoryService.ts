@@ -41,10 +41,6 @@ const firestoreToCategory = (id: string, data: any): Category => {
     productCount: data.productCount || 0,
     showOnHomepage: data.showOnHomepage ?? false,
     showOnNavbar: data.showOnNavbar ?? false,
-    createdAt: convertTimestamp(data.createdAt),
-    updatedAt: convertTimestamp(data.updatedAt),
-    createdBy: data.createdBy || "system",
-    updatedBy: data.updatedBy || "system",
   };
 };
 
@@ -75,10 +71,6 @@ const firestoreToSubCategory = (
     isActive: data.isActive ?? true,
     productIds: data.productIds || [],
     productCount: data.productCount || 0,
-    createdAt: convertTimestamp(data.createdAt),
-    updatedAt: convertTimestamp(data.updatedAt),
-    createdBy: data.createdBy || "system",
-    updatedBy: data.updatedBy || "system",
   };
 };
 
@@ -361,10 +353,6 @@ export const categoryService = {
         productCount: 0,
         showOnHomepage: categoryData.showOnHomepage ?? false,
         showOnNavbar: categoryData.showOnNavbar ?? false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        createdBy: "current-user",
-        updatedBy: "current-user",
       };
 
       const sanitizedData = sanitizeForFirestore(newCategoryData);
@@ -424,10 +412,6 @@ export const categoryService = {
         isActive: subCategoryData.isActive ?? true,
         productIds: subCategoryData.productIds || [],
         productCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        createdBy: "current-user",
-        updatedBy: "current-user",
       };
 
       const sanitizedData = sanitizeForFirestore(newSubCategoryData);
@@ -525,8 +509,6 @@ export const categoryService = {
       const updateData: any = {
         ...updates,
         image: imageURL,
-        updatedAt: new Date().toISOString(),
-        updatedBy: "current-user",
       };
 
       // Update slug if name changed
@@ -600,8 +582,6 @@ export const categoryService = {
       const updateData: any = {
         ...updates,
         image: imageURL,
-        updatedAt: new Date().toISOString(),
-        updatedBy: "current-user",
       };
 
       // Update slug if name changed
@@ -722,7 +702,6 @@ export const categoryService = {
         const docRef = doc(db, COLLECTION_NAME, order.id);
         return updateDoc(docRef, {
           displayOrder: order.displayOrder,
-          updatedAt: new Date().toUTCString(),
         });
       });
 

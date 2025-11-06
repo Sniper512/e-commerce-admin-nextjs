@@ -108,7 +108,7 @@ export function DiscountForm({
 
     try {
       const discountData:
-        | Omit<Discount, "id" | "createdAt" | "updatedAt">
+        | Omit<Discount, "id">
         | Partial<Discount> = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
@@ -152,7 +152,7 @@ export function DiscountForm({
       } else {
         // Create the discount and get its ID
         discountId = await discountService.create(
-          discountData as Omit<Discount, "id" | "createdAt" | "updatedAt">
+          discountData as Omit<Discount, "id">
         );
         alert("Discount created successfully!");
       }

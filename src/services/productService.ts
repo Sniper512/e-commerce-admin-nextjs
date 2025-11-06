@@ -63,8 +63,6 @@ async function addProductToCategories(
       await updateDoc(subCatRef, {
         productIds: arrayUnion(productId),
         productCount: increment(1),
-        updatedAt: Timestamp.now(),
-        updatedBy: "current-user",
       });
     } else {
       // Update main category
@@ -72,8 +70,6 @@ async function addProductToCategories(
       await updateDoc(catRef, {
         productIds: arrayUnion(productId),
         productCount: increment(1),
-        updatedAt: Timestamp.now(),
-        updatedBy: "current-user",
       });
     }
   });
@@ -102,8 +98,6 @@ async function removeProductFromCategories(
       await updateDoc(subCatRef, {
         productIds: arrayRemove(productId),
         productCount: increment(-1),
-        updatedAt: Timestamp.now(),
-        updatedBy: "current-user",
       });
     } else {
       // Update main category
@@ -111,8 +105,6 @@ async function removeProductFromCategories(
       await updateDoc(catRef, {
         productIds: arrayRemove(productId),
         productCount: increment(-1),
-        updatedAt: Timestamp.now(),
-        updatedBy: "current-user",
       });
     }
   });
@@ -130,8 +122,6 @@ async function addProductToManufacturer(
   const mfgRef = doc(db, MANUFACTURERS_COLLECTION, manufacturerId);
   await updateDoc(mfgRef, {
     productCount: increment(1),
-    updatedAt: Timestamp.now(),
-    updatedBy: "current-user",
   });
 }
 
@@ -145,8 +135,6 @@ async function removeProductFromManufacturer(
   const mfgRef = doc(db, MANUFACTURERS_COLLECTION, manufacturerId);
   await updateDoc(mfgRef, {
     productCount: increment(-1),
-    updatedAt: Timestamp.now(),
-    updatedBy: "current-user",
   });
 }
 
@@ -319,8 +307,6 @@ export const productService = {
       return {
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate(),
-        updatedAt: data.updatedAt?.toDate(),
         // Convert nested date fields in stockHistory
         stockHistory:
           data.stockHistory?.map((entry: any) => ({
@@ -360,8 +346,6 @@ export const productService = {
     return {
       id: docSnap.id,
       ...data,
-      createdAt: data.createdAt?.toDate(),
-      updatedAt: data.updatedAt?.toDate(),
       // Convert nested date fields in stockHistory
       stockHistory:
         data.stockHistory?.map((entry: any) => ({
@@ -391,7 +375,7 @@ export const productService = {
 
   // Create product
   async create(
-    data: Omit<Product, "id" | "createdAt" | "updatedAt">,
+    data: Omit<Product, "id">,
     images?: Array<{
       file?: File;
       url?: string;
@@ -428,8 +412,6 @@ export const productService = {
     // Create document with pre-generated ID
     await setDoc(doc(db, PRODUCTS_COLLECTION, productId), {
       ...payload,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
     });
 
     // Update related categories/subcategories
@@ -590,7 +572,6 @@ export const productService = {
     if (updateDataAny === undefined) updateDataAny = {};
     await updateDoc(docRef, {
       ...updateDataAny,
-      updatedAt: Timestamp.now(),
     });
 
     // Handle category changes

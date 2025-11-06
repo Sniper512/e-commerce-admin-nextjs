@@ -34,7 +34,6 @@ export function BatchForm({ batch, products }: BatchFormProps) {
   const [loading, setLoading] = useState(false);
   const [productSearchValue, setProductSearchValue] = useState("");
   const [scannerActive, setScannerActive] = useState(false);
-  const isEditMode = !!batch;
 
   // Helper function to format date for input
   const formatDateForInput = (date: Date | string | undefined) => {
@@ -47,13 +46,15 @@ export function BatchForm({ batch, products }: BatchFormProps) {
   };
 
   // Form state
+  // quantity and remainingQuantity allow empty string so user can clear the input.
+  // We'll parse to numbers only on submit.
   const [formData, setFormData] = useState({
     batchId: batch?.batchId || "",
     productId: batch?.productId || "",
     manufacturingDate: formatDateForInput(batch?.manufacturingDate) || "",
     expiryDate: formatDateForInput(batch?.expiryDate) || "",
-    quantity: batch?.quantity || 0,
-    remainingQuantity: batch?.remainingQuantity || 0,
+    quantity: batch?.quantity ?? "",
+    remainingQuantity: batch?.remainingQuantity ?? "",
     status: (batch?.status || "active") as BatchStatus,
     supplier: batch?.supplier || "",
     location: batch?.location || "",
@@ -61,23 +62,21 @@ export function BatchForm({ batch, products }: BatchFormProps) {
   });
 
   // Barcode scanner - only in add mode
-  const handleSymbol = (symbol: string, matchedSymbologies: string[]) => {
-    if (isEditMode) return; // Disable scanner in edit mode
+  // const handleSymbol = (symbol: string, matchedSymbologies: string[]) => {
+  //   console.log("Scanned symbol:", symbol, "Symbologies:", matchedSymbologies);
+  //   handleInputChange("batchId", symbol);
+  //   setScannerActive(true);
 
-    console.log("Scanned symbol:", symbol, "Symbologies:", matchedSymbologies);
-    handleInputChange("batchId", symbol);
-    setScannerActive(true);
+  //   // Show feedback (optional: add beep sound)
+  //   const audio = new Audio("/sounds/beep.mp3");
+  //   audio.play().catch(() => {});
 
-    // Show feedback (optional: add beep sound)
-    const audio = new Audio("/sounds/beep.mp3");
-    audio.play().catch(() => {});
-
-    // Flash effect - reset active state after 1 second
-    setTimeout(() => setScannerActive(false), 1000);
-  };
+  //   // Flash effect - reset active state after 1 second
+  //   setTimeout(() => setScannerActive(false), 1000);
+  // };
 
   // Use barcode scanner
-  useSymbologyScanner(handleSymbol);
+  // useSymbologyScanner(handleSymbol);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({
@@ -117,13 +116,12 @@ export function BatchForm({ batch, products }: BatchFormProps) {
       return;
     }
 
-    if (formData.quantity <= 0) {
-      alert("Please enter a valid quantity");
-      return;
-    }
+    // Parse numeric fields here (allowing empty input while typing)
+    const quantityNum = Number(formData.quantity);
+    const remainingNum = Number(formData.remainingQuantity);
 
-    if (isEditMode && formData.remainingQuantity > formData.quantity) {
-      alert("Remaining quantity cannot exceed total quantity");
+    if (!quantityNum || quantityNum <= 0) {
+      alert("Please enter a valid quantity");
       return;
     }
 
@@ -132,63 +130,36 @@ export function BatchForm({ batch, products }: BatchFormProps) {
     try {
       const product = products.find((p) => p.id === formData.productId);
 
-      if (isEditMode && batch) {
-        // Update existing batch
-        const updateData: Partial<Batch> = {
-          batchId: formData.batchId.trim(),
-          productId: formData.productId,
-          productName: product?.info.name,
-          manufacturingDate: mfgDate,
-          expiryDate: expDate,
-          quantity: formData.quantity,
-          remainingQuantity: formData.remainingQuantity,
-          status: formData.status,
-          supplier: formData.supplier.trim() || undefined,
-          location: formData.location.trim() || undefined,
-          notes: formData.notes.trim() || undefined,
-        };
-
-        await batchService.updateBatch(batch.id, updateData);
-        alert("Batch updated successfully!");
-        router.push("/dashboard/batches");
-      } else {
-        // Check if batch ID already exists (only for new batches)
-        const existingBatch = await batchService.getBatchByBatchId(
-          formData.batchId
-        );
-        if (existingBatch) {
-          alert("A batch with this ID already exists");
-          setLoading(false);
-          return;
-        }
-
-        // Create new batch
-        const batchData: Omit<Batch, "id" | "createdAt" | "updatedAt"> = {
-          batchId: formData.batchId.trim(),
-          productId: formData.productId,
-          productName: product?.info.name,
-          manufacturingDate: mfgDate,
-          expiryDate: expDate,
-          quantity: formData.quantity,
-          remainingQuantity: formData.quantity,
-          supplier: formData.supplier.trim() || undefined,
-          location: formData.location.trim() || undefined,
-          notes: formData.notes.trim() || undefined,
-          status: "active",
-        };
-
-        await batchService.createBatch(batchData);
-        alert("Batch created successfully!");
-        router.push("/dashboard/batches");
+      // Check if batch ID already exists (only for new batches)
+      const existingBatch = await batchService.getBatchByBatchId(
+        formData.batchId
+      );
+      if (existingBatch) {
+        alert("A batch with this ID already exists");
+        setLoading(false);
+        return;
       }
+
+      // Create new batch
+      const batchData: Omit<Batch, "id"> = {
+        batchId: formData.batchId.trim(),
+        productId: formData.productId,
+        manufacturingDate: mfgDate,
+        expiryDate: expDate,
+        quantity: quantityNum,
+        remainingQuantity: quantityNum,
+        supplier: formData.supplier.trim() || undefined,
+        location: formData.location.trim() || undefined,
+        notes: formData.notes.trim() || undefined,
+        status: "active",
+      };
+
+      await batchService.createBatch(batchData);
+      alert("Batch created successfully!");
+      router.push("/dashboard/batches");
     } catch (error) {
-      console.error(
-        `Error ${isEditMode ? "updating" : "creating"} batch:`,
-        error
-      );
-      alert(
-        `Failed to ${isEditMode ? "update" : "create"} batch. Please try again.`
-      );
+      console.error(`Error creating batch:`, error);
+      alert(`Failed to create batch. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -218,46 +189,44 @@ export function BatchForm({ batch, products }: BatchFormProps) {
       </div>
 
       {/* Scanner Status - Only show in Add mode */}
-      {!isEditMode && (
-        <Card
-          className={`mb-6 ${
-            scannerActive
-              ? "border-green-500 bg-green-50"
-              : "border-blue-500 bg-blue-50"
-          }`}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Scan
-                  className={`h-6 w-6 ${
-                    scannerActive
-                      ? "text-green-600"
-                      : "text-blue-600 animate-pulse"
-                  }`}
-                />
-                <div>
-                  <p className="font-medium">
-                    {scannerActive ? "✓ Barcode Scanned!" : "Scanner Active"}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {scannerActive
-                      ? "Batch ID captured successfully!"
-                      : "Listening for barcode scans... Use your scanner device."}
-                  </p>
-                </div>
-              </div>
-              <div
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
+      <Card
+        className={`mb-6 ${
+          scannerActive
+            ? "border-green-500 bg-green-50"
+            : "border-blue-500 bg-blue-50"
+        }`}>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Scan
+                className={`h-6 w-6 ${
                   scannerActive
-                    ? "bg-green-100 text-green-800"
-                    : "bg-blue-100 text-blue-800"
-                }`}>
-                {scannerActive ? "Scanned ✓" : "Listening..."}
+                    ? "text-green-600"
+                    : "text-blue-600 animate-pulse"
+                }`}
+              />
+              <div>
+                <p className="font-medium">
+                  {scannerActive ? "✓ Barcode Scanned!" : "Scanner Active"}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {scannerActive
+                    ? "Batch ID captured successfully!"
+                    : "Listening for barcode scans... Use your scanner device."}
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                scannerActive
+                  ? "bg-green-100 text-green-800"
+                  : "bg-blue-100 text-blue-800"
+              }`}>
+              {scannerActive ? "Scanned ✓" : "Listening..."}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -284,36 +253,23 @@ export function BatchForm({ batch, products }: BatchFormProps) {
                       onChange={(e) =>
                         handleInputChange("batchId", e.target.value)
                       }
-                      placeholder={
-                        isEditMode
-                          ? "Batch ID"
-                          : "Scan barcode or enter batch ID manually"
-                      }
+                      placeholder={"Scan barcode or enter batch ID manually"}
                       required
-                      disabled={isEditMode}
                       className={
                         scannerActive
                           ? "border-green-500 ring-2 ring-green-500"
                           : ""
                       }
                     />
-                    {!isEditMode && (
-                      <Scan
-                        className={`absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
-                          scannerActive ? "text-green-500" : "text-gray-400"
-                        }`}
-                      />
-                    )}
+                    <Scan
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+                        scannerActive ? "text-green-500" : "text-gray-400"
+                      }`}
+                    />
                   </div>
-                  {!isEditMode ? (
-                    <p className="text-xs text-gray-500">
-                      Use your barcode scanner device to scan, or type manually
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-500">
-                      Batch ID cannot be changed after creation
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-500">
+                    Use your barcode scanner device to scan, or type manually
+                  </p>
                 </div>
 
                 {/* Product Selection */}
@@ -391,64 +347,14 @@ export function BatchForm({ batch, products }: BatchFormProps) {
                       onChange={(e) =>
                         handleInputChange(
                           "quantity",
-                          parseInt(e.target.value) || 0
+                          e.target.value === "" ? "" : parseInt(e.target.value)
                         )
                       }
                       placeholder="Enter total quantity"
                       required
                     />
                   </div>
-
-                  {isEditMode && (
-                    <div className="space-y-2">
-                      <Label htmlFor="remainingQuantity">
-                        Remaining Quantity{" "}
-                        <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="remainingQuantity"
-                        type="number"
-                        min="0"
-                        max={formData.quantity}
-                        value={formData.remainingQuantity}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "remainingQuantity",
-                            parseInt(e.target.value) || 0
-                          )
-                        }
-                        required
-                      />
-                      <p className="text-xs text-gray-500">
-                        {Math.round(
-                          (formData.remainingQuantity / formData.quantity) * 100
-                        )}
-                        % remaining
-                      </p>
-                    </div>
-                  )}
                 </div>
-
-                {/* Status (Edit mode only) */}
-                {isEditMode && (
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <select
-                      id="status"
-                      value={formData.status}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "status",
-                          e.target.value as BatchStatus
-                        )
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="active">Active</option>
-                      <option value="expired">Expired</option>
-                      <option value="recalled">Recalled</option>
-                    </select>
-                  </div>
-                )}
 
                 {/* Supplier */}
                 <div className="space-y-2">
@@ -502,58 +408,48 @@ export function BatchForm({ batch, products }: BatchFormProps) {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Instructions - Only in Add mode */}
-            {!isEditMode && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-blue-600" />
-                    Instructions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm text-gray-600">
-                  <div className="flex gap-2">
-                    <span className="font-semibold text-blue-600">1.</span>
-                    <p>
-                      Use your barcode scanner to scan the batch ID, or enter it
-                      manually.
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="font-semibold text-blue-600">2.</span>
-                    <p>
-                      Select the product this batch belongs to from the
-                      dropdown.
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="font-semibold text-blue-600">3.</span>
-                    <p>Enter manufacturing and expiry dates accurately.</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="font-semibold text-blue-600">4.</span>
-                    <p>Fill in quantity and additional information.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-blue-600" />
+                  Instructions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-gray-600">
+                <div className="flex gap-2">
+                  <span className="font-semibold text-blue-600">1.</span>
+                  <p>
+                    Use your barcode scanner to scan the batch ID, or enter it
+                    manually.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-semibold text-blue-600">2.</span>
+                  <p>
+                    Select the product this batch belongs to from the dropdown.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-semibold text-blue-600">3.</span>
+                  <p>Enter manufacturing and expiry dates accurately.</p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-semibold text-blue-600">4.</span>
+                  <p>Fill in quantity and additional information.</p>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Actions */}
             <Card>
               <CardContent className="pt-6">
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3">
                   <Button
                     type="submit"
                     className="w-full gap-2"
                     disabled={loading}>
                     <Save className="w-4 h-4" />
-                    {loading
-                      ? isEditMode
-                        ? "Updating..."
-                        : "Creating..."
-                      : isEditMode
-                      ? "Update Batch"
-                      : "Create Batch"}
+                    {loading ? "Creating..." : "Create Batch"}
                   </Button>
                   <Link href="/dashboard/batches">
                     <Button
@@ -567,41 +463,6 @@ export function BatchForm({ batch, products }: BatchFormProps) {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Preview */}
-            {formData.batchId && formData.productId && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Preview</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div>
-                    <span className="text-gray-600">Batch ID:</span>
-                    <p className="font-medium">{formData.batchId}</p>
-                  </div>
-                  {selectedProduct && (
-                    <div>
-                      <span className="text-gray-600">Product:</span>
-                      <p className="font-medium">{selectedProduct.info.name}</p>
-                    </div>
-                  )}
-                  {formData.quantity > 0 && (
-                    <div>
-                      <span className="text-gray-600">Quantity:</span>
-                      <p className="font-medium">{formData.quantity} units</p>
-                    </div>
-                  )}
-                  {isEditMode && formData.remainingQuantity >= 0 && (
-                    <div>
-                      <span className="text-gray-600">Remaining:</span>
-                      <p className="font-medium">
-                        {formData.remainingQuantity} units
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
             {/* Alert for expiring soon */}
             {formData.expiryDate &&
