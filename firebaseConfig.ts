@@ -30,7 +30,7 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 // Connect to Firebase Emulators in development
-const USE_EMULATOR = true;
+const USE_EMULATOR = process.env.NODE_ENV === "development";
 
 if (USE_EMULATOR) {
   const isEmulatorConnected = {
