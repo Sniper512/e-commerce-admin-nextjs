@@ -119,8 +119,11 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                 filteredProducts.map((product) => {
                   // Handle new categoryIds format
                   const categoryIdStrings = product.info.categoryIds || [];
-                  const stock = product.inventory.stockQuantity;
-                  const minStock = product.inventory.minimumStockQuantity;
+
+                  // Get usable stock from product's batch stock data
+                  const usableStock = product.batchStock?.usableStock || 0;
+                  const stock = usableStock;
+                  const minStock = product.minimumStockQuantity;
                   const isLowStock = stock < minStock;
                   const productImage =
                     product.multimedia?.images?.[0] ||
@@ -157,7 +160,7 @@ export function ProductsList({ products, categories }: ProductsListProps) {
                         )}
                       </TableCell>
                       <TableCell className="text-center font-medium">
-                        {product.price || "0"}
+                        {product.price || 0}
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-col items-center">

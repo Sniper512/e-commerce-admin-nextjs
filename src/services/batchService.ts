@@ -248,6 +248,100 @@ export const batchService = {
       throw error;
     }
   },
+
+  // Get stock data for multiple products
+  async getStockDataForProducts(productIds: string[]): Promise<
+    Record<
+      string,
+      {
+        usableStock: number;
+        expiredStock: number;
+        totalStock: number;
+        activeBatchCount: number;
+      }
+    >
+  > {
+    try {
+      if (productIds.length === 0) {
+        return {};
+      }
+
+      const batchesRef = collection(db, BATCHES_COLLECTION);
+      const q = query(batchesRef, where("productId", "in", productIds));
+      const snapshot = await getDocs(q);
+
+      const stockMap = new Map<
+        string,
+        {
+          usableStock: number;
+          totalActiveStock: number;
+          expiredStock: number;
+          activeBatchCount: number;
+        }
+      >();
+
+      // Initialize map with zeros for all product IDs
+      productIds.forEach((productId) => {
+        stockMap.set(productId, {
+          usableStock: 0,
+          totalActiveStock: 0,
+          expiredStock: 0,
+          activeBatchCount: 0,
+        });
+      });
+
+      const now = new Date();
+
+      // Process all batches
+      snapshot.docs.forEach((doc) => {
+        const batch = firestoreToBatch(doc.id, doc.data());
+        const productId = batch.productId;
+        const stockData = stockMap.get(productId);
+
+        if (!stockData) return;
+
+        if (batch.status === "active") {
+          const expiryDate = new Date(batch.expiryDate);
+
+          // Add to total active stock
+          stockData.totalActiveStock += batch.remainingQuantity;
+          stockData.activeBatchCount += 1;
+
+          // Check if not expired yet
+          if (expiryDate >= now) {
+            stockData.usableStock += batch.remainingQuantity;
+          }
+        } else if (batch.status === "expired") {
+          stockData.expiredStock += batch.remainingQuantity;
+        }
+      });
+
+      // Convert Map to Record
+      const result: Record<
+        string,
+        {
+          usableStock: number;
+          expiredStock: number;
+          totalStock: number;
+          activeBatchCount: number;
+        }
+      > = {};
+
+      stockMap.forEach((value, key) => {
+        result[key] = {
+          usableStock: value.usableStock,
+          expiredStock: value.expiredStock,
+          totalStock: value.totalActiveStock,
+          activeBatchCount: value.activeBatchCount,
+        };
+      });
+
+      return result;
+    } catch (error) {
+      console.error("Error fetching stock data for products:", error);
+      throw error;
+    }
+  },
 };
 
 export default batchService;

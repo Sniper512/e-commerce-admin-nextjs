@@ -23,6 +23,7 @@ import {
 import { db, storage } from "@/../firebaseConfig";
 import { Product } from "@/types";
 import { sanitizeForFirestore } from "@/lib/firestore-utils";
+import batchService from "./batchService";
 
 const PRODUCTS_COLLECTION = "PRODUCTS";
 const BATCHES_COLLECTION = "BATCHES";
@@ -302,17 +303,11 @@ export const productService = {
     const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints);
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => {
+    const products = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
         ...data,
-        // Convert nested date fields in stockHistory
-        stockHistory:
-          data.stockHistory?.map((entry: any) => ({
-            ...entry,
-            date: entry.date?.toDate?.() || entry.date,
-          })) || [],
         // Convert nested date fields in purchaseHistory
         purchaseHistory:
           data.purchaseHistory?.map((entry: any) => ({
@@ -333,6 +328,26 @@ export const productService = {
           : data.info,
       };
     }) as Product[];
+
+    // Fetch batch stock data for all products
+    const productIds = products.map((p) => p.id);
+    if (productIds.length > 0) {
+      const batchStockData = await batchService.getStockDataForProducts(
+        productIds
+      );
+
+      // Enrich products with batch stock data
+      products.forEach((product) => {
+        product.batchStock = batchStockData[product.id] || {
+          usableStock: 0,
+          expiredStock: 0,
+          totalStock: 0,
+          activeBatchCount: 0,
+        };
+      });
+    }
+
+    return products;
   },
 
   // Get product by ID
@@ -346,12 +361,6 @@ export const productService = {
     return {
       id: docSnap.id,
       ...data,
-      // Convert nested date fields in stockHistory
-      stockHistory:
-        data.stockHistory?.map((entry: any) => ({
-          ...entry,
-          date: entry.date?.toDate?.() || entry.date,
-        })) || [],
       // Convert nested date fields in purchaseHistory
       purchaseHistory:
         data.purchaseHistory?.map((entry: any) => ({

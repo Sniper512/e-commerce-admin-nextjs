@@ -60,8 +60,7 @@ export function ProductEditForm({
     markAsNew: product.info.markAsNew,
     markAsNewStartDate: product.info.markAsNewStartDate,
     markAsNewEndDate: product.info.markAsNewEndDate,
-    stockQuantity: product.inventory.stockQuantity,
-    minimumStockQuantity: product.inventory.minimumStockQuantity,
+    minimumStockQuantity: product.minimumStockQuantity,
   });
 
   const [images, setImages] = useState<ProductImageWithFile[]>(
@@ -118,10 +117,7 @@ export function ProductEditForm({
           markAsNewEndDate: formData.markAsNewEndDate,
         },
         discountIds: selectedDiscountIds,
-        inventory: {
-          stockQuantity: formData.stockQuantity,
-          minimumStockQuantity: formData.minimumStockQuantity,
-        },
+        minimumStockQuantity: formData.minimumStockQuantity,
         multimedia: {
           images: [],
           video: "",
@@ -239,7 +235,6 @@ export function ProductEditForm({
       )}
       {activeTab === "inventory" && (
         <ProductInventoryTab
-          stockQuantity={formData.stockQuantity}
           minimumStockQuantity={formData.minimumStockQuantity}
           onMinimumStockQuantityChange={(value: number | "") =>
             setFormData({

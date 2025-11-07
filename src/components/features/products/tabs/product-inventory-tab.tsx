@@ -10,7 +10,6 @@ import { useMemo } from "react";
 import { AlertTriangle, CheckCircle, Package } from "lucide-react";
 
 interface ProductInventoryTabProps {
-  stockQuantity: number;
   minimumStockQuantity: number;
   onMinimumStockQuantityChange: (value: number | "") => void;
   batches?: Batch[];
@@ -18,7 +17,6 @@ interface ProductInventoryTabProps {
 }
 
 export function ProductInventoryTab({
-  stockQuantity,
   minimumStockQuantity,
   onMinimumStockQuantityChange,
   batches = [],
@@ -31,9 +29,28 @@ export function ProductInventoryTab({
       .reduce((total, batch) => total + batch.remainingQuantity, 0);
   }, [batches]);
 
+  // Calculate expired stock
+  const expiredStockQuantity = useMemo(() => {
+    return batches
+      .filter((batch) => batch.status === "expired")
+      .reduce((total, batch) => total + batch.remainingQuantity, 0);
+  }, [batches]);
+
+  // Calculate usable stock (active batches that haven't expired yet)
+  const usableStockQuantity = useMemo(() => {
+    const now = new Date();
+    return batches
+      .filter((batch) => {
+        if (batch.status !== "active") return false;
+        const expiryDate = new Date(batch.expiryDate);
+        return expiryDate >= now; // Not expired yet
+      })
+      .reduce((total, batch) => total + batch.remainingQuantity, 0);
+  }, [batches]);
+
   // Determine stock status
   const stockStatus = useMemo(() => {
-    const totalStock = calculatedStockQuantity || stockQuantity;
+    const totalStock = usableStockQuantity;
 
     if (totalStock === 0) {
       return {
@@ -54,7 +71,7 @@ export function ProductInventoryTab({
         icon: CheckCircle,
       };
     }
-  }, [calculatedStockQuantity, stockQuantity, minimumStockQuantity]);
+  }, [usableStockQuantity, minimumStockQuantity]);
 
   // Count of active batches
   const activeBatchCount = useMemo(() => {
@@ -70,17 +87,17 @@ export function ProductInventoryTab({
         </CardHeader>
         <CardContent className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-2">
-            <Label htmlFor="stockQty" className="form-label">
-              Total Stock Quantity
+            <Label htmlFor="usableStock" className="form-label">
+              Usable Stock (Not Expired)
             </Label>
             <div className="relative">
               <Input
-                id="stockQty"
+                id="usableStock"
                 type="number"
                 placeholder="0"
-                value={calculatedStockQuantity || stockQuantity}
+                value={usableStockQuantity}
                 disabled
-                className="pr-20"
+                className="pr-20 font-semibold text-green-700"
               />
               <Badge
                 variant={stockStatus.color}
@@ -92,12 +109,63 @@ export function ProductInventoryTab({
             {batches.length > 0 && (
               <p className="text-xs text-gray-500 flex items-center gap-1">
                 <Package className="h-3 w-3" />
-                Calculated from {activeBatchCount} active{" "}
-                {activeBatchCount === 1 ? "batch" : "batches"}
+                From active non-expired batches
               </p>
             )}
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="expiredStock" className="form-label">
+              Expired Stock
+            </Label>
+            <Input
+              id="expiredStock"
+              type="number"
+              placeholder="0"
+              value={expiredStockQuantity}
+              disabled
+              className="font-semibold text-red-700"
+            />
+            {batches.length > 0 && expiredStockQuantity > 0 && (
+              <p className="text-xs text-red-600 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Requires disposal or return
+              </p>
+            )}
+            {expiredStockQuantity === 0 && (
+              <p className="text-xs text-gray-500">No expired stock</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="totalStock" className="form-label">
+              Total Stock (All Active)
+            </Label>
+            <Input
+              id="totalStock"
+              type="number"
+              placeholder="0"
+              value={calculatedStockQuantity}
+              disabled
+              className="font-semibold"
+            />
+            {batches.length > 0 && (
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                <Package className="h-3 w-3" />
+                From {activeBatchCount} active{" "}
+                {activeBatchCount === 1 ? "batch" : "batches"}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stock Settings Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Stock Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="minStock" className="form-label">
               Minimum Stock Quantity
@@ -124,8 +192,7 @@ export function ProductInventoryTab({
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Available:</span>
                 <span className="font-semibold">
-                  {(calculatedStockQuantity || stockQuantity).toLocaleString()}{" "}
-                  units
+                  {usableStockQuantity.toLocaleString()} units
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
@@ -138,15 +205,12 @@ export function ProductInventoryTab({
                 <span className="text-gray-600">Buffer:</span>
                 <span
                   className={`font-semibold ${
-                    (calculatedStockQuantity || stockQuantity) -
-                      minimumStockQuantity <
-                    0
+                    usableStockQuantity - minimumStockQuantity < 0
                       ? "text-red-600"
                       : "text-green-600"
                   }`}>
                   {(
-                    (calculatedStockQuantity || stockQuantity) -
-                    minimumStockQuantity
+                    usableStockQuantity - minimumStockQuantity
                   ).toLocaleString()}{" "}
                   units
                 </span>

@@ -116,10 +116,7 @@ export function ProductAddForm({
           markAsNewEndDate: formData.markAsNewEndDate,
         },
         discountIds: selectedDiscountIds,
-        inventory: {
-          stockQuantity: formData.stockQuantity,
-          minimumStockQuantity: formData.minimumStockQuantity,
-        },
+        minimumStockQuantity: formData.minimumStockQuantity,
         multimedia: {
           images: [],
           video: "",
@@ -127,7 +124,6 @@ export function ProductAddForm({
         similarProductIds: similarProductIds,
         boughtTogetherProductIds: boughtTogetherProductIds,
         purchaseHistory: [],
-        stockHistory: [],
       };
 
       // Pass images and video to service for upload
@@ -240,7 +236,6 @@ export function ProductAddForm({
       )}
       {activeTab === "inventory" && (
         <ProductInventoryTab
-          stockQuantity={formData.stockQuantity}
           minimumStockQuantity={formData.minimumStockQuantity}
           onMinimumStockQuantityChange={(value: number | "") =>
             setFormData({

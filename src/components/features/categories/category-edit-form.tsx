@@ -438,7 +438,6 @@ export function CategoryEditForm({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Product</TableHead>
-                      <TableHead>Stock</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -468,17 +467,6 @@ export function CategoryEditForm({
                               </p>
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              product.inventory.stockQuantity >
-                              product.inventory.minimumStockQuantity
-                                ? "success"
-                                : "warning"
-                            }>
-                            {product.inventory.stockQuantity} units
-                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge

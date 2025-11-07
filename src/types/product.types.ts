@@ -14,12 +14,6 @@ export interface ProductInfo {
   markAsNewEndDate?: Date;
 }
 
-// Inventory Section
-export interface ProductInventory {
-  stockQuantity: number;
-  minimumStockQuantity: number;
-}
-
 // Multimedia Section
 export interface ProductMultimedia {
   images: string[];
@@ -36,18 +30,6 @@ export interface PurchaseOrderHistory {
   totalAmount: number;
 }
 
-// Stock History Section
-export interface StockQuantityHistory {
-  id: string;
-  date: Date;
-  previousQuantity: number;
-  newQuantity: number;
-  changeReason: "sale" | "restock" | "adjustment" | "return" | "damage";
-  notes?: string;
-  userId: string; // Who made the change
-  orderId?: string; // If related to an order
-}
-
 export interface Product {
   id: string;
   slug: string;
@@ -62,7 +44,7 @@ export interface Product {
   discountIds: string[]; // Array of associated discount IDs
 
   // Inventory Section
-  inventory: ProductInventory;
+  minimumStockQuantity: number;
 
   // Multimedia Section
   multimedia: ProductMultimedia;
@@ -76,12 +58,11 @@ export interface Product {
   // Purchase History Section
   purchaseHistory: PurchaseOrderHistory[];
 
-  // Stock History Section
-  stockHistory: StockQuantityHistory[];
-
-  // Batch tracking (existing functionality)
-  hasBatches: boolean;
-
-  // Display
-  displayOrder: number;
+  // Batch Stock Data (calculated from batches)
+  batchStock?: {
+    usableStock: number; // Non-expired stock
+    expiredStock: number; // Expired stock
+    totalStock: number; // Total stock (usable + expired)
+    activeBatchCount: number; // Number of active batches
+  };
 }
