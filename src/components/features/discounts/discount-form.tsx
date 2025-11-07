@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, ArrowLeft, Percent, DollarSign, Loader2 } from "lucide-react";
+import { Save, ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -31,13 +31,6 @@ export function DiscountForm({
   const [categorySearchValue, setCategorySearchValue] = useState("");
   const isEditMode = !!discount;
 
-  // Helper function to format date for input
-  const formatDateForInput = (date: Date | string | undefined) => {
-    if (!date) return "";
-    const dateObj = typeof date === "string" ? new Date(date) : date;
-    return dateObj.toISOString().slice(0, 16);
-  };
-
   // Form state
   const [formData, setFormData] = useState({
     name: discount?.name || "",
@@ -48,23 +41,17 @@ export function DiscountForm({
       | "products"
       | "categories"
       | "order",
-    applicableProducts: discount?.applicableProducts || ([] as string[]),
-    applicableCategories: discount?.applicableCategories || ([] as string[]),
+    applicableProductIds: discount?.applicableProductIds || ([] as string[]),
+    applicableCategoryIds: discount?.applicableCategoryIds || ([] as string[]),
     minPurchaseAmount: discount?.minPurchaseAmount || 0,
-    limitationType: (discount?.limitationType || "unlimited") as
-      | "unlimited"
-      | "n_times_only"
-      | "n_times_per_customer",
-    limitationTimes: discount?.limitationTimes || 0,
-    adminComment: discount?.adminComment || "",
-    startDate: formatDateForInput(discount?.startDate) || "",
-    endDate: formatDateForInput(discount?.endDate) || "",
+    startDate: discount?.startDate,
+    endDate: discount?.endDate,
     isActive: discount?.isActive ?? true,
   });
 
   const handleInputChange = (
     field: string,
-    value: string | number | boolean | string[]
+    value: string | number | boolean | string[] | Date | undefined
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -91,6 +78,22 @@ export function DiscountForm({
       return;
     }
 
+    // Validate percentage decimal places
+    if (formData.type === "percentage") {
+      const decimalPlaces = (formData.value.toString().split(".")[1] || "")
+        .length;
+      if (decimalPlaces > 2) {
+        alert("Percentage can have maximum 2 decimal places");
+        return;
+      }
+    }
+
+    // Validate PKR amount is whole number
+    if (formData.type === "fixed" && !Number.isInteger(formData.value)) {
+      alert("PKR amount must be a whole number (no decimals)");
+      return;
+    }
+
     if (!formData.startDate || !formData.endDate) {
       alert("Please select start and end dates");
       return;
@@ -107,36 +110,28 @@ export function DiscountForm({
     setLoading(true);
 
     try {
-      const discountData:
-        | Omit<Discount, "id">
-        | Partial<Discount> = {
+      const discountData: Omit<Discount, "id"> | Partial<Discount> = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         type: formData.type,
         value: formData.value,
         applicableTo: formData.applicableTo,
-        applicableProducts:
+        applicableProductIds:
           formData.applicableTo === "products" &&
-          formData.applicableProducts.length > 0
-            ? formData.applicableProducts
+          formData.applicableProductIds.length > 0
+            ? formData.applicableProductIds
             : undefined,
-        applicableCategories:
+        applicableCategoryIds:
           formData.applicableTo === "categories" &&
-          formData.applicableCategories.length > 0
-            ? formData.applicableCategories
+          formData.applicableCategoryIds.length > 0
+            ? formData.applicableCategoryIds
             : undefined,
+        // Only include minPurchaseAmount for order-level discounts
         minPurchaseAmount:
-          formData.minPurchaseAmount > 0
+          formData.applicableTo === "order" && formData.minPurchaseAmount > 0
             ? formData.minPurchaseAmount
             : undefined,
-        limitationType: formData.limitationType,
-        limitationTimes:
-          formData.limitationType !== "unlimited" &&
-          formData.limitationTimes > 0
-            ? formData.limitationTimes
-            : undefined,
         ...(!isEditMode && { currentUsageCount: 0 }),
-        adminComment: formData.adminComment.trim() || undefined,
         startDate,
         endDate,
         isActive: formData.isActive,
@@ -160,9 +155,9 @@ export function DiscountForm({
       // Update products with the new discount ID if applicable
       if (
         formData.applicableTo === "products" &&
-        formData.applicableProducts.length > 0
+        formData.applicableProductIds.length > 0
       ) {
-        const updatePromises = formData.applicableProducts.map(
+        const updatePromises = formData.applicableProductIds.map(
           async (productId) => {
             try {
               const product = await productService.getById(productId);
@@ -191,12 +186,12 @@ export function DiscountForm({
       // Note: Categories don't have discountIds in the schema, so we'll update products in those categories
       if (
         formData.applicableTo === "categories" &&
-        formData.applicableCategories.length > 0
+        formData.applicableCategoryIds.length > 0
       ) {
         const categoryService = (await import("@/services/categoryService"))
           .default;
 
-        const updatePromises = formData.applicableCategories.map(
+        const updatePromises = formData.applicableCategoryIds.map(
           async (categoryId) => {
             try {
               const category = await categoryService.getCategoryById(
@@ -257,7 +252,7 @@ export function DiscountForm({
   // Convert products to the format expected by ProductSearchDropdown
   // Filter out already selected products
   const availableProductsForDropdown = products
-    .filter((product) => !formData.applicableProducts.includes(product.id))
+    .filter((product) => !formData.applicableProductIds.includes(product.id))
     .map((product) => ({
       id: product.id,
       name: product.info.name,
@@ -265,9 +260,9 @@ export function DiscountForm({
     }));
 
   const handleAddProduct = (productId: string) => {
-    if (!formData.applicableProducts.includes(productId)) {
-      handleInputChange("applicableProducts", [
-        ...formData.applicableProducts,
+    if (!formData.applicableProductIds.includes(productId)) {
+      handleInputChange("applicableProductIds", [
+        ...formData.applicableProductIds,
         productId,
       ]);
     }
@@ -275,15 +270,15 @@ export function DiscountForm({
 
   const handleRemoveProduct = (productId: string) => {
     handleInputChange(
-      "applicableProducts",
-      formData.applicableProducts.filter((id) => id !== productId)
+      "applicableProductIds",
+      formData.applicableProductIds.filter((id) => id !== productId)
     );
   };
 
   const handleAddCategory = (categoryId: string) => {
-    if (!formData.applicableCategories.includes(categoryId)) {
-      handleInputChange("applicableCategories", [
-        ...formData.applicableCategories,
+    if (!formData.applicableCategoryIds.includes(categoryId)) {
+      handleInputChange("applicableCategoryIds", [
+        ...formData.applicableCategoryIds,
         categoryId,
       ]);
     }
@@ -291,22 +286,22 @@ export function DiscountForm({
 
   const handleRemoveCategory = (categoryId: string) => {
     handleInputChange(
-      "applicableCategories",
-      formData.applicableCategories.filter((id) => id !== categoryId)
+      "applicableCategoryIds",
+      formData.applicableCategoryIds.filter((id) => id !== categoryId)
     );
   };
 
   // Get selected product names
   const getSelectedProductNames = () => {
     return products
-      .filter((p) => formData.applicableProducts.includes(p.id))
+      .filter((p) => formData.applicableProductIds.includes(p.id))
       .map((p) => p.info.name);
   };
 
   // Get selected category names
   const getSelectedCategoryNames = () => {
     return categories
-      .filter((c) => formData.applicableCategories.includes(c.id))
+      .filter((c) => formData.applicableCategoryIds.includes(c.id))
       .map((c) => c.name);
   };
 
@@ -401,7 +396,6 @@ export function DiscountForm({
                           ? "border-blue-600 bg-blue-50"
                           : "border-gray-300 hover:border-gray-400"
                       }`}>
-                      <Percent className="h-5 w-5" />
                       <span className="font-medium">Percentage</span>
                     </button>
                     <button
@@ -412,7 +406,6 @@ export function DiscountForm({
                           ? "border-blue-600 bg-blue-50"
                           : "border-gray-300 hover:border-gray-400"
                       }`}>
-                      <DollarSign className="h-5 w-5" />
                       <span className="font-medium">Fixed Amount</span>
                     </button>
                   </div>
@@ -422,7 +415,7 @@ export function DiscountForm({
                   <Label htmlFor="value">
                     {formData.type === "percentage"
                       ? "Percentage (%)"
-                      : "Amount ($)"}{" "}
+                      : "Amount (PKR)"}{" "}
                     *
                   </Label>
                   <Input
@@ -430,36 +423,26 @@ export function DiscountForm({
                     type="number"
                     value={formData.value}
                     onChange={(e) =>
-                      handleInputChange("value", parseFloat(e.target.value))
-                    }
-                    min="0"
-                    max={formData.type === "percentage" ? "100" : undefined}
-                    step="0.01"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="minPurchaseAmount">
-                    Minimum Purchase Amount ($)
-                  </Label>
-                  <Input
-                    id="minPurchaseAmount"
-                    type="number"
-                    value={formData.minPurchaseAmount}
-                    onChange={(e) =>
                       handleInputChange(
-                        "minPurchaseAmount",
-                        parseFloat(e.target.value) || 0
+                        "value",
+                        e.target.value === "" ? "" : parseFloat(e.target.value)
                       )
                     }
                     min="0"
-                    step="0.01"
-                    placeholder="0 (no minimum)"
+                    max={formData.type === "percentage" ? "100" : undefined}
+                    step={formData.type === "percentage" ? "0.01" : "1"}
+                    required
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Customer must spend this amount to use the discount
-                  </p>
+                  {formData.type === "percentage" && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Can include decimals (e.g., 10.25% or 1.5%)
+                    </p>
+                  )}
+                  {formData.type === "fixed" && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Must be a whole number (no decimals)
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -498,24 +481,24 @@ export function DiscountForm({
                       onSearchChange={setProductSearchValue}
                       defaultProductImage="/images/default-image.svg"
                     />
-                    {formData.applicableProducts.length > 0 && (
+                    {formData.applicableProductIds.length > 0 && (
                       <div className="mt-3 space-y-2">
                         <p className="text-sm font-medium text-gray-700">
                           Selected Products (
-                          {formData.applicableProducts.length}
+                          {formData.applicableProductIds.length}
                           ):
                         </p>
                         <div className="space-y-1">
                           {getSelectedProductNames().map((name, index) => (
                             <div
-                              key={formData.applicableProducts[index]}
+                              key={formData.applicableProductIds[index]}
                               className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
                               <span className="text-sm">{name}</span>
                               <button
                                 type="button"
                                 onClick={() =>
                                   handleRemoveProduct(
-                                    formData.applicableProducts[index]
+                                    formData.applicableProductIds[index]
                                   )
                                 }
                                 className="text-red-600 hover:text-red-800 text-sm font-medium">
@@ -539,23 +522,23 @@ export function DiscountForm({
                       searchValue={categorySearchValue}
                       onSearchChange={setCategorySearchValue}
                     />
-                    {formData.applicableCategories.length > 0 && (
+                    {formData.applicableCategoryIds.length > 0 && (
                       <div className="mt-3 space-y-2">
                         <p className="text-sm font-medium text-gray-700">
                           Selected Categories (
-                          {formData.applicableCategories.length}):
+                          {formData.applicableCategoryIds.length}):
                         </p>
                         <div className="space-y-1">
                           {getSelectedCategoryNames().map((name, index) => (
                             <div
-                              key={formData.applicableCategories[index]}
+                              key={formData.applicableCategoryIds[index]}
                               className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
                               <span className="text-sm">{name}</span>
                               <button
                                 type="button"
                                 onClick={() =>
                                   handleRemoveCategory(
-                                    formData.applicableCategories[index]
+                                    formData.applicableCategoryIds[index]
                                   )
                                 }
                                 className="text-red-600 hover:text-red-800 text-sm font-medium">
@@ -570,88 +553,32 @@ export function DiscountForm({
                 )}
 
                 {formData.applicableTo === "order" && (
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      This discount will apply to the entire order total.
+                  <div>
+                    <Label htmlFor="minPurchaseAmount">
+                      Minimum Purchase Amount (PKR)
+                    </Label>
+                    <Input
+                      id="minPurchaseAmount"
+                      type="number"
+                      value={formData.minPurchaseAmount}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "minPurchaseAmount",
+                          e.target.value === ""
+                            ? 0
+                            : Math.floor(parseFloat(e.target.value))
+                        )
+                      }
+                      min="0"
+                      step="1"
+                      placeholder="0 (no minimum)"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Customer must spend this amount to use the discount (leave
+                      0 for no minimum). Must be a whole number.
                     </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Discount Limitation */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Usage Limitation</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Limitation Type</Label>
-                  <select
-                    value={formData.limitationType}
-                    onChange={(e) =>
-                      handleInputChange(
-                        "limitationType",
-                        e.target.value as
-                          | "unlimited"
-                          | "n_times_only"
-                          | "n_times_per_customer"
-                      )
-                    }
-                    className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="unlimited">Unlimited</option>
-                    <option value="n_times_only">
-                      Limited number of times (total)
-                    </option>
-                    <option value="n_times_per_customer">
-                      Limited per customer
-                    </option>
-                  </select>
-                </div>
-
-                {formData.limitationType !== "unlimited" && (
-                  <div>
-                    <Label htmlFor="limitationTimes">
-                      {formData.limitationType === "n_times_only"
-                        ? "Total Uses"
-                        : "Uses Per Customer"}
-                    </Label>
-                    <Input
-                      id="limitationTimes"
-                      type="number"
-                      value={formData.limitationTimes}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "limitationTimes",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      min="1"
-                      placeholder="Enter limit"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Admin Comment */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Admin Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <textarea
-                  id="adminComment"
-                  value={formData.adminComment}
-                  onChange={(e) =>
-                    handleInputChange("adminComment", e.target.value)
-                  }
-                  placeholder="Internal notes about this discount (not visible to customers)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  These notes are only visible to admins
-                </p>
               </CardContent>
             </Card>
           </div>
@@ -694,9 +621,18 @@ export function DiscountForm({
                   <Input
                     id="startDate"
                     type="date"
-                    value={formData.startDate}
+                    value={
+                      formData.startDate
+                        ? new Date(formData.startDate)
+                            .toISOString()
+                            .split("T")[0]
+                        : ""
+                    }
                     onChange={(e) =>
-                      handleInputChange("startDate", e.target.value)
+                      handleInputChange(
+                        "startDate",
+                        e.target.value ? new Date(e.target.value) : undefined
+                      )
                     }
                     required
                   />
@@ -707,9 +643,16 @@ export function DiscountForm({
                   <Input
                     id="endDate"
                     type="date"
-                    value={formData.endDate}
+                    value={
+                      formData.endDate
+                        ? new Date(formData.endDate).toISOString().split("T")[0]
+                        : ""
+                    }
                     onChange={(e) =>
-                      handleInputChange("endDate", e.target.value)
+                      handleInputChange(
+                        "endDate",
+                        e.target.value ? new Date(e.target.value) : undefined
+                      )
                     }
                     required
                   />

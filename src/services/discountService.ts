@@ -3,7 +3,6 @@ import {
   collection,
   addDoc,
   updateDoc,
-  deleteDoc,
   doc,
   getDocs,
   getDoc,
@@ -11,7 +10,6 @@ import {
   where,
   orderBy,
   Timestamp,
-  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
@@ -25,13 +23,10 @@ const firestoreToDiscount = (id: string, data: any): Discount => {
     type: data.type || "percentage",
     value: data.value || 0,
     applicableTo: data.applicableTo || "order", // Default to order-level discount
-    applicableProducts: data.applicableProducts || undefined,
-    applicableCategories: data.applicableCategories || undefined,
+    applicableProductIds: data.applicableProductIds || undefined,
+    applicableCategoryIds: data.applicableCategoryIds || undefined,
     minPurchaseAmount: data.minPurchaseAmount || undefined,
-    limitationType: data.limitationType || "unlimited",
-    limitationTimes: data.limitationTimes || undefined,
     currentUsageCount: data.currentUsageCount || 0,
-    adminComment: data.adminComment || undefined,
     startDate: convertTimestamp(data.startDate),
     endDate: convertTimestamp(data.endDate),
     isActive: data.isActive ?? true,
@@ -174,17 +169,6 @@ export const discountService = {
       await updateDoc(discountRef, sanitizedData);
     } catch (error) {
       console.error(`Error updating discount ${id}:`, error);
-      throw error;
-    }
-  },
-
-  // Delete a discount
-  async delete(id: string): Promise<void> {
-    try {
-      const discountRef = doc(db, COLLECTION_NAME, id);
-      await deleteDoc(discountRef);
-    } catch (error) {
-      console.error(`Error deleting discount ${id}:`, error);
       throw error;
     }
   },

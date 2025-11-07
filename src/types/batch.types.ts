@@ -1,6 +1,4 @@
 // Batch Types
-export type BatchStatus = "active" | "expired";
-
 export interface Batch {
   id: string;
   batchId: string; // Barcode/unique identifier
@@ -13,5 +11,4 @@ export interface Batch {
   supplier?: string;
   location?: string; // Storage location
   notes?: string;
-  status: BatchStatus;
 }

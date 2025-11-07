@@ -20,6 +20,7 @@ import {
   CheckCircle,
   Box,
 } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 interface BatchDetailProps {
   batch: Batch;
@@ -39,7 +40,7 @@ export function BatchDetail({ batch, product }: BatchDetailProps) {
   const daysUntilExpiry = Math.ceil(
     (expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
   );
-  const isExpired = daysUntilExpiry <= 0 || batch.status === "expired";
+  const isExpired = daysUntilExpiry <= 0;
   const isExpiringSoon = daysUntilExpiry > 0 && daysUntilExpiry <= 30;
 
   const handleDelete = async () => {
@@ -59,15 +60,6 @@ export function BatchDetail({ batch, product }: BatchDetailProps) {
       alert("Failed to delete batch");
       setDeleting(false);
     }
-  };
-
-  const formatDate = (date: Date | string) => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(dateObj);
   };
 
   const utilizationPercentage = Math.round(

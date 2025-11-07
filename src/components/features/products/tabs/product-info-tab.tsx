@@ -124,14 +124,14 @@ export function ProductInfoTab({
             <div className="form-group">
               <Label className="form-label">Current Price</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold">
-                  $
+                <span className="absolute left-3 text-sm top-1/2 transform -translate-y-1/2 text-gray-600 font-semibold font-mono">
+                  PKR
                 </span>
                 <Input
                   type="text"
                   value={price.toFixed(2)}
                   disabled
-                  className="pl-8 bg-gray-50 font-semibold text-lg"
+                  className="pl-10 bg-gray-50 font-semibold text-lg"
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -237,7 +237,7 @@ export function ProductInfoTab({
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === ",") {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   commitTag(tagInput);
                   setTagInput("");

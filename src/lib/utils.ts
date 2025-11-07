@@ -9,16 +9,17 @@ export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-PK", {
     style: "currency",
     currency: "PKR",
+    minimumFractionDigits: 0,
   }).format(amount);
 }
 
 export function formatDate(date: Date | string): string {
+  if (!date) return "N/A";
   const d = typeof date === "string" ? new Date(date) : date;
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(d);
+  const day = d.getDate();
+  const month = d.toLocaleString("en-US", { month: "short" });
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
 }
 
 export function formatDateTime(date: Date | string): string {

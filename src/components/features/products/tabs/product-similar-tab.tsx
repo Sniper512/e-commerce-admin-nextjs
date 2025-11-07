@@ -71,7 +71,7 @@ export function ProductSimilarTab({
           {similarProductIds && similarProductIds.length > 0 ? (
             <div className="space-y-3">
               {similarProductIds.map((productId) => {
-                const product = selectedProducts.find(
+                const product = availableProducts.find(
                   (p) => p.id === productId
                 );
                 if (!product) return null;
@@ -83,9 +83,9 @@ export function ProductSimilarTab({
                     <Image
                       src={product.image || defaultImage}
                       alt={product.name}
-                      className="w-16 h-16 object-cover rounded"
-                      width={64}
-                      height={64}
+                      className="w-12 h-12 object-cover rounded"
+                      width={48}
+                      height={48}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = defaultImage;
                       }}

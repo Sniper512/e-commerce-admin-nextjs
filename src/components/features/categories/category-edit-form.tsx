@@ -34,7 +34,6 @@ import {
 import type { Category, SubCategory, Product } from "@/types";
 import categoryService from "@/services/categoryService";
 import Link from "next/link";
-import { formatCurrency } from "@/lib/utils";
 import { LinkButton } from "@/components/ui/link-button";
 import Image from "next/image";
 

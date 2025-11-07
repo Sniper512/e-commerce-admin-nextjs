@@ -18,13 +18,14 @@ import {
   Eye,
   Calendar,
   Package,
-  CheckCircle,
+  CheckCircle2,
   AlertTriangle,
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import batchService from "@/services/batchService";
+import { formatDate } from "@/lib/utils";
 import type { Batch } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
@@ -63,9 +64,7 @@ export function BatchesList({ batches }: BatchesListProps) {
     const daysUntilExpiry = Math.ceil(
       (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
-    return (
-      daysUntilExpiry <= 30 && daysUntilExpiry > 0 && batch.status === "active"
-    );
+    return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
   };
 
   const isExpired = (batch: Batch): boolean => {
@@ -95,11 +94,9 @@ export function BatchesList({ batches }: BatchesListProps) {
   // Calculate stats based on filtered batches
   const stats = {
     total: filteredBatches.length,
-    active: filteredBatches.filter((b) => b.status === "active").length,
+    active: filteredBatches.filter((b) => !isExpired(b)).length,
     expiring: filteredBatches.filter(isExpiringSoon).length,
-    expired: filteredBatches.filter(
-      (b) => b.status === "expired" || isExpired(b)
-    ).length,
+    expired: filteredBatches.filter(isExpired).length,
   };
 
   return (
@@ -129,7 +126,7 @@ export function BatchesList({ batches }: BatchesListProps) {
                 </p>
                 <p className="text-2xl font-bold">{stats.active}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -165,7 +162,6 @@ export function BatchesList({ batches }: BatchesListProps) {
         </Card>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
           <div className="relative">
@@ -260,15 +256,13 @@ export function BatchesList({ batches }: BatchesListProps) {
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center text-sm">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                          {new Date(
-                            batch.manufacturingDate
-                          ).toLocaleDateString()}
+                          {formatDate(batch.manufacturingDate)}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center text-sm">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                          {new Date(batch.expiryDate).toLocaleDateString()}
+                          {formatDate(batch.expiryDate)}
                         </div>
                         {!expired && daysUntilExpiry <= 30 && (
                           <div className="text-xs text-orange-600 font-medium mt-1">
@@ -289,15 +283,13 @@ export function BatchesList({ batches }: BatchesListProps) {
                       <TableCell className="text-center">
                         <Badge
                           variant={
-                            batch.status === "active" &&
-                            !expired &&
-                            !expiringSoon
+                            !expired && !expiringSoon
                               ? "success"
-                              : batch.status === "active" && expiringSoon
+                              : expiringSoon
                               ? "warning"
                               : "danger"
                           }>
-                          {expired || batch.status === "expired"
+                          {expired
                             ? "Expired"
                             : expiringSoon
                             ? "Expiring Soon"

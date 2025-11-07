@@ -20,46 +20,30 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import batchService from "@/services/batchService";
-import { Batch, Product, BatchStatus } from "@/types";
+import { Batch, Product } from "@/types";
 import { useSymbologyScanner } from "@use-symbology-scanner/react";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
 
 interface BatchFormProps {
-  batch?: Batch | null;
   products: Product[];
 }
 
-export function BatchForm({ batch, products }: BatchFormProps) {
+export function BatchForm({ products }: BatchFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [productSearchValue, setProductSearchValue] = useState("");
   const [scannerActive, setScannerActive] = useState(false);
 
-  // Helper function to format date for input
-  const formatDateForInput = (date: Date | string | undefined) => {
-    if (!date) return "";
-    const dateObj = typeof date === "string" ? new Date(date) : date;
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-    const day = String(dateObj.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  // Form state
-  // quantity and remainingQuantity allow empty string so user can clear the input.
-  // We'll parse to numbers only on submit.
   const [formData, setFormData] = useState({
-    batchId: batch?.batchId || "",
-    productId: batch?.productId || "",
-    manufacturingDate: formatDateForInput(batch?.manufacturingDate) || "",
-    expiryDate: formatDateForInput(batch?.expiryDate) || "",
-    quantity: batch?.quantity ?? "",
-    remainingQuantity: batch?.remainingQuantity ?? "",
-    price: batch?.price ?? "", // Add price field
-    status: (batch?.status || "active") as BatchStatus,
-    supplier: batch?.supplier || "",
-    location: batch?.location || "",
-    notes: batch?.notes || "",
+    batchId: "",
+    productId: "",
+    manufacturingDate: "",
+    expiryDate: "",
+    quantity: "",
+    price: "",
+    supplier: "",
+    location: "",
+    notes: "",
   });
 
   // Barcode scanner - only in add mode
@@ -119,7 +103,6 @@ export function BatchForm({ batch, products }: BatchFormProps) {
 
     // Parse numeric fields here (allowing empty input while typing)
     const quantityNum = Number(formData.quantity);
-    const remainingNum = Number(formData.remainingQuantity);
     const priceNum = Number(formData.price);
 
     if (!quantityNum || quantityNum <= 0) {
@@ -157,7 +140,6 @@ export function BatchForm({ batch, products }: BatchFormProps) {
         supplier: formData.supplier.trim() || undefined,
         location: formData.location.trim() || undefined,
         notes: formData.notes.trim() || undefined,
-        status: "active",
       };
 
       await batchService.createBatch(batchData);

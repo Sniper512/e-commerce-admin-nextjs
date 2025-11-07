@@ -11,7 +11,7 @@ import {
   orderBy,
   addDoc,
 } from "firebase/firestore";
-import { Batch, BatchStatus } from "@/types";
+import { Batch } from "@/types";
 import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
 
 const BATCHES_COLLECTION = "BATCHES";
@@ -31,7 +31,6 @@ const firestoreToBatch = (id: string, data: any): Batch => {
     supplier: data.supplier,
     location: data.location,
     notes: data.notes,
-    status: data.status || "active",
   };
 };
 
@@ -136,25 +135,22 @@ export const batchService = {
   // Get expiring batches
   async getExpiringBatches(daysThreshold: number = 30): Promise<Batch[]> {
     try {
+      const now = new Date();
       const thresholdDate = new Date();
       thresholdDate.setDate(thresholdDate.getDate() + daysThreshold);
 
       const batchesRef = collection(db, BATCHES_COLLECTION);
-      const q = query(
-        batchesRef,
-        where("status", "==", "active"),
-        orderBy("expiryDate", "asc")
-      );
+      const q = query(batchesRef, orderBy("expiryDate", "asc"));
       const snapshot = await getDocs(q);
 
       const batches = snapshot.docs.map((doc) =>
         firestoreToBatch(doc.id, doc.data())
       );
 
-      // Filter batches expiring within threshold
+      // Filter batches expiring within threshold (not yet expired, but expiring soon)
       return batches.filter((batch) => {
         const expiryDate = new Date(batch.expiryDate);
-        return expiryDate <= thresholdDate && expiryDate >= new Date();
+        return expiryDate <= thresholdDate && expiryDate >= now;
       });
     } catch (error) {
       console.error("Error fetching expiring batches:", error);
@@ -179,7 +175,6 @@ export const batchService = {
         supplier: batchData.supplier,
         location: batchData.location,
         notes: batchData.notes,
-        status: batchData.status || "active",
       });
 
       await addDoc(batchesRef, sanitizedData);
@@ -210,19 +205,6 @@ export const batchService = {
       await updateProductPrice(batch.productId);
     } catch (error) {
       console.error("Error deleting batch:", error);
-      throw error;
-    }
-  },
-
-  // Update batch status
-  async updateBatchStatus(id: string, status: BatchStatus): Promise<void> {
-    try {
-      const batchRef = doc(db, BATCHES_COLLECTION, id);
-      await updateDoc(batchRef, {
-        status,
-      });
-    } catch (error) {
-      console.error("Error updating batch status:", error);
       throw error;
     }
   },
@@ -274,9 +256,9 @@ export const batchService = {
         string,
         {
           usableStock: number;
-          totalActiveStock: number;
+          totalStock: number;
           expiredStock: number;
-          activeBatchCount: number;
+          batchCount: number;
         }
       >();
 
@@ -284,9 +266,9 @@ export const batchService = {
       productIds.forEach((productId) => {
         stockMap.set(productId, {
           usableStock: 0,
-          totalActiveStock: 0,
+          totalStock: 0,
           expiredStock: 0,
-          activeBatchCount: 0,
+          batchCount: 0,
         });
       });
 
@@ -300,19 +282,18 @@ export const batchService = {
 
         if (!stockData) return;
 
-        if (batch.status === "active") {
-          const expiryDate = new Date(batch.expiryDate);
+        const expiryDate = new Date(batch.expiryDate);
+        const isExpired = expiryDate < now;
 
-          // Add to total active stock
-          stockData.totalActiveStock += batch.remainingQuantity;
-          stockData.activeBatchCount += 1;
+        // Add to total stock
+        stockData.totalStock += batch.remainingQuantity;
+        stockData.batchCount += 1;
 
-          // Check if not expired yet
-          if (expiryDate >= now) {
-            stockData.usableStock += batch.remainingQuantity;
-          }
-        } else if (batch.status === "expired") {
+        // Categorize as usable or expired
+        if (isExpired) {
           stockData.expiredStock += batch.remainingQuantity;
+        } else {
+          stockData.usableStock += batch.remainingQuantity;
         }
       });
 
@@ -331,8 +312,8 @@ export const batchService = {
         result[key] = {
           usableStock: value.usableStock,
           expiredStock: value.expiredStock,
-          totalStock: value.totalActiveStock,
-          activeBatchCount: value.activeBatchCount,
+          totalStock: value.totalStock,
+          activeBatchCount: value.batchCount,
         };
       });
 

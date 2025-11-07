@@ -22,6 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { formatDate } from "@/lib/utils";
 
 interface BatchTableProps {
   batches: Batch[];
@@ -69,18 +70,26 @@ export function BatchTable({ batches, productId }: BatchTableProps) {
   // Filter and sort batches
   const filteredAndSortedBatches = useMemo(() => {
     let filtered = [...batches];
+    const now = new Date();
 
     // Apply filter
     if (filter === "active") {
-      filtered = filtered.filter((batch) => batch.status === "active");
+      // Not expired yet
+      filtered = filtered.filter((batch) => {
+        const expiryDate = new Date(batch.expiryDate);
+        return expiryDate >= now;
+      });
     } else if (filter === "expired") {
-      filtered = filtered.filter((batch) => batch.status === "expired");
+      // Past expiry date
+      filtered = filtered.filter((batch) => {
+        const expiryDate = new Date(batch.expiryDate);
+        return expiryDate < now;
+      });
     } else if (filter === "expiring-soon") {
       filtered = filtered.filter((batch) => {
         const expiryStatus = getExpiryStatus(batch.expiryDate);
-        return (
-          expiryStatus.status === "expiring-soon" && batch.status === "active"
-        );
+        const expiryDate = new Date(batch.expiryDate);
+        return expiryStatus.status === "expiring-soon" && expiryDate >= now;
       });
     }
 
@@ -103,25 +112,24 @@ export function BatchTable({ batches, productId }: BatchTableProps) {
 
   // Calculate stats
   const stats = useMemo(() => {
+    const now = new Date();
     const total = batches.length;
-    const active = batches.filter((b) => b.status === "active").length;
-    const expired = batches.filter((b) => b.status === "expired").length;
+    const active = batches.filter((b) => {
+      const expiryDate = new Date(b.expiryDate);
+      return expiryDate >= now;
+    }).length;
+    const expired = batches.filter((b) => {
+      const expiryDate = new Date(b.expiryDate);
+      return expiryDate < now;
+    }).length;
     const expiringSoon = batches.filter((b) => {
       const expiryStatus = getExpiryStatus(b.expiryDate);
-      return expiryStatus.status === "expiring-soon" && b.status === "active";
+      const expiryDate = new Date(b.expiryDate);
+      return expiryStatus.status === "expiring-soon" && expiryDate >= now;
     }).length;
 
     return { total, active, expired, expiringSoon };
   }, [batches]);
-
-  // Format date
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   if (batches.length === 0) {
     return (

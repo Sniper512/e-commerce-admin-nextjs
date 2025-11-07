@@ -75,7 +75,7 @@ export function ProductBoughtTogetherTab({
           {boughtTogetherProductIds && boughtTogetherProductIds.length > 0 ? (
             <div className="space-y-3">
               {boughtTogetherProductIds.map((productId) => {
-                const product = selectedProducts.find(
+                const product = availableProducts.find(
                   (p) => p.id === productId
                 );
                 if (!product) return null;

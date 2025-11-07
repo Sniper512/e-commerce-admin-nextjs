@@ -34,8 +34,8 @@ const menuItems = [
       { title: "Products", href: "/dashboard/products" },
       { title: "Categories", href: "/dashboard/categories" },
       { title: "Manufacturers", href: "/dashboard/manufacturers" },
-      { title: "Discounts", href: "/dashboard/discounts" },
       { title: "Batches", href: "/dashboard/batches" },
+      { title: "Discounts", href: "/dashboard/discounts" },
     ],
   },
   {
@@ -195,7 +195,7 @@ export function Sidebar() {
     <aside
       className={cn(
         "fixed left-0 top-0 z-40 h-screen border-r border-gray-200 bg-white transition-all duration-300",
-        isMinimized ? "w-16" : "w-64"
+        isMinimized ? "w-16" : "w-48"
       )}>
       <div className="flex h-full flex-col">
         {/* Logo */}
