@@ -40,12 +40,32 @@ export const discountService = {
   async getAll(): Promise<Discount[]> {
     try {
       const discountsRef = collection(db, COLLECTION_NAME);
-      const q = query(discountsRef, orderBy("startDate", "desc"));
-      const snapshot = await getDocs(q);
 
-      return snapshot.docs.map((doc) =>
-        firestoreToDiscount(doc.id, doc.data())
-      );
+      // Try with orderBy first
+      try {
+        const q = query(discountsRef, orderBy("startDate", "desc"));
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map((doc) =>
+          firestoreToDiscount(doc.id, doc.data())
+        );
+      } catch (indexError: any) {
+        // If orderBy fails, get all and sort in memory
+        if (indexError.code === "failed-precondition") {
+          console.log(
+            `Index not found for getAll query. Falling back to client-side sorting.`
+          );
+          const snapshot = await getDocs(discountsRef);
+          const discounts = snapshot.docs.map((doc) =>
+            firestoreToDiscount(doc.id, doc.data())
+          );
+
+          return discounts.sort(
+            (a, b) => b.startDate.getTime() - a.startDate.getTime()
+          );
+        }
+        throw indexError;
+      }
     } catch (error) {
       console.error("Error fetching discounts:", error);
       throw error;
@@ -58,16 +78,42 @@ export const discountService = {
   ): Promise<Discount[]> {
     try {
       const discountsRef = collection(db, COLLECTION_NAME);
-      const q = query(
-        discountsRef,
-        where("applicableTo", "==", applicableTo),
-        orderBy("startDate", "desc")
-      );
-      const snapshot = await getDocs(q);
 
-      return snapshot.docs.map((doc) =>
-        firestoreToDiscount(doc.id, doc.data())
-      );
+      // Try with composite query first (requires index)
+      try {
+        const q = query(
+          discountsRef,
+          where("applicableTo", "==", applicableTo),
+          orderBy("startDate", "desc")
+        );
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map((doc) =>
+          firestoreToDiscount(doc.id, doc.data())
+        );
+      } catch (indexError: any) {
+        // If index is missing, fall back to simple query and sort in memory
+        if (indexError.code === "failed-precondition") {
+          console.log(
+            `Index not found for applicableTo query. Falling back to client-side filtering.`
+          );
+          const q = query(
+            discountsRef,
+            where("applicableTo", "==", applicableTo)
+          );
+          const snapshot = await getDocs(q);
+
+          const discounts = snapshot.docs.map((doc) =>
+            firestoreToDiscount(doc.id, doc.data())
+          );
+
+          // Sort by startDate descending in memory
+          return discounts.sort(
+            (a, b) => b.startDate.getTime() - a.startDate.getTime()
+          );
+        }
+        throw indexError;
+      }
     } catch (error) {
       console.error(
         `Error fetching discounts for applicableTo ${applicableTo}:`,
@@ -98,18 +144,43 @@ export const discountService = {
     try {
       const discountsRef = collection(db, COLLECTION_NAME);
       const now = Timestamp.fromDate(new Date());
-      const q = query(
-        discountsRef,
-        where("isActive", "==", true),
-        where("startDate", "<=", now),
-        where("endDate", ">=", now),
-        orderBy("startDate", "desc")
-      );
-      const snapshot = await getDocs(q);
 
-      return snapshot.docs.map((doc) =>
-        firestoreToDiscount(doc.id, doc.data())
-      );
+      // Try with composite query first (requires index)
+      try {
+        const q = query(
+          discountsRef,
+          where("isActive", "==", true),
+          where("startDate", "<=", now),
+          where("endDate", ">=", now),
+          orderBy("startDate", "desc")
+        );
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map((doc) =>
+          firestoreToDiscount(doc.id, doc.data())
+        );
+      } catch (indexError: any) {
+        // If index is missing, fall back to simpler query and filter in memory
+        if (indexError.code === "failed-precondition") {
+          console.log(
+            `Index not found for active discounts query. Falling back to client-side filtering.`
+          );
+          const q = query(discountsRef, where("isActive", "==", true));
+          const snapshot = await getDocs(q);
+
+          const discounts = snapshot.docs
+            .map((doc) => firestoreToDiscount(doc.id, doc.data()))
+            .filter(
+              (discount) =>
+                discount.startDate <= new Date() &&
+                discount.endDate >= new Date()
+            )
+            .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+
+          return discounts;
+        }
+        throw indexError;
+      }
     } catch (error) {
       console.error("Error fetching active discounts:", error);
       throw error;

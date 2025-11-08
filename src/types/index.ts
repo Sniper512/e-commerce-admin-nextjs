@@ -36,6 +36,3 @@ export * from "./marketing.types";
 
 // Alert types
 export * from "./alert.types";
-
-// Analytics types
-export * from "./analytics.types";
