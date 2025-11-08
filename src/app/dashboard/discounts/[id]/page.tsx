@@ -16,15 +16,20 @@ export default async function DiscountDetailPage({
   const { id } = await params;
 
   // Fetch data on the server
-  const [discount, categories, products] = await Promise.all([
+  const [discount, products] = await Promise.all([
     discountService.getById(id),
-    categoryService.getAllCategories(),
     productService.getAll({ isActive: true }),
   ]);
 
   // If discount not found, show 404
   if (!discount) {
     notFound();
+  }
+
+  // Only fetch categories with subcategories if this discount is applicable to categories
+  let categories = [];
+  if (discount.applicableTo === "categories") {
+    categories = await categoryService.getAllCategoriesWithSubCategories();
   }
 
   // Serialize data for client component

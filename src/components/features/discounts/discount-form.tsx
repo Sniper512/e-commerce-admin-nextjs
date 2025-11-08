@@ -4,32 +4,76 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, ArrowLeft, Loader2 } from "lucide-react";
+import { Save, ArrowLeft, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import discountService from "@/services/discountService";
-import { productService } from "@/services/productService";
 import { Discount, Category, Product } from "@/types";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
-import { CategorySearchDropdown } from "@/components/ui/category-search-dropdown";
+import { CategorySearchDropdown } from "@/components/features/categories/category-search-dropdown";
+import Image from "next/image";
 
 interface DiscountFormProps {
   discount?: Discount | null;
-  categories: Category[];
+  categories?: Category[];
   products: Product[];
 }
 
 export function DiscountForm({
   discount,
-  categories,
+  categories: initialCategories,
   products,
 }: DiscountFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [productSearchValue, setProductSearchValue] = useState("");
   const [categorySearchValue, setCategorySearchValue] = useState("");
+  const [categories, setCategories] = useState<Category[]>(
+    initialCategories || []
+  );
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const isEditMode = !!discount;
+
+  // Get initial product IDs for edit mode by finding products that have this discount
+  const getInitialProductIds = () => {
+    if (!discount) return [];
+    return products
+      .filter((p) => p.discountIds?.includes(discount.id))
+      .map((p) => p.id);
+  };
+
+  // Get initial category IDs for edit mode by finding categories that have this discount
+  const getInitialCategoryIds = () => {
+    if (!discount || !categories) return [];
+    const categoryIds: string[] = [];
+
+    categories.forEach((category: any) => {
+      // Check main category
+      if (category.discountIds?.includes(discount.id)) {
+        categoryIds.push(category.id);
+      }
+
+      // Check subcategories
+      if (category.subcategories) {
+        category.subcategories.forEach((sub: any) => {
+          if (sub.discountIds?.includes(discount.id)) {
+            categoryIds.push(`${category.id}/${sub.id}`);
+          }
+        });
+      }
+    });
+
+    return categoryIds;
+  };
+
+  const initialProductIds = getInitialProductIds();
+  const initialCategoryIds = getInitialCategoryIds();
+
+  // Check if discount has existing associations (for disabling applicableTo in edit mode)
+  const hasExistingAssociations =
+    isEditMode &&
+    (initialProductIds.length > 0 || initialCategoryIds.length > 0);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -41,8 +85,8 @@ export function DiscountForm({
       | "products"
       | "categories"
       | "order",
-    applicableProductIds: discount?.applicableProductIds || ([] as string[]),
-    applicableCategoryIds: discount?.applicableCategoryIds || ([] as string[]),
+    applicableProductIds: initialProductIds,
+    applicableCategoryIds: initialCategoryIds,
     minPurchaseAmount: discount?.minPurchaseAmount || 0,
     startDate: discount?.startDate,
     endDate: discount?.endDate,
@@ -57,6 +101,33 @@ export function DiscountForm({
       ...prev,
       [field]: value,
     }));
+
+    // Lazy-load categories when user selects "categories" as applicableTo
+    if (
+      field === "applicableTo" &&
+      value === "categories" &&
+      categories.length === 0 &&
+      !loadingCategories
+    ) {
+      loadCategories();
+    }
+  };
+
+  // Lazy-load categories when needed
+  const loadCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const response = await fetch("/api/categories/all");
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+      alert("Failed to load categories. Please try again.");
+    } finally {
+      setLoadingCategories(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,20 +187,10 @@ export function DiscountForm({
         type: formData.type,
         value: formData.value,
         applicableTo: formData.applicableTo,
-        applicableProductIds:
-          formData.applicableTo === "products" &&
-          formData.applicableProductIds.length > 0
-            ? formData.applicableProductIds
-            : undefined,
-        applicableCategoryIds:
-          formData.applicableTo === "categories" &&
-          formData.applicableCategoryIds.length > 0
-            ? formData.applicableCategoryIds
-            : undefined,
-        // Only include minPurchaseAmount for order-level discounts
+        // Always include minPurchaseAmount for order-level discounts (even if 0)
         minPurchaseAmount:
-          formData.applicableTo === "order" && formData.minPurchaseAmount > 0
-            ? formData.minPurchaseAmount
+          formData.applicableTo === "order"
+            ? formData.minPurchaseAmount || 0
             : undefined,
         ...(!isEditMode && { currentUsageCount: 0 }),
         startDate,
@@ -137,100 +198,33 @@ export function DiscountForm({
         isActive: formData.isActive,
       };
 
-      let discountId: string;
+      // Determine product and category IDs based on applicableTo type
+      const productIds =
+        formData.applicableTo === "products"
+          ? formData.applicableProductIds
+          : undefined;
+      const categoryIds =
+        formData.applicableTo === "categories"
+          ? formData.applicableCategoryIds
+          : undefined;
 
       if (isEditMode && discount) {
         // Update existing discount
-        await discountService.update(discount.id, discountData);
-        discountId = discount.id;
+        await discountService.update(
+          discount.id,
+          discountData,
+          productIds,
+          categoryIds
+        );
         alert("Discount updated successfully!");
       } else {
-        // Create the discount and get its ID
-        discountId = await discountService.create(
-          discountData as Omit<Discount, "id">
+        // Create new discount
+        await discountService.create(
+          discountData as Omit<Discount, "id">,
+          productIds,
+          categoryIds
         );
         alert("Discount created successfully!");
-      }
-
-      // Update products with the new discount ID if applicable
-      if (
-        formData.applicableTo === "products" &&
-        formData.applicableProductIds.length > 0
-      ) {
-        const updatePromises = formData.applicableProductIds.map(
-          async (productId) => {
-            try {
-              const product = await productService.getById(productId);
-              if (product) {
-                // Add discount ID to product's discountIds array if not already present
-                const existingDiscountIds = product.discountIds || [];
-                if (!existingDiscountIds.includes(discountId)) {
-                  await productService.update(productId, {
-                    discountIds: [...existingDiscountIds, discountId],
-                  });
-                }
-              }
-            } catch (error) {
-              console.error(
-                `Error updating product ${productId} with discount:`,
-                error
-              );
-            }
-          }
-        );
-
-        await Promise.all(updatePromises);
-      }
-
-      // Update categories with the new discount ID if applicable
-      // Note: Categories don't have discountIds in the schema, so we'll update products in those categories
-      if (
-        formData.applicableTo === "categories" &&
-        formData.applicableCategoryIds.length > 0
-      ) {
-        const categoryService = (await import("@/services/categoryService"))
-          .default;
-
-        const updatePromises = formData.applicableCategoryIds.map(
-          async (categoryId) => {
-            try {
-              const category = await categoryService.getCategoryById(
-                categoryId
-              );
-              if (category && category.productIds.length > 0) {
-                // Update all products in this category
-                const productUpdatePromises = category.productIds.map(
-                  async (productId) => {
-                    try {
-                      const product = await productService.getById(productId);
-                      if (product) {
-                        const existingDiscountIds = product.discountIds || [];
-                        if (!existingDiscountIds.includes(discountId)) {
-                          await productService.update(productId, {
-                            discountIds: [...existingDiscountIds, discountId],
-                          });
-                        }
-                      }
-                    } catch (error) {
-                      console.error(
-                        `Error updating product ${productId}:`,
-                        error
-                      );
-                    }
-                  }
-                );
-                await Promise.all(productUpdatePromises);
-              }
-            } catch (error) {
-              console.error(
-                `Error updating category ${categoryId} products:`,
-                error
-              );
-            }
-          }
-        );
-
-        await Promise.all(updatePromises);
       }
 
       router.push("/dashboard/discounts");
@@ -271,7 +265,7 @@ export function DiscountForm({
   const handleRemoveProduct = (productId: string) => {
     handleInputChange(
       "applicableProductIds",
-      formData.applicableProductIds.filter((id) => id !== productId)
+      formData.applicableProductIds.filter((id: string) => id !== productId)
     );
   };
 
@@ -291,18 +285,40 @@ export function DiscountForm({
     );
   };
 
-  // Get selected product names
-  const getSelectedProductNames = () => {
-    return products
-      .filter((p) => formData.applicableProductIds.includes(p.id))
-      .map((p) => p.info.name);
-  };
+  // Helper to find category or subcategory by ID (supports composite IDs like "parentId/subId")
+  const findCategoryById = (categoryId: string) => {
+    if (!categories) return null;
 
-  // Get selected category names
-  const getSelectedCategoryNames = () => {
-    return categories
-      .filter((c) => formData.applicableCategoryIds.includes(c.id))
-      .map((c) => c.name);
+    // Check if it's a subcategory (composite ID)
+    if (categoryId.includes("/")) {
+      const [parentId, subId] = categoryId.split("/");
+      const parentCategory = categories.find((c: any) => c.id === parentId);
+      if (parentCategory && (parentCategory as any).subcategories) {
+        const subcategory = (parentCategory as any).subcategories.find(
+          (s: any) => s.id === subId
+        );
+        if (subcategory) {
+          return {
+            id: categoryId,
+            name: subcategory.name,
+            image: subcategory.image,
+            parentName: parentCategory.name,
+          };
+        }
+      }
+    }
+
+    // It's a main category
+    const category = categories.find((c: any) => c.id === categoryId);
+    if (category) {
+      return {
+        id: category.id,
+        name: category.name,
+        image: category.image,
+      };
+    }
+
+    return null;
   };
 
   return (
@@ -463,11 +479,49 @@ export function DiscountForm({
                         e.target.value as "products" | "categories" | "order"
                       )
                     }
-                    className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    disabled={hasExistingAssociations}
+                    className={`w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      hasExistingAssociations
+                        ? "bg-gray-100 cursor-not-allowed opacity-60"
+                        : ""
+                    }`}>
                     <option value="order">Total Order</option>
                     <option value="products">Specific Products</option>
                     <option value="categories">Categories</option>
                   </select>
+                  {hasExistingAssociations && (
+                    <p className="text-sm text-amber-600 mt-2 flex items-start gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 flex-shrink-0 mt-0.5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span>
+                        Cannot change application type because this discount is
+                        already assigned to{" "}
+                        {initialProductIds.length > 0
+                          ? `${initialProductIds.length} product(s)`
+                          : ""}
+                        {initialProductIds.length > 0 &&
+                        initialCategoryIds.length > 0
+                          ? " and "
+                          : ""}
+                        {initialCategoryIds.length > 0
+                          ? `${initialCategoryIds.length} categor${
+                              initialCategoryIds.length === 1 ? "y" : "ies"
+                            }`
+                          : ""}
+                        . Remove all associations first to change the
+                        application type.
+                      </span>
+                    </p>
+                  )}
                 </div>
 
                 {formData.applicableTo === "products" && (
@@ -481,32 +535,55 @@ export function DiscountForm({
                       onSearchChange={setProductSearchValue}
                       defaultProductImage="/images/default-image.svg"
                     />
-                    {formData.applicableProductIds.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        <p className="text-sm font-medium text-gray-700">
-                          Selected Products (
-                          {formData.applicableProductIds.length}
-                          ):
-                        </p>
-                        <div className="space-y-1">
-                          {getSelectedProductNames().map((name, index) => (
-                            <div
-                              key={formData.applicableProductIds[index]}
-                              className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
-                              <span className="text-sm">{name}</span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleRemoveProduct(
-                                    formData.applicableProductIds[index]
-                                  )
-                                }
-                                className="text-red-600 hover:text-red-800 text-sm font-medium">
-                                Remove
-                              </button>
-                            </div>
-                          ))}
-                        </div>
+                    {formData.applicableProductIds.length > 0 ? (
+                      <div className="mt-3 space-y-3">
+                        {formData.applicableProductIds.map(
+                          (productId: string) => {
+                            const product = products.find(
+                              (p) => p.id === productId
+                            );
+                            if (!product) return null;
+
+                            return (
+                              <div
+                                key={productId}
+                                className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <Image
+                                  src={
+                                    product.multimedia.images[0] ||
+                                    "/images/default-image.svg"
+                                  }
+                                  alt={product.info.name}
+                                  className="w-12 h-12 object-cover rounded"
+                                  width={48}
+                                  height={48}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      "/images/default-image.svg";
+                                  }}
+                                />
+                                <div className="flex-1">
+                                  <h4 className="font-medium">
+                                    {product.info.name}
+                                  </h4>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleRemoveProduct(productId)
+                                  }>
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-3 text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                        No products selected yet
                       </div>
                     )}
                   </div>
@@ -516,37 +593,60 @@ export function DiscountForm({
                   <div>
                     <Label>Select Categories</Label>
                     <CategorySearchDropdown
-                      availableCategories={categories}
-                      selectedCategoryId=""
                       onSelect={handleAddCategory}
                       searchValue={categorySearchValue}
                       onSearchChange={setCategorySearchValue}
                     />
-                    {formData.applicableCategoryIds.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        <p className="text-sm font-medium text-gray-700">
-                          Selected Categories (
-                          {formData.applicableCategoryIds.length}):
-                        </p>
-                        <div className="space-y-1">
-                          {getSelectedCategoryNames().map((name, index) => (
+                    {formData.applicableCategoryIds.length > 0 ? (
+                      <div className="mt-3 space-y-3">
+                        {formData.applicableCategoryIds.map((categoryId) => {
+                          const categoryInfo = findCategoryById(categoryId);
+                          if (!categoryInfo) return null;
+
+                          return (
                             <div
-                              key={formData.applicableCategoryIds[index]}
-                              className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
-                              <span className="text-sm">{name}</span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleRemoveCategory(
-                                    formData.applicableCategoryIds[index]
-                                  )
+                              key={categoryId}
+                              className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                              <Image
+                                src={
+                                  categoryInfo.image ||
+                                  "/images/default-image.svg"
                                 }
-                                className="text-red-600 hover:text-red-800 text-sm font-medium">
-                                Remove
-                              </button>
+                                alt={categoryInfo.name}
+                                className="w-12 h-12 object-cover rounded"
+                                width={48}
+                                height={48}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src =
+                                    "/images/default-image.svg";
+                                }}
+                              />
+                              <div className="flex-1">
+                                <h4 className="font-medium">
+                                  {categoryInfo.name}
+                                  {(categoryInfo as any).parentName && (
+                                    <span className="ml-2 text-xs text-gray-500 font-normal">
+                                      in {(categoryInfo as any).parentName}
+                                    </span>
+                                  )}
+                                </h4>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleRemoveCategory(categoryId)
+                                }>
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
                             </div>
-                          ))}
-                        </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="mt-3 text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                        No categories selected yet
                       </div>
                     )}
                   </div>
@@ -565,7 +665,7 @@ export function DiscountForm({
                         handleInputChange(
                           "minPurchaseAmount",
                           e.target.value === ""
-                            ? 0
+                            ? ""
                             : Math.floor(parseFloat(e.target.value))
                         )
                       }

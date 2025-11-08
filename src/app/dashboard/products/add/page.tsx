@@ -10,7 +10,7 @@ export default async function AddProductPage() {
   const [productSearchList, discounts, categories, manufacturers] =
     await Promise.all([
       productService.getProductSearchList(), // Lightweight: only id, name, first image
-      discountService.getAll(),
+      discountService.getByApplicableTo("products"), // Only get product-level discounts
       categoryService.getAllCategoriesWithSubCategories(),
       manufacturerService.getAllManufacturers(),
     ]);

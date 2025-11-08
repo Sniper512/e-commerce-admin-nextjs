@@ -87,7 +87,6 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                 <TableHead>Order</TableHead>
                 <TableHead>Logo</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
                 <TableHead className="text-center">Products</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
@@ -121,11 +120,6 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                     </TableCell>
                     <TableCell className="font-semibold">
                       {manufacturer.name}
-                    </TableCell>
-                    <TableCell className="max-w-md">
-                      <p className="truncate text-sm text-gray-600">
-                        {manufacturer.description || "No description"}
-                      </p>
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant="secondary">

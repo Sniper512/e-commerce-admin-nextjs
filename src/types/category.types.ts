@@ -15,6 +15,7 @@ export interface Category {
   productCount?: number; // Computed count of products
   showOnHomepage: boolean;
   showOnNavbar: boolean;
+  discountIds: string[]; // Array of associated discount IDs
 }
 
 // SubCategory interface for two-level hierarchy
@@ -29,6 +30,7 @@ export interface SubCategory {
   isActive: boolean;
   productIds: string[];
   productCount?: number;
+  discountIds: string[]; // Array of associated discount IDs
 }
 
 // Category Helper Types and Functions

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { X, Plus } from "lucide-react";
 import Link from "next/link";
-import { DiscountSearchDropdown } from "@/components/ui/discount-search-dropdown";
+import { DiscountSearchDropdown } from "@/components/features/discounts/discount-search-dropdown";
 import type { Discount } from "@/types";
 
 interface ProductDiscountsTabProps {

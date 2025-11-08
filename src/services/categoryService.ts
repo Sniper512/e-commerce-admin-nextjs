@@ -41,6 +41,7 @@ const firestoreToCategory = (id: string, data: any): Category => {
     productCount: data.productCount || 0,
     showOnHomepage: data.showOnHomepage ?? false,
     showOnNavbar: data.showOnNavbar ?? false,
+    discountIds: data.discountIds || [],
   };
 };
 
@@ -71,6 +72,7 @@ const firestoreToSubCategory = (
     isActive: data.isActive ?? true,
     productIds: data.productIds || [],
     productCount: data.productCount || 0,
+    discountIds: data.discountIds || [],
   };
 };
 
@@ -353,6 +355,7 @@ export const categoryService = {
         productCount: 0,
         showOnHomepage: categoryData.showOnHomepage ?? false,
         showOnNavbar: categoryData.showOnNavbar ?? false,
+        discountIds: categoryData.discountIds || [],
       };
 
       const sanitizedData = sanitizeForFirestore(newCategoryData);
@@ -412,6 +415,7 @@ export const categoryService = {
         isActive: subCategoryData.isActive ?? true,
         productIds: subCategoryData.productIds || [],
         productCount: 0,
+        discountIds: subCategoryData.discountIds || [],
       };
 
       const sanitizedData = sanitizeForFirestore(newSubCategoryData);
@@ -724,6 +728,93 @@ export const categoryService = {
         category.description?.toLowerCase().includes(lowercaseQuery) ||
         category.slug.toLowerCase().includes(lowercaseQuery)
     );
+  },
+
+  // Search categories and subcategories (returns flattened results with composite IDs for subcategories)
+  async searchCategoriesAndSubCategories(
+    query: string
+  ): Promise<
+    Array<{
+      id: string; // For main categories: "categoryId", for subcategories: "categoryId/subCategoryId"
+      name: string;
+      description?: string;
+      parentName?: string; // Only for subcategories
+      isSubCategory: boolean;
+    }>
+  > {
+    try {
+      if (!query || query.trim().length < 2) {
+        return [];
+      }
+
+      const lowercaseQuery = query.toLowerCase().trim();
+      const results: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        parentName?: string;
+        isSubCategory: boolean;
+      }> = [];
+
+      // Get all categories with subcategories
+      const categoriesRef = collection(db, COLLECTION_NAME);
+      const categoriesSnapshot = await getDocs(categoriesRef);
+
+      for (const categoryDoc of categoriesSnapshot.docs) {
+        const category = firestoreToCategory(categoryDoc.id, categoryDoc.data());
+
+        // Check if main category matches
+        const categoryMatches =
+          category.name.toLowerCase().includes(lowercaseQuery) ||
+          category.description?.toLowerCase().includes(lowercaseQuery);
+
+        if (categoryMatches) {
+          results.push({
+            id: category.id,
+            name: category.name,
+            description: category.description,
+            isSubCategory: false,
+          });
+        }
+
+        // Search subcategories
+        const subCategoriesRef = collection(
+          db,
+          COLLECTION_NAME,
+          categoryDoc.id,
+          SUBCATEGORIES_COLLECTION
+        );
+        const subCategoriesSnapshot = await getDocs(subCategoriesRef);
+
+        for (const subCategoryDoc of subCategoriesSnapshot.docs) {
+          const subCategory = firestoreToSubCategory(
+            subCategoryDoc.id,
+            subCategoryDoc.data(),
+            categoryDoc.id
+          );
+
+          const subCategoryMatches =
+            subCategory.name.toLowerCase().includes(lowercaseQuery) ||
+            subCategory.description?.toLowerCase().includes(lowercaseQuery) ||
+            category.name.toLowerCase().includes(lowercaseQuery); // Also match if parent matches
+
+          if (subCategoryMatches) {
+            results.push({
+              id: `${category.id}/${subCategory.id}`, // Composite ID
+              name: subCategory.name,
+              description: subCategory.description,
+              parentName: category.name,
+              isSubCategory: true,
+            });
+          }
+        }
+      }
+
+      return results;
+    } catch (error) {
+      console.error("Error searching categories and subcategories:", error);
+      throw error;
+    }
   },
 
   // Get category statistics

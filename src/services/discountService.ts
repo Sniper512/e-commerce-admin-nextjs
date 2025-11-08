@@ -10,6 +10,7 @@ import {
   where,
   orderBy,
   Timestamp,
+  deleteField,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
@@ -23,8 +24,6 @@ const firestoreToDiscount = (id: string, data: any): Discount => {
     type: data.type || "percentage",
     value: data.value || 0,
     applicableTo: data.applicableTo || "order", // Default to order-level discount
-    applicableProductIds: data.applicableProductIds || undefined,
-    applicableCategoryIds: data.applicableCategoryIds || undefined,
     minPurchaseAmount: data.minPurchaseAmount || undefined,
     currentUsageCount: data.currentUsageCount || 0,
     startDate: convertTimestamp(data.startDate),
@@ -49,6 +48,31 @@ export const discountService = {
       );
     } catch (error) {
       console.error("Error fetching discounts:", error);
+      throw error;
+    }
+  },
+
+  // Get discounts by applicableTo type
+  async getByApplicableTo(
+    applicableTo: "products" | "categories" | "order"
+  ): Promise<Discount[]> {
+    try {
+      const discountsRef = collection(db, COLLECTION_NAME);
+      const q = query(
+        discountsRef,
+        where("applicableTo", "==", applicableTo),
+        orderBy("startDate", "desc")
+      );
+      const snapshot = await getDocs(q);
+
+      return snapshot.docs.map((doc) =>
+        firestoreToDiscount(doc.id, doc.data())
+      );
+    } catch (error) {
+      console.error(
+        `Error fetching discounts for applicableTo ${applicableTo}:`,
+        error
+      );
       throw error;
     }
   },
@@ -139,7 +163,11 @@ export const discountService = {
   },
 
   // Create a new discount
-  async create(discountData: Omit<Discount, "id">): Promise<string> {
+  async create(
+    discountData: Omit<Discount, "id">,
+    productIds?: string[],
+    categoryIds?: string[]
+  ): Promise<string> {
     try {
       const sanitizedData = sanitizeForFirestore({
         ...discountData,
@@ -147,8 +175,77 @@ export const discountService = {
 
       const discountsRef = collection(db, COLLECTION_NAME);
       const docRef = await addDoc(discountsRef, sanitizedData);
+      const discountId = docRef.id;
 
-      return docRef.id;
+      // Handle product associations if applicable
+      if (productIds && productIds.length > 0) {
+        const { productService } = await import("./productService");
+        const updatePromises = productIds.map(async (productId) => {
+          try {
+            const product = await productService.getById(productId);
+            if (product) {
+              const existingDiscountIds = product.discountIds || [];
+              if (!existingDiscountIds.includes(discountId)) {
+                await productService.update(productId, {
+                  discountIds: [...existingDiscountIds, discountId],
+                });
+              }
+            }
+          } catch (error) {
+            console.error(
+              `Error adding discount to product ${productId}:`,
+              error
+            );
+          }
+        });
+        await Promise.all(updatePromises);
+      }
+
+      // Handle category associations if applicable
+      if (categoryIds && categoryIds.length > 0) {
+        const categoryService = (await import("./categoryService")).default;
+        const updatePromises = categoryIds.map(async (categoryId) => {
+          try {
+            // Check if it's a subcategory (composite ID: "parentId/subId")
+            if (categoryId.includes("/")) {
+              const [parentId, subId] = categoryId.split("/");
+              const subcategory = await categoryService.getSubCategoryById(
+                parentId,
+                subId
+              );
+              if (subcategory) {
+                const existingDiscountIds = subcategory.discountIds || [];
+                if (!existingDiscountIds.includes(discountId)) {
+                  await categoryService.updateSubCategory(parentId, subId, {
+                    discountIds: [...existingDiscountIds, discountId],
+                  });
+                }
+              }
+            } else {
+              // It's a main category
+              const category = await categoryService.getCategoryById(
+                categoryId
+              );
+              if (category) {
+                const existingDiscountIds = category.discountIds || [];
+                if (!existingDiscountIds.includes(discountId)) {
+                  await categoryService.updateCategory(categoryId, {
+                    discountIds: [...existingDiscountIds, discountId],
+                  });
+                }
+              }
+            }
+          } catch (error) {
+            console.error(
+              `Error adding discount to category ${categoryId}:`,
+              error
+            );
+          }
+        });
+        await Promise.all(updatePromises);
+      }
+
+      return discountId;
     } catch (error) {
       console.error("Error creating discount:", error);
       throw error;
@@ -158,7 +255,9 @@ export const discountService = {
   // Update an existing discount
   async update(
     id: string,
-    discountData: Partial<Omit<Discount, "id">>
+    discountData: Partial<Omit<Discount, "id">>,
+    productIds?: string[],
+    categoryIds?: string[]
   ): Promise<void> {
     try {
       const discountRef = doc(db, COLLECTION_NAME, id);
@@ -166,7 +265,193 @@ export const discountService = {
         ...discountData,
       });
 
-      await updateDoc(discountRef, sanitizedData);
+      // Handle fields that should be explicitly deleted when undefined
+      // This ensures empty arrays/undefined values actually clear the fields
+      const updateData: any = { ...sanitizedData };
+
+      // If minPurchaseAmount is in the update data, ensure it's set to 0 if empty/undefined
+      // For order-level discounts, we always want this field present (even if 0)
+      if ("minPurchaseAmount" in discountData) {
+        // If it's undefined or null, set to 0; otherwise use the provided value
+        updateData.minPurchaseAmount = discountData.minPurchaseAmount ?? 0;
+      }
+
+      await updateDoc(discountRef, updateData);
+
+      // Handle product associations if applicable
+      if (productIds !== undefined) {
+        const { productService } = await import("./productService");
+        const allProducts = await productService.getAll();
+
+        // Get old product IDs that have this discount
+        const oldProductIds = allProducts
+          .filter((p) => p.discountIds?.includes(id))
+          .map((p) => p.id);
+
+        // Products to remove discount from
+        const productsToRemove = oldProductIds.filter(
+          (productId) => !productIds.includes(productId)
+        );
+
+        // Products to add discount to
+        const productsToAdd = productIds.filter(
+          (productId) => !oldProductIds.includes(productId)
+        );
+
+        // Remove discount from products
+        for (const productId of productsToRemove) {
+          try {
+            const product = await productService.getById(productId);
+            if (product) {
+              const updatedDiscountIds = (product.discountIds || []).filter(
+                (discountId) => discountId !== id
+              );
+              await productService.update(productId, {
+                discountIds: updatedDiscountIds,
+              });
+            }
+          } catch (error) {
+            console.error(
+              `Error removing discount from product ${productId}:`,
+              error
+            );
+          }
+        }
+
+        // Add discount to products
+        for (const productId of productsToAdd) {
+          try {
+            const product = await productService.getById(productId);
+            if (product) {
+              const existingDiscountIds = product.discountIds || [];
+              if (!existingDiscountIds.includes(id)) {
+                await productService.update(productId, {
+                  discountIds: [...existingDiscountIds, id],
+                });
+              }
+            }
+          } catch (error) {
+            console.error(
+              `Error adding discount to product ${productId}:`,
+              error
+            );
+          }
+        }
+      }
+
+      // Handle category associations if applicable
+      if (categoryIds !== undefined) {
+        const categoryService = (await import("./categoryService")).default;
+
+        // Get all categories with subcategories to find old associations
+        const allCategoriesWithSubs =
+          await categoryService.getAllCategoriesWithSubCategories();
+        const oldCategoryIds: string[] = [];
+
+        // Find all categories and subcategories that have this discount
+        allCategoriesWithSubs.forEach((category: any) => {
+          if (category.discountIds?.includes(id)) {
+            oldCategoryIds.push(category.id);
+          }
+          if (category.subcategories) {
+            category.subcategories.forEach((sub: any) => {
+              if (sub.discountIds?.includes(id)) {
+                oldCategoryIds.push(`${category.id}/${sub.id}`);
+              }
+            });
+          }
+        });
+
+        // Categories to remove discount from
+        const categoriesToRemove = oldCategoryIds.filter(
+          (categoryId) => !categoryIds.includes(categoryId)
+        );
+
+        // Categories to add discount to
+        const categoriesToAdd = categoryIds.filter(
+          (categoryId) => !oldCategoryIds.includes(categoryId)
+        );
+
+        // Remove discount from categories/subcategories
+        for (const categoryId of categoriesToRemove) {
+          try {
+            if (categoryId.includes("/")) {
+              // It's a subcategory
+              const [parentId, subId] = categoryId.split("/");
+              const subcategory = await categoryService.getSubCategoryById(
+                parentId,
+                subId
+              );
+              if (subcategory) {
+                const updatedDiscountIds = (
+                  subcategory.discountIds || []
+                ).filter((discountId) => discountId !== id);
+                await categoryService.updateSubCategory(parentId, subId, {
+                  discountIds: updatedDiscountIds,
+                });
+              }
+            } else {
+              // It's a main category
+              const category = await categoryService.getCategoryById(
+                categoryId
+              );
+              if (category) {
+                const updatedDiscountIds = (category.discountIds || []).filter(
+                  (discountId) => discountId !== id
+                );
+                await categoryService.updateCategory(categoryId, {
+                  discountIds: updatedDiscountIds,
+                });
+              }
+            }
+          } catch (error) {
+            console.error(
+              `Error removing discount from category ${categoryId}:`,
+              error
+            );
+          }
+        }
+
+        // Add discount to categories/subcategories
+        for (const categoryId of categoriesToAdd) {
+          try {
+            if (categoryId.includes("/")) {
+              // It's a subcategory
+              const [parentId, subId] = categoryId.split("/");
+              const subcategory = await categoryService.getSubCategoryById(
+                parentId,
+                subId
+              );
+              if (subcategory) {
+                const existingDiscountIds = subcategory.discountIds || [];
+                if (!existingDiscountIds.includes(id)) {
+                  await categoryService.updateSubCategory(parentId, subId, {
+                    discountIds: [...existingDiscountIds, id],
+                  });
+                }
+              }
+            } else {
+              // It's a main category
+              const category = await categoryService.getCategoryById(
+                categoryId
+              );
+              if (category) {
+                const existingDiscountIds = category.discountIds || [];
+                if (!existingDiscountIds.includes(id)) {
+                  await categoryService.updateCategory(categoryId, {
+                    discountIds: [...existingDiscountIds, id],
+                  });
+                }
+              }
+            }
+          } catch (error) {
+            console.error(
+              `Error adding discount to category ${categoryId}:`,
+              error
+            );
+          }
+        }
+      }
     } catch (error) {
       console.error(`Error updating discount ${id}:`, error);
       throw error;

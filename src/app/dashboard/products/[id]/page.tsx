@@ -29,7 +29,7 @@ export default async function ProductDetailPage({
   ] = await Promise.all([
     productService.getProductSearchList(), // Lightweight: only id, name, first image
     productService.getById(productId),
-    discountService.getAll(),
+    discountService.getByApplicableTo("products"), // Only get product-level discounts
     categoryService.getAllCategoriesWithSubCategories(),
     manufacturerService.getAllManufacturers(),
     batchService.getBatchesByProductId(productId), // Fetch batches for this product

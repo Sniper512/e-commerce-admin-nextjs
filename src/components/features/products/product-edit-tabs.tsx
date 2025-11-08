@@ -12,11 +12,19 @@ import {
 
 const tabs = [
   { id: "info", label: "Product Information", icon: Package },
-  { id: "discounts", label: "Discounts", icon: DollarSign },
+  {
+    id: "discounts",
+    label: "Discounts",
+    icon: () => <span className={`font-mono text-xs font-semibold`}>PKR</span>,
+  },
   { id: "inventory", label: "Inventory", icon: ShoppingCart },
   { id: "multimedia", label: "Multimedia", icon: ImageIcon },
   { id: "similar", label: "Similar Products", icon: Sparkles },
-  { id: "bought-together", label: "Bought Together Products", icon: ShoppingBag },
+  {
+    id: "bought-together",
+    label: "Bought Together Products",
+    icon: ShoppingBag,
+  },
   { id: "orders", label: "Purchase History", icon: History },
 ];
 
