@@ -7,7 +7,6 @@ import {
   deleteDoc,
   query,
   where,
-  Timestamp,
   QueryConstraint,
   arrayUnion,
   arrayRemove,
@@ -21,12 +20,14 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "@/../firebaseConfig";
-import { Product } from "@/types";
+import { Discount, Product } from "@/types";
 import { sanitizeForFirestore } from "@/lib/firestore-utils";
 import batchService from "./batchService";
+import categoryService from "./categoryService";
+import discountService from "./discountService";
 
 const PRODUCTS_COLLECTION = "PRODUCTS";
-const BATCHES_COLLECTION = "BATCHES";
+const DISCOUNTS_COLLECTION = "DISCOUNTS";
 const CATEGORIES_COLLECTION = "CATEGORIES";
 const SUBCATEGORIES_COLLECTION = "SUB_CATEGORIES";
 const MANUFACTURERS_COLLECTION = "MANUFACTURERS";
@@ -732,5 +733,86 @@ export const productService = {
     }
 
     return allProducts;
+  },
+
+  // Get categoryIds associated with a product
+  async getCategoryIdsByProductId(productId: string): Promise<string[]> {
+    try {
+      const productDoc = await this.getById(productId);
+      return productDoc?.info?.categoryIds || [];
+    } catch (error) {
+      console.error("Error fetching category IDs for product:", error);
+      throw error;
+    }
+  },
+
+  // Get discountIds associated with a product
+  async getDiscountIdsByProductId(productId: string): Promise<string[]> {
+    try {
+      const productDoc = await this.getById(productId);
+      return productDoc?.discountIds || [];
+    } catch (error) {
+      console.error("Error fetching discount IDs for product:", error);
+      throw error;
+    }
+  },
+
+  // Get all discount IDs associated with a product (including category and subcategory discounts)
+  async getAllDiscountIdsOnProductById(productId: string): Promise<string[]> {
+    try {
+      const allDiscountIds = [];
+      const productDiscountIds = await this.getDiscountIdsByProductId(
+        productId
+      );
+      allDiscountIds.push(...productDiscountIds);
+      const categoryIds = await this.getCategoryIdsByProductId(productId);
+      await Promise.all(
+        categoryIds.map(async (categoryId) => {
+          const categoryDiscountIds =
+            await categoryService.getDiscountIdsOnCategoryById(categoryId);
+          allDiscountIds.push(...categoryDiscountIds);
+        })
+      );
+
+      // Remove duplicates
+      const uniqueDiscountIds = Array.from(new Set(allDiscountIds));
+      return uniqueDiscountIds;
+    } catch (error) {
+      console.error("Error fetching discounts for product:", error);
+      throw error;
+    }
+  },
+
+  // Get highest active discount percentage applicable to a product
+  async getHighestActiveDiscountPercentageByProductId(
+    productId: string
+  ): Promise<number> {
+    try {
+      const allDiscountIds = await this.getAllDiscountIdsOnProductById(
+        productId
+      );
+      if (allDiscountIds.length === 0) return 0;
+      const discountPromises = allDiscountIds.map((discountId) =>
+        discountService.getById(discountId)
+      );
+      const discounts = await Promise.all(discountPromises);
+      const validDiscounts = discounts.filter(
+        (discount): discount is Discount => discount !== null
+      );
+      // check if the discount status is active and within date range
+      const now = new Date();
+      const applicableDiscounts = validDiscounts.filter((discount) => {
+        return discountService.isDiscountActive(discount);
+      });
+      if (applicableDiscounts.length === 0) return 0;
+      const highestDiscount = applicableDiscounts.reduce(
+        (max, discount) => (discount.value > max ? discount.value : max),
+        0
+      );
+      return highestDiscount;
+    } catch (error) {
+      console.error("Error fetching highest discount for product:", error);
+      throw error;
+    }
   },
 };

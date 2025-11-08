@@ -12,9 +12,10 @@ const nextConfig: NextConfig = {
         hostname: "localhost",
       },
     ],
-    dangerouslyAllowSVG: true, // Add this
-    contentDispositionType: "attachment", // Add this for security
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;", // Add this for security
+    dangerouslyAllowSVG: true,
+    dangerouslyAllowLocalIP: true, // Required for Firebase Storage Emulator on localhost
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 };
 

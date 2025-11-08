@@ -29,32 +29,12 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const handleToggleStatus = async (id: string) => {
-    try {
-      await discountService.toggleStatus(id);
-      router.refresh(); // Refresh server component data
-    } catch (error) {
-      console.error("Error toggling discount status:", error);
-      alert("Failed to update discount status");
-    }
-  };
-
-  const filteredDiscounts = discounts.filter((discount) => {
-    const matchesSearch =
-      discount.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (discount.description &&
-        discount.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesFilter =
-      filterStatus === "all" ||
-      (filterStatus === "active" && discount.isActive) ||
-      (filterStatus === "inactive" && !discount.isActive);
-    return matchesSearch && matchesFilter;
-  });
-
   // Calculate stats
   const stats = {
     total: discounts.length,
-    active: discounts.filter((d) => d.isActive).length,
+    active: discounts.filter(
+      (d) => d.startDate <= new Date() && d.endDate >= new Date()
+    ).length,
   };
 
   return (
@@ -127,7 +107,6 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead className="text-center">Type</TableHead>
                 <TableHead className="text-center">Applies To</TableHead>
                 <TableHead className="text-center">Value</TableHead>
                 <TableHead className="text-center">Period</TableHead>
@@ -136,10 +115,10 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDiscounts.length === 0 ? (
+              {discounts.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={6}
                     className="text-center py-8 text-gray-500">
                     {searchTerm || filterStatus !== "all"
                       ? "No discounts found matching your filters"
@@ -147,7 +126,7 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredDiscounts.map((discount) => (
+                discounts.map((discount) => (
                   <TableRow key={discount.id}>
                     <TableCell>
                       <div>
@@ -158,24 +137,6 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                           </p>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={
-                          discount.type === "percentage" ? "default" : "success"
-                        }>
-                        {discount.type === "percentage" ? (
-                          <div className="space-x-1">
-                            <span className="font-mono">%</span>
-                            <span> Percentage</span>
-                          </div>
-                        ) : (
-                          <div className="space-x-1">
-                            <span className="font-mono">PKR</span>
-                            <span> Fixed</span>
-                          </div>
-                        )}
-                      </Badge>
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
@@ -193,11 +154,10 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="font-medium">
-                        {discount.type === "percentage"
-                          ? `${discount.value.toFixed(
-                              discount.value % 1 === 0 ? 0 : 2
-                            )}%`
-                          : `PKR ${Math.floor(discount.value)}`}
+                        {discount.value.toFixed(
+                          discount.value % 1 === 0 ? 0 : 2
+                        )}
+                        %
                       </span>
                       {discount.applicableTo === "order" &&
                         discount.minPurchaseAmount &&
@@ -217,11 +177,16 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
-                        variant={discount.isActive ? "success" : "secondary"}
+                        variant={
+                          discountService.isDiscountActive(discount)
+                            ? "success"
+                            : "secondary"
+                        }
                         className="cursor-pointer"
-                        onClick={() => handleToggleStatus(discount.id)}
                         title="Click to toggle status">
-                        {discount.isActive ? "Active" : "Inactive"}
+                        {discountService.isDiscountActive(discount)
+                          ? "Active"
+                          : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell>

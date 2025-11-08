@@ -1,18 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Percent, DollarSign } from "lucide-react";
-
-interface Discount {
-  id: string;
-  name: string;
-  type: "percentage" | "fixed";
-  value: number;
-  description?: string;
-  isActive: boolean;
-  startDate: Date;
-  endDate: Date;
-}
+import { Discount } from "@/types";
+import discountService from "@/services/discountService";
 
 interface DiscountSearchDropdownProps {
   availableDiscounts: Discount[];
@@ -103,19 +93,7 @@ export function DiscountSearchDropdown({
   };
 
   const formatDiscountValue = (discount: Discount) => {
-    if (discount.type === "percentage") {
-      return `${discount.value}% off`;
-    }
-    return `₦${discount.value} off`;
-  };
-
-  const isDiscountActive = (discount: Discount) => {
-    const now = new Date();
-    return (
-      discount.isActive &&
-      new Date(discount.startDate) <= now &&
-      new Date(discount.endDate) >= now
-    );
+    return `${discount.value}% off`;
   };
 
   const shouldShowDropdown =
@@ -151,7 +129,7 @@ export function DiscountSearchDropdown({
       {shouldShowDropdown && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
           {displayedDiscounts.map((discount) => {
-            const isActive = isDiscountActive(discount);
+            const isActive = discountService.isDiscountActive(discount);
             return (
               <button
                 key={discount.id}
@@ -162,11 +140,9 @@ export function DiscountSearchDropdown({
                 }`}
                 disabled={!isActive}>
                 <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded flex items-center justify-center">
-                  {discount.type === "percentage" ? (
-                    <Percent className="w-5 h-5 text-purple-600" />
-                  ) : (
-                    <DollarSign className="w-5 h-5 text-purple-600" />
-                  )}
+                  <span className="font-semibold text-purple-600">
+                    {discount.value}%
+                  </span>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">

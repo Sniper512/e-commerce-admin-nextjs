@@ -55,13 +55,9 @@ export function generateBatchNumber(): string {
 
 export function calculateDiscount(
   price: number,
-  discountType: "percentage" | "fixed",
   discountValue: number
 ): number {
-  if (discountType === "percentage") {
-    return (price * discountValue) / 100;
-  }
-  return discountValue;
+  return (price * discountValue) / 100;
 }
 
 export function slugify(text: string): string {

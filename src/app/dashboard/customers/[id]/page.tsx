@@ -3,15 +3,15 @@ import customerService from "@/services/customerService";
 import { CustomerForm } from "@/components/features/customers/customer-form";
 
 interface CustomerDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function CustomerDetailPage({
   params,
 }: CustomerDetailPageProps) {
-  const { id } = params;
+  const { id } = await params;
 
   // Fetch customer data on the server
   const customer = await customerService.getCustomerById(id);

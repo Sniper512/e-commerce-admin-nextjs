@@ -2,7 +2,6 @@
 
 import {
   Package,
-  DollarSign,
   ShoppingCart,
   Image as ImageIcon,
   Sparkles,

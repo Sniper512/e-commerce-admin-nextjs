@@ -1,4 +1,4 @@
-import { Customer } from "@/types";
+import { Customer, CustomerSearchResult } from "@/types";
 import {
   collection,
   addDoc,
@@ -9,6 +9,8 @@ import {
   query,
   orderBy,
   deleteDoc,
+  where,
+  QueryConstraint,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import { sanitizeForFirestore } from "@/lib/firestore-utils";
@@ -40,6 +42,31 @@ const customerService = {
       return snapshot.docs.map((doc) =>
         firestoreToCustomer(doc.id, doc.data())
       );
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      throw error;
+    }
+  },
+  async getAllCustomersForSearch(filters?: {
+    isActive?: boolean;
+  }): Promise<CustomerSearchResult[]> {
+    try {
+      const constraints: QueryConstraint[] = [];
+
+      // Apply isActive filter if provided
+      if (filters?.isActive !== undefined) {
+        constraints.push(where("isActive", "==", filters.isActive));
+      }
+      const customersRef = collection(db, COLLECTION_NAME);
+      const q = query(customersRef, ...constraints, orderBy("name", "asc"));
+      const snapshot = await getDocs(q);
+
+      return snapshot.docs.map((doc) => ({
+        id: doc.id,
+        name: doc.data().name,
+        phone: doc.data().phone,
+        address: doc.data().address,
+      }));
     } catch (error) {
       console.error("Error fetching customers:", error);
       throw error;

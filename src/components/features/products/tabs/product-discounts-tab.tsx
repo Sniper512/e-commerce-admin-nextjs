@@ -8,6 +8,7 @@ import { X, Plus } from "lucide-react";
 import Link from "next/link";
 import { DiscountSearchDropdown } from "@/components/features/discounts/discount-search-dropdown";
 import type { Discount } from "@/types";
+import discountService from "@/services/discountService";
 
 interface ProductDiscountsTabProps {
   selectedDiscountIds: string[];
@@ -81,10 +82,7 @@ export function ProductDiscountsTab({
                     const discount = getDiscountById(discountId);
                     if (!discount) return null;
 
-                    const isActive =
-                      discount.isActive &&
-                      new Date(discount.startDate) <= new Date() &&
-                      new Date(discount.endDate) >= new Date();
+                    const isActive = discountService.isDiscountActive(discount);
 
                     return (
                       <div
@@ -95,15 +93,9 @@ export function ProductDiscountsTab({
                             : "bg-gray-50 border-gray-200"
                         }`}>
                         <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded flex items-center justify-center">
-                          {discount.type === "percentage" ? (
-                            <span className="text-purple-600 font-semibold">
-                              {discount.value}%
-                            </span>
-                          ) : (
-                            <span className="text-purple-600 font-semibold text-xs">
-                              ₦{discount.value}
-                            </span>
-                          )}
+                          <span className="text-purple-600 font-semibold">
+                            {discount.value}%
+                          </span>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -121,9 +113,7 @@ export function ProductDiscountsTab({
                             )}
                           </div>
                           <div className="text-xs text-purple-700">
-                            {discount.type === "percentage"
-                              ? `${discount.value}% off`
-                              : `₦${discount.value} off`}
+                            {discount.value}% off
                             {discount.description &&
                               ` • ${discount.description}`}
                           </div>

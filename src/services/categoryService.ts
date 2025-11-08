@@ -1,4 +1,4 @@
-﻿import { Category, SubCategory } from "@/types";
+﻿import { Category, parseCategoryId, SubCategory } from "@/types";
 import {
   collection,
   addDoc,
@@ -731,9 +731,7 @@ export const categoryService = {
   },
 
   // Search categories and subcategories (returns flattened results with composite IDs for subcategories)
-  async searchCategoriesAndSubCategories(
-    query: string
-  ): Promise<
+  async searchCategoriesAndSubCategories(query: string): Promise<
     Array<{
       id: string; // For main categories: "categoryId", for subcategories: "categoryId/subCategoryId"
       name: string;
@@ -761,7 +759,10 @@ export const categoryService = {
       const categoriesSnapshot = await getDocs(categoriesRef);
 
       for (const categoryDoc of categoriesSnapshot.docs) {
-        const category = firestoreToCategory(categoryDoc.id, categoryDoc.data());
+        const category = firestoreToCategory(
+          categoryDoc.id,
+          categoryDoc.data()
+        );
 
         // Check if main category matches
         const categoryMatches =
@@ -841,6 +842,37 @@ export const categoryService = {
       };
     } catch (error) {
       console.error("Error fetching category stats:", error);
+      throw error;
+    }
+  },
+
+  // Get discount IDs associated with a category
+  async getDiscountIdsOnCategoryById(categoryId: string): Promise<string[]> {
+    try {
+      const parsedCategoryIdResult = parseCategoryId(categoryId);
+      let docRef;
+      // Determine if it's a main category or subcategory
+      if (parsedCategoryIdResult.isSubCategory) {
+        // Subcategory
+        docRef = doc(
+          db,
+          COLLECTION_NAME,
+          parsedCategoryIdResult.categoryId,
+          SUBCATEGORIES_COLLECTION,
+          parsedCategoryIdResult.subCategoryId!
+        );
+      } else {
+        // Main category
+        docRef = doc(db, COLLECTION_NAME, parsedCategoryIdResult.categoryId);
+      }
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const categoryData = docSnap.data();
+        return categoryData.discountIds || [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching discount IDs for category:", error);
       throw error;
     }
   },

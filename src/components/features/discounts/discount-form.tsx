@@ -79,7 +79,6 @@ export function DiscountForm({
   const [formData, setFormData] = useState({
     name: discount?.name || "",
     description: discount?.description || "",
-    type: (discount?.type || "percentage") as "percentage" | "fixed",
     value: discount?.value || 0,
     applicableTo: (discount?.applicableTo || "order") as
       | "products"
@@ -90,7 +89,6 @@ export function DiscountForm({
     minPurchaseAmount: discount?.minPurchaseAmount || 0,
     startDate: discount?.startDate,
     endDate: discount?.endDate,
-    isActive: discount?.isActive ?? true,
   });
 
   const handleInputChange = (
@@ -144,24 +142,16 @@ export function DiscountForm({
       return;
     }
 
-    if (formData.type === "percentage" && formData.value > 100) {
+    if (formData.value > 100) {
       alert("Percentage discount cannot exceed 100%");
       return;
     }
 
-    // Validate percentage decimal places
-    if (formData.type === "percentage") {
-      const decimalPlaces = (formData.value.toString().split(".")[1] || "")
-        .length;
-      if (decimalPlaces > 2) {
-        alert("Percentage can have maximum 2 decimal places");
-        return;
-      }
-    }
-
-    // Validate PKR amount is whole number
-    if (formData.type === "fixed" && !Number.isInteger(formData.value)) {
-      alert("PKR amount must be a whole number (no decimals)");
+    // Validate percentage decimal places (max 2)
+    const decimalPlaces = (formData.value.toString().split(".")[1] || "")
+      .length;
+    if (decimalPlaces > 2) {
+      alert("Percentage can have maximum 2 decimal places");
       return;
     }
 
@@ -184,7 +174,6 @@ export function DiscountForm({
       const discountData: Omit<Discount, "id"> | Partial<Discount> = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        type: formData.type,
         value: formData.value,
         applicableTo: formData.applicableTo,
         // Always include minPurchaseAmount for order-level discounts (even if 0)
@@ -195,7 +184,6 @@ export function DiscountForm({
         ...(!isEditMode && { currentUsageCount: 0 }),
         startDate,
         endDate,
-        isActive: formData.isActive,
       };
 
       // Determine product and category IDs based on applicableTo type
@@ -360,7 +348,7 @@ export function DiscountForm({
 
       {/* Form */}
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Main Content - Left Side */}
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Information */}
@@ -402,38 +390,7 @@ export function DiscountForm({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>Discount Type *</Label>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => handleInputChange("type", "percentage")}
-                      className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors ${
-                        formData.type === "percentage"
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}>
-                      <span className="font-medium">Percentage</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleInputChange("type", "fixed")}
-                      className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors ${
-                        formData.type === "fixed"
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}>
-                      <span className="font-medium">Fixed Amount</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="value">
-                    {formData.type === "percentage"
-                      ? "Percentage (%)"
-                      : "Amount (PKR)"}{" "}
-                    *
-                  </Label>
+                  <Label htmlFor="value">Percentage (%) *</Label>
                   <Input
                     id="value"
                     type="number"
@@ -445,20 +402,14 @@ export function DiscountForm({
                       )
                     }
                     min="0"
-                    max={formData.type === "percentage" ? "100" : undefined}
-                    step={formData.type === "percentage" ? "0.01" : "1"}
+                    max="100"
+                    step="0.01"
                     required
                   />
-                  {formData.type === "percentage" && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Can include decimals (e.g., 10.25% or 1.5%)
-                    </p>
-                  )}
-                  {formData.type === "fixed" && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Must be a whole number (no decimals)
-                    </p>
-                  )}
+                  <p className="text-sm text-gray-500 mt-1">
+                    Enter percentage value (0-100). Can include decimals up to 2
+                    places (e.g., 10.25% or 1.5%)
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -683,83 +634,53 @@ export function DiscountForm({
             </Card>
           </div>
 
-          {/* Sidebar - Right Side */}
-          <div className="space-y-6">
-            {/* Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <label className="flex items-center gap-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) =>
-                      handleInputChange("isActive", e.target.checked)
-                    }
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                  <div>
-                    <span className="font-medium">Active</span>
-                    <p className="text-sm text-gray-500">
-                      Discount is available for use
-                    </p>
-                  </div>
-                </label>
-              </CardContent>
-            </Card>
+          {/* Validity Period */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Validity Period</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="startDate">Start Date *</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={
+                    formData.startDate
+                      ? new Date(formData.startDate).toISOString().split("T")[0]
+                      : ""
+                  }
+                  onChange={(e) =>
+                    handleInputChange(
+                      "startDate",
+                      e.target.value ? new Date(e.target.value) : undefined
+                    )
+                  }
+                  required
+                />
+              </div>
 
-            {/* Validity Period */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Validity Period</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="startDate">Start Date *</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={
-                      formData.startDate
-                        ? new Date(formData.startDate)
-                            .toISOString()
-                            .split("T")[0]
-                        : ""
-                    }
-                    onChange={(e) =>
-                      handleInputChange(
-                        "startDate",
-                        e.target.value ? new Date(e.target.value) : undefined
-                      )
-                    }
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="endDate">End Date *</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={
-                      formData.endDate
-                        ? new Date(formData.endDate).toISOString().split("T")[0]
-                        : ""
-                    }
-                    onChange={(e) =>
-                      handleInputChange(
-                        "endDate",
-                        e.target.value ? new Date(e.target.value) : undefined
-                      )
-                    }
-                    required
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              <div>
+                <Label htmlFor="endDate">End Date *</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={
+                    formData.endDate
+                      ? new Date(formData.endDate).toISOString().split("T")[0]
+                      : ""
+                  }
+                  onChange={(e) =>
+                    handleInputChange(
+                      "endDate",
+                      e.target.value ? new Date(e.target.value) : undefined
+                    )
+                  }
+                  required
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </form>
     </div>

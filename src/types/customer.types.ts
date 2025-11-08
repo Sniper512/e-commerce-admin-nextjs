@@ -13,3 +13,10 @@ export interface Customer {
   notificationsEnabled: boolean;
   isActive: boolean;
 }
+
+export interface CustomerSearchResult {
+  id: string;
+  name: string;
+  phone: string;
+  address?: string;
+}

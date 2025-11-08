@@ -10,7 +10,6 @@ import {
   where,
   orderBy,
   Timestamp,
-  deleteField,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
@@ -21,14 +20,12 @@ const firestoreToDiscount = (id: string, data: any): Discount => {
     id,
     name: data.name || "",
     description: data.description || undefined,
-    type: data.type || "percentage",
     value: data.value || 0,
-    applicableTo: data.applicableTo || "order", // Default to order-level discount
+    applicableTo: data.applicableTo,
     minPurchaseAmount: data.minPurchaseAmount || undefined,
     currentUsageCount: data.currentUsageCount || 0,
     startDate: convertTimestamp(data.startDate),
     endDate: convertTimestamp(data.endDate),
-    isActive: data.isActive ?? true,
   };
 };
 
@@ -149,7 +146,6 @@ export const discountService = {
       try {
         const q = query(
           discountsRef,
-          where("isActive", "==", true),
           where("startDate", "<=", now),
           where("endDate", ">=", now),
           orderBy("startDate", "desc")
@@ -165,16 +161,17 @@ export const discountService = {
           console.log(
             `Index not found for active discounts query. Falling back to client-side filtering.`
           );
-          const q = query(discountsRef, where("isActive", "==", true));
+          const q = query(
+            discountsRef,
+            where("startDate", "<=", now),
+            where("endDate", ">=", now),
+            orderBy("startDate", "desc")
+          );
           const snapshot = await getDocs(q);
 
           const discounts = snapshot.docs
             .map((doc) => firestoreToDiscount(doc.id, doc.data()))
-            .filter(
-              (discount) =>
-                discount.startDate <= new Date() &&
-                discount.endDate >= new Date()
-            )
+            .filter((discount) => this.isDiscountActive(discount))
             .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 
           return discounts;
@@ -529,37 +526,49 @@ export const discountService = {
     }
   },
 
-  // Toggle discount active status
-  async toggleStatus(id: string): Promise<void> {
+  // Get the highest active order level discount for a given subtotal amount
+  async getBestActiveOrderLevelDiscount(
+    subtotal: number
+  ): Promise<Discount | null> {
     try {
-      const discount = await this.getById(id);
-      if (!discount) {
-        throw new Error(`Discount ${id} not found`);
-      }
+      const discounts = await this.getByApplicableTo("order");
 
-      await this.update(id, {
-        isActive: !discount.isActive,
+      // Filter active discounts where the subtotal meets the minPurchaseAmount requirement
+      const validDiscounts = discounts.filter((discount) => {
+        if (!this.isDiscountActive(discount)) return false;
+
+        // If discount has no minimum purchase requirement, it's always valid
+        if (!discount.minPurchaseAmount || discount.minPurchaseAmount === 0) {
+          return true;
+        }
+
+        // Otherwise, check if subtotal meets the minimum requirement
+        return subtotal >= discount.minPurchaseAmount;
       });
+
+      // Find the discount with highest percentage value
+      const bestDiscount = validDiscounts.reduce((best, discount) => {
+        return !best || discount.value > best.value ? discount : best;
+      }, null as Discount | null);
+
+      return bestDiscount;
     } catch (error) {
-      console.error(`Error toggling discount status ${id}:`, error);
+      console.error(`Error getting best order level discount:`, error);
       throw error;
     }
   },
 
   // Check if discount is currently valid
-  isValid(discount: Discount): boolean {
+  isDiscountActive(discount: Discount): boolean {
     const now = new Date();
     return (
-      discount.isActive && discount.startDate <= now && discount.endDate >= now
+      new Date(discount.startDate) <= now && new Date(discount.endDate) >= now
     );
   },
 
-  // Calculate discount amount
+  // Calculate discount amount (always percentage-based)
   calculateAmount(discount: Discount, originalPrice: number): number {
-    if (discount.type === "percentage") {
-      return (originalPrice * discount.value) / 100;
-    }
-    return discount.value;
+    return (originalPrice * discount.value) / 100;
   },
 
   // Apply discount to price

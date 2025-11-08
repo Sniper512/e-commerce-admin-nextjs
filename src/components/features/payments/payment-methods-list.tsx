@@ -176,7 +176,7 @@ export function PaymentMethodsList({
                           {getPaymentMethodIcon(method.type)}
                         </span>
                         <span className="font-medium capitalize">
-                          {method.type.replace("_", " ")}
+                          {method.type.replaceAll("_", " ")}
                         </span>
                       </div>
                     </TableCell>
