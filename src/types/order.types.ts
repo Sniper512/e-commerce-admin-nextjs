@@ -1,19 +1,22 @@
+import { PaymentMethod, PaymentMethodType } from "./payment_method.types";
+
 // Order Types
 export type OrderStatus =
-  | "pending"
-  | "processing"
-  | "confirmed"
-  | "packed"
-  | "shipped"
-  | "delivered"
-  | "cancelled"
-  | "refunded";
+  | "placed" // When user provides address and clicks place order
+  | "pending_confirmation" // When user selects payment method
+  | "confirmed" // When admin confirms the order
+  | "delivered" // When order is delivered to customer
+  | "cancelled" // When admin or user cancels the order
+  | "refunded"; // When order is refunded
 
-export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
+export type PaymentStatus =
+  | "pending" // Either payment method not selected or cash on delivery selected
+  | "pending_confirmation" // For online payments, waiting for payment confirmation by admin
+  | "paid" // Payment confirmed by admin
+  | "refunded"; // Payment refunded
 
 export interface Order {
   id: string;
-  orderNumber: string;
   customerId: string;
 
   // Items
@@ -22,37 +25,31 @@ export interface Order {
   // Pricing
   subtotal: number;
   discount: number;
-  tax: number;
   deliveryFee: number;
   total: number;
 
   // Payment
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
+  paymentStatusHistory: {
+    status: PaymentStatus;
+    updatedAt: Date;
+  }[];
 
   // Delivery
-  deliveryAddress: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
+  deliveryAddress: string;
 
   // Status
   status: OrderStatus;
+  statusHistory: {
+    status: OrderStatus;
+    updatedAt: Date;
+  }[];
 
-  // Tracking
-  trackingNumber?: string;
   riderId?: string;
-
-  // Notes
-  customerNotes?: string;
-  adminNotes?: string;
 
   // Timestamps
   createdAt: Date;
-  updatedAt: Date;
   deliveredAt?: Date;
 }
 
@@ -63,31 +60,10 @@ export interface OrderItem {
   unitPrice: number;
   discount: number;
   subtotal: number;
-  batchId?: string;
+  batchId: string;
 }
 
-// Payment Types
-export type PaymentMethodType =
-  | "easypaisa"
-  | "jazzcash"
-  | "card"
-  | "bank_transfer"
-  | "cash_on_delivery";
-
-export interface PaymentMethod {
-  id: string;
-  name: string;
-  type: PaymentMethodType;
-  isActive: boolean;
-  displayOrder: number;
-  instructions?: string;
-  accountDetails?: {
-    accountNumber?: string;
-    accountTitle?: string;
-    bankName?: string;
-  };
-}
-
+// extras
 export interface Payment {
   id: string;
   orderId: string;

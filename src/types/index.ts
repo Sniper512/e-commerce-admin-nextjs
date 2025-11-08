@@ -25,6 +25,9 @@ export * from "./customer.types";
 // Order types
 export * from "./order.types";
 
+// Payment Method types
+export * from "./payment_method.types";
+
 // Expense types
 export * from "./expense.types";
 

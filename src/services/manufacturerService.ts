@@ -17,7 +17,7 @@ import {
 } from "firebase/storage";
 import { db, storage } from "../../firebaseConfig";
 import type { Manufacturer } from "@/types";
-import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
+import { sanitizeForFirestore } from "@/lib/firestore-utils";
 
 const COLLECTION_NAME = "MANUFACTURERS";
 
