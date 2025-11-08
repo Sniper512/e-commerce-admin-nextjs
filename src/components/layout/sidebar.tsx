@@ -111,7 +111,6 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [openMenus, setOpenMenus] = React.useState<string[]>(["Products"]);
   const [isMinimized, setIsMinimized] = React.useState(false);
   const [hoveredMenu, setHoveredMenu] = React.useState<string | null>(null);
   const [popoverPosition, setPopoverPosition] = React.useState<{
@@ -120,6 +119,31 @@ export function Sidebar() {
   } | null>(null);
   const [mounted, setMounted] = React.useState(false);
   const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Determine which menus should be open based on current pathname
+  const getOpenMenus = React.useCallback(() => {
+    const openMenus: string[] = [];
+    menuItems.forEach((item) => {
+      if (item.items) {
+        // Check if any sub-item matches the current pathname
+        const hasActiveSubItem = item.items.some(
+          (subItem) =>
+            pathname === subItem.href || pathname.startsWith(subItem.href + "/")
+        );
+        if (hasActiveSubItem) {
+          openMenus.push(item.title);
+        }
+      }
+    });
+    return openMenus;
+  }, [pathname]);
+
+  const [openMenus, setOpenMenus] = React.useState<string[]>([]);
+
+  // Update open menus when pathname changes
+  React.useEffect(() => {
+    setOpenMenus(getOpenMenus());
+  }, [getOpenMenus]);
 
   // Ensure we're on the client side for portal
   React.useEffect(() => {
