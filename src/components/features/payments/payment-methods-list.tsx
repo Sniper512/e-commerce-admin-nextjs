@@ -12,10 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Edit, CreditCard, CheckCircle2, XCircle } from "lucide-react";
+import { Edit, CreditCard, CheckCircle2, XCircle, Power } from "lucide-react";
 import paymentMethodService from "@/services/paymentMethodService";
 import type { PaymentMethod } from "@/types";
 import Image from "next/image";
+import { LinkButton } from "@/components/ui/link-button";
+import { useState } from "react";
 
 interface PaymentMethodsListProps {
   paymentMethods: PaymentMethod[];
@@ -25,14 +27,34 @@ export function PaymentMethodsList({
   paymentMethods,
 }: PaymentMethodsListProps) {
   const router = useRouter();
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const handleToggleActive = async (id: string, currentStatus: boolean) => {
+  const handleToggleActive = async (
+    id: string,
+    currentStatus: boolean,
+    methodType: string
+  ) => {
+    const action = currentStatus ? "deactivate" : "activate";
+    const typeName = methodType.replace("_", " ");
+
+    const confirmed = window.confirm(
+      `Are you sure you want to ${action} the ${typeName} payment method?`
+    );
+
+    if (!confirmed) return;
+
+    setTogglingId(id);
     try {
       await paymentMethodService.toggleActiveStatus(id);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error toggling payment method status:", error);
-      alert("Failed to update payment method status");
+      alert(
+        error.message ||
+          "Failed to update payment method status. Please try again."
+      );
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -77,23 +99,6 @@ export function PaymentMethodsList({
       default:
         return "";
     }
-  };
-
-  const formatAccountDetails = (method: PaymentMethod) => {
-    if (!method.accountDetails) return "—";
-
-    const details = [];
-    if (method.accountDetails.accountNumber) {
-      details.push(`Acc: ${method.accountDetails.accountNumber}`);
-    }
-    if (method.accountDetails.accountTitle) {
-      details.push(method.accountDetails.accountTitle);
-    }
-    if (method.accountDetails.bankName) {
-      details.push(method.accountDetails.bankName);
-    }
-
-    return details.length > 0 ? details.join(" | ") : "—";
   };
 
   // Calculate stats
@@ -150,7 +155,9 @@ export function PaymentMethodsList({
               <TableRow>
                 <TableHead>Order</TableHead>
                 <TableHead>Payment Method</TableHead>
-                <TableHead>Account Details</TableHead>
+                <TableHead>Account Number</TableHead>
+                <TableHead>Account Title</TableHead>
+                <TableHead>Bank Name</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
@@ -159,7 +166,7 @@ export function PaymentMethodsList({
               {paymentMethods.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={7}
                     className="text-center py-8 text-gray-500">
                     No payment methods yet. Add your first payment method!
                   </TableCell>
@@ -181,33 +188,72 @@ export function PaymentMethodsList({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm text-gray-600 max-w-md truncate">
-                        {formatAccountDetails(method)}
-                      </div>
+                      {method.accountDetails?.accountNumber || (
+                        <Badge variant="secondary" className="text-gray-400">
+                          —
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {method.accountDetails?.accountTitle || (
+                        <Badge variant="secondary" className="text-gray-400">
+                          —
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="uppercase">
+                      {method.accountDetails?.bankName ? (
+                        method.accountDetails?.bankName
+                      ) : method.type !== "cash_on_delivery" ? (
+                        method.type.replaceAll("_", " ")
+                      ) : (
+                        <Badge variant="secondary" className="text-gray-400">
+                          —
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
-                        variant={method.isActive ? "success" : "secondary"}
-                        className="cursor-pointer"
-                        onClick={() =>
-                          handleToggleActive(method.id, method.isActive)
-                        }>
+                        variant={method.isActive ? "success" : "secondary"}>
                         {method.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-center gap-2">
                         <Button
+                          variant={"outline"}
+                          size="sm"
+                          title={
+                            method.isActive
+                              ? "Deactivate Payment Method"
+                              : "Activate Payment Method"
+                          }
+                          className={
+                            method.isActive
+                              ? "text-green-800 border-green-800 bg-green-200"
+                              : "text-gray-800 border-gray-800 bg-gray-200"
+                          }
+                          onClick={() =>
+                            handleToggleActive(
+                              method.id,
+                              method.isActive,
+                              method.type
+                            )
+                          }
+                          disabled={togglingId === method.id}>
+                          <Power
+                            className={`h-3 w-3 ${
+                              togglingId === method.id ? "animate-pulse" : ""
+                            }`}
+                          />
+                        </Button>
+                        <LinkButton
                           variant="outline"
                           size="sm"
                           title="Edit Payment Method"
-                          onClick={() =>
-                            router.push(
-                              `/dashboard/payments/methods/${method.id}`
-                            )
-                          }>
+                          href={`/dashboard/payments/methods/${method.id}`}>
                           <Edit className="h-3 w-3" />
-                        </Button>
+                        </LinkButton>
                       </div>
                     </TableCell>
                   </TableRow>

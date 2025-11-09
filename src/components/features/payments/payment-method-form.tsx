@@ -57,9 +57,23 @@ export function PaymentMethodForm({
     setError(null);
 
     // Validation
-    if (needsAccountDetails(formData.type) && !formData.accountNumber.trim()) {
-      setError("Account number is required for this payment method");
-      return;
+    if (needsAccountDetails(formData.type)) {
+      if (!formData.accountNumber.trim()) {
+        setError("Account number is required for this payment method");
+        return;
+      }
+
+      // Account Title is required for all online payment methods
+      if (!formData.accountTitle.trim()) {
+        setError("Account title is required for this payment method");
+        return;
+      }
+
+      // Bank Name is required only for Bank Transfer
+      if (formData.type === "bank_transfer" && !formData.bankName.trim()) {
+        setError("Bank name is required for Bank Transfer payment method");
+        return;
+      }
     }
 
     setLoading(true);
@@ -109,10 +123,6 @@ export function PaymentMethodForm({
       router.push("/dashboard/payments/methods");
       router.refresh();
     } catch (error: any) {
-      console.error(
-        `Error ${isEditMode ? "updating" : "creating"} payment method:`,
-        error
-      );
       setError(
         error.message ||
           `Failed to ${
@@ -263,7 +273,10 @@ export function PaymentMethodForm({
 
                   {/* Account Title */}
                   <div className="space-y-2">
-                    <Label htmlFor="accountTitle">Account Title</Label>
+                    <Label htmlFor="accountTitle">
+                      Account Title
+                      <span className="text-red-500"> *</span>
+                    </Label>
                     <Input
                       type="text"
                       id="accountTitle"
@@ -273,12 +286,17 @@ export function PaymentMethodForm({
                       placeholder="Enter account title"
                       disabled={loading}
                     />
+                    <p className="text-sm text-gray-500">
+                      Account title is required for all online payment methods
+                    </p>
                   </div>
 
                   {/* Bank Name - Only for bank transfer */}
                   {formData.type === "bank_transfer" && (
                     <div className="space-y-2">
-                      <Label htmlFor="bankName">Bank Name</Label>
+                      <Label htmlFor="bankName">
+                        Bank Name <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         type="text"
                         id="bankName"
@@ -288,6 +306,9 @@ export function PaymentMethodForm({
                         placeholder="Enter bank name"
                         disabled={loading}
                       />
+                      <p className="text-sm text-gray-500">
+                        Bank name is required for Bank Transfer
+                      </p>
                     </div>
                   )}
                 </CardContent>

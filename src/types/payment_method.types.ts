@@ -10,8 +10,8 @@ export interface PaymentMethod {
   isActive: boolean;
   displayOrder: number;
   accountDetails?: {
-    accountNumber?: string;
-    accountTitle?: string;
+    accountNumber: string;
+    accountTitle: string;
     bankName?: string;
   };
 }
