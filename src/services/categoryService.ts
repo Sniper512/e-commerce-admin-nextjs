@@ -11,6 +11,8 @@ import {
   where,
   orderBy,
   Timestamp,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import {
   ref,
@@ -19,11 +21,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "../../firebaseConfig";
-import {
-  sanitizeForFirestore,
-  convertTimestamp,
-  generateSlug,
-} from "@/lib/firestore-utils";
+import { sanitizeForFirestore, generateSlug } from "@/lib/firestore-utils";
 
 // Helper function to convert Firestore data to Category
 const firestoreToCategory = (id: string, data: any): Category => {
@@ -42,6 +40,7 @@ const firestoreToCategory = (id: string, data: any): Category => {
     showOnHomepage: data.showOnHomepage ?? false,
     showOnNavbar: data.showOnNavbar ?? false,
     discountIds: data.discountIds || [],
+    manufacturerIds: data.manufacturerIds || [],
   };
 };
 
@@ -873,6 +872,38 @@ export const categoryService = {
       return [];
     } catch (error) {
       console.error("Error fetching discount IDs for category:", error);
+      throw error;
+    }
+  },
+
+  // Add manufacturer to category's manufacturerIds array
+  async addManufacturerToCategory(
+    categoryId: string,
+    manufacturerId: string
+  ): Promise<void> {
+    try {
+      const categoryRef = doc(db, COLLECTION_NAME, categoryId);
+      await updateDoc(categoryRef, {
+        manufacturerIds: arrayUnion(manufacturerId),
+      });
+    } catch (error) {
+      console.error("Error adding manufacturer to category:", error);
+      throw error;
+    }
+  },
+
+  // Remove manufacturer from category's manufacturerIds array
+  async removeManufacturerFromCategory(
+    categoryId: string,
+    manufacturerId: string
+  ): Promise<void> {
+    try {
+      const categoryRef = doc(db, COLLECTION_NAME, categoryId);
+      await updateDoc(categoryRef, {
+        manufacturerIds: arrayRemove(manufacturerId),
+      });
+    } catch (error) {
+      console.error("Error removing manufacturer from category:", error);
       throw error;
     }
   },

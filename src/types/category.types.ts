@@ -16,6 +16,7 @@ export interface Category {
   showOnHomepage: boolean;
   showOnNavbar: boolean;
   discountIds: string[]; // Array of associated discount IDs
+  manufacturerIds: string[]; // Array of manufacturer IDs with products in this category (including subcategories)
 }
 
 // SubCategory interface for two-level hierarchy

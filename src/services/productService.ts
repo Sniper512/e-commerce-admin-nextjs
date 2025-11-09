@@ -433,6 +433,13 @@ export const productService = {
     // Update manufacturer
     if (data.info?.manufacturerId) {
       await addProductToManufacturer(productId, data.info.manufacturerId);
+
+      // Add manufacturer to parent categories for mobile app filtering
+      await this.addManufacturerToCategories(
+        productId,
+        data.info.manufacturerId,
+        data.info.categoryIds
+      );
     }
 
     return productId;
@@ -459,6 +466,7 @@ export const productService = {
    * 4. Has video → Keep: video = { url }, existing video retained
    * 5. Not provided: video = undefined, existing video kept
    */
+
   async update(
     id: string,
     data: Partial<Product>,
@@ -626,6 +634,20 @@ export const productService = {
         }
       }
     }
+
+    // Sync manufacturer with categories for mobile app filtering
+    const oldManufacturerId = currentProduct.info?.manufacturerId;
+    const newManufacturerId = data.info?.manufacturerId;
+    const oldCategoryIds = currentProduct.info?.categoryIds || [];
+    const newCategoryIds = data.info?.categoryIds || oldCategoryIds;
+
+    await this.updateManufacturerInCategories(
+      id,
+      oldManufacturerId,
+      newManufacturerId,
+      oldCategoryIds,
+      newCategoryIds
+    );
   },
 
   // Delete product
@@ -812,6 +834,173 @@ export const productService = {
       return highestDiscount;
     } catch (error) {
       console.error("Error fetching highest discount for product:", error);
+      throw error;
+    }
+  },
+
+  // Add manufacturer to parent categories when product is created/updated
+  async addManufacturerToCategories(
+    productId: string,
+    manufacturerId: string,
+    categoryIds: string[]
+  ): Promise<void> {
+    try {
+      // Get unique parent category IDs from category/subcategory IDs
+      const parentCategoryIds = new Set<string>();
+
+      for (const categoryId of categoryIds) {
+        const parsed = parseCategoryId(categoryId);
+        parentCategoryIds.add(parsed.categoryId);
+      }
+
+      // Add manufacturer to each parent category
+      for (const parentCategoryId of parentCategoryIds) {
+        await categoryService.addManufacturerToCategory(
+          parentCategoryId,
+          manufacturerId
+        );
+      }
+    } catch (error) {
+      console.error("Error adding manufacturer to categories:", error);
+      throw error;
+    }
+  },
+
+  // Handle manufacturer changes across categories when product is updated
+  async updateManufacturerInCategories(
+    productId: string,
+    oldManufacturerId: string | undefined,
+    newManufacturerId: string | undefined,
+    oldCategoryIds: string[],
+    newCategoryIds: string[]
+  ): Promise<void> {
+    try {
+      // Scenario 1: Manufacturer changed
+      if (oldManufacturerId !== newManufacturerId) {
+        // Add new manufacturer to new categories
+        if (newManufacturerId && newCategoryIds.length > 0) {
+          await this.addManufacturerToCategories(
+            productId,
+            newManufacturerId,
+            newCategoryIds
+          );
+        }
+
+        // Check if old manufacturer can be removed from old categories
+        if (oldManufacturerId && oldCategoryIds.length > 0) {
+          const oldParentCategoryIds = new Set<string>();
+          for (const categoryId of oldCategoryIds) {
+            const parsed = parseCategoryId(categoryId);
+            oldParentCategoryIds.add(parsed.categoryId);
+          }
+
+          for (const parentCategoryId of oldParentCategoryIds) {
+            const canRemove = await this.canRemoveManufacturerFromCategory(
+              parentCategoryId,
+              oldManufacturerId,
+              productId
+            );
+
+            if (canRemove) {
+              await categoryService.removeManufacturerFromCategory(
+                parentCategoryId,
+                oldManufacturerId
+              );
+            }
+          }
+        }
+      }
+      // Scenario 2: Categories changed (manufacturer stays same)
+      else if (newManufacturerId) {
+        const categoriesToRemove = oldCategoryIds.filter(
+          (catId) => !newCategoryIds.includes(catId)
+        );
+        const categoriesToAdd = newCategoryIds.filter(
+          (catId) => !oldCategoryIds.includes(catId)
+        );
+
+        // Add manufacturer to new categories
+        if (categoriesToAdd.length > 0) {
+          await this.addManufacturerToCategories(
+            productId,
+            newManufacturerId,
+            categoriesToAdd
+          );
+        }
+
+        // Check if manufacturer can be removed from old categories
+        if (categoriesToRemove.length > 0) {
+          const oldParentCategoryIds = new Set<string>();
+          for (const categoryId of categoriesToRemove) {
+            const parsed = parseCategoryId(categoryId);
+            oldParentCategoryIds.add(parsed.categoryId);
+          }
+
+          for (const parentCategoryId of oldParentCategoryIds) {
+            const canRemove = await this.canRemoveManufacturerFromCategory(
+              parentCategoryId,
+              newManufacturerId,
+              productId
+            );
+
+            if (canRemove) {
+              await categoryService.removeManufacturerFromCategory(
+                parentCategoryId,
+                newManufacturerId
+              );
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error updating manufacturer in categories:", error);
+      throw error;
+    }
+  },
+
+  // Check if manufacturer can be safely removed from a category
+  async canRemoveManufacturerFromCategory(
+    parentCategoryId: string,
+    manufacturerId: string,
+    excludeProductId: string
+  ): Promise<boolean> {
+    try {
+      // Get the category to ensure it exists
+      const category = await categoryService.getCategoryById(parentCategoryId);
+      if (!category) return true;
+
+      // Get all subcategories
+      const subcategories = await categoryService.getSubCategories(
+        parentCategoryId
+      );
+
+      // Build list of all category IDs to check (parent + all subcategories)
+      const allCategoryIds = [
+        parentCategoryId,
+        ...subcategories.map((sub) => `${parentCategoryId}/${sub.id}`),
+      ];
+
+      // Check all products in these categories
+      for (const categoryId of allCategoryIds) {
+        const products = await this.getAll({ categoryId });
+
+        const hasOtherProduct = products.some(
+          (product) =>
+            product.id !== excludeProductId &&
+            product.info?.manufacturerId === manufacturerId
+        );
+
+        if (hasOtherProduct) {
+          return false; // Cannot remove, other products use this manufacturer
+        }
+      }
+
+      return true; // Safe to remove
+    } catch (error) {
+      console.error(
+        "Error checking if manufacturer can be removed from category:",
+        error
+      );
       throw error;
     }
   },
