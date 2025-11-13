@@ -281,9 +281,15 @@ export function CategoriesList({
                             subCategory.productIds.length}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary" className="text-gray-400">
-                            —
-                          </Badge>
+                          {subCategory.showOnNavbar ? (
+                            <Badge variant="success">
+                              <Check className="h-4 w-4" />
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              <X className="h-4 w-4" />
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="secondary" className="text-gray-400">

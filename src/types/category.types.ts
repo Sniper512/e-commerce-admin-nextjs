@@ -31,6 +31,7 @@ export interface SubCategory {
   isActive: boolean;
   productIds: string[];
   productCount?: number;
+  showOnNavbar: boolean;
   discountIds: string[]; // Array of associated discount IDs
 }
 

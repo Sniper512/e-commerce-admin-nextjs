@@ -10,7 +10,6 @@ import {
   query,
   where,
   orderBy,
-  Timestamp,
   arrayUnion,
   arrayRemove,
 } from "firebase/firestore";
@@ -50,16 +49,6 @@ const firestoreToSubCategory = (
   data: any,
   parentCategoryId: string
 ): SubCategory => {
-  const convertTimestamp = (timestamp: any): Date => {
-    if (timestamp instanceof Timestamp) return timestamp.toDate();
-    if (timestamp instanceof Date) return timestamp;
-    if (typeof timestamp === "string") {
-      const parsed = new Date(timestamp);
-      return isNaN(parsed.getTime()) ? new Date() : parsed;
-    }
-    return new Date();
-  };
-
   return {
     id,
     name: data.name || "",
@@ -71,6 +60,7 @@ const firestoreToSubCategory = (
     isActive: data.isActive ?? true,
     productIds: data.productIds || [],
     productCount: data.productCount || 0,
+    showOnNavbar: data.showOnNavbar ?? false,
     discountIds: data.discountIds || [],
   };
 };
