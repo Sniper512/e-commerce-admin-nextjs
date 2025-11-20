@@ -31,6 +31,8 @@ const firestoreToBatch = (id: string, data: any): Batch => {
     supplier: data.supplier,
     location: data.location,
     notes: data.notes,
+    isActive: data.isActive !== undefined ? data.isActive : true,
+    createdAt: data.createdAt ? convertTimestamp(data.createdAt) : new Date(),
   };
 };
 
@@ -175,6 +177,8 @@ export const batchService = {
         supplier: batchData.supplier,
         location: batchData.location,
         notes: batchData.notes,
+        isActive: batchData.isActive !== undefined ? batchData.isActive : true,
+        createdAt: batchData.createdAt || new Date(),
       });
 
       await addDoc(batchesRef, sanitizedData);
@@ -185,6 +189,23 @@ export const batchService = {
       return;
     } catch (error) {
       console.error("Error creating batch:", error);
+      throw error;
+    }
+  },
+
+  // Toggle batch active status
+  async toggleActiveStatus(id: string): Promise<void> {
+    try {
+      const batch = await this.getBatchById(id);
+      if (!batch) {
+        throw new Error("Batch not found");
+      }
+
+      const newActiveStatus = !batch.isActive;
+      const batchRef = doc(db, BATCHES_COLLECTION, id);
+      await updateDoc(batchRef, { isActive: newActiveStatus });
+    } catch (error) {
+      console.error("Error toggling batch active status:", error);
       throw error;
     }
   },

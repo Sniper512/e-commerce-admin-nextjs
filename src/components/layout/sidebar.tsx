@@ -229,7 +229,7 @@ export function Sidebar() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-bold">
                 E
               </div>
-              <span className="text-xl font-bold">E-Commerce</span>
+              <span className="text-lg font-bold">E-Commerce</span>
             </Link>
           )}
           {isMinimized && (

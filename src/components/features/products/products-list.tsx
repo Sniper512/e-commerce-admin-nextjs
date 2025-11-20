@@ -15,10 +15,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Trash2, Eye, ChevronLeft, ChevronRight, ToggleLeft, ToggleRight } from "lucide-react";
 import type { Product, SubCategory } from "@/types";
 import { parseCategoryId } from "@/types";
 import { productService } from "@/services/productService";
+import { useToast } from "@/components/ui/toast-context";
 import Image from "next/image";
 
 interface ProductsListProps {
@@ -39,6 +40,7 @@ export function ProductsList({
   pageSize,
 }: ProductsListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Helper function to get category name from categoryId string
@@ -64,18 +66,14 @@ export function ProductsList({
     }
   };
 
-  const handleDelete = async (productId: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) {
-      return;
-    }
-
+  const handleToggleActive = async (productId: string) => {
     try {
-      await productService.delete(productId);
-      showToast("Product deleted successfully!");
+      await productService.toggleActiveStatus(productId);
+      showToast("success", "Product status updated successfully!");
       router.refresh();
     } catch (error) {
-      console.error("Error deleting product:", error);
-      showToast("Failed to delete product");
+      console.error("Error toggling product status:", error);
+      showToast("error", "Failed to update product status", error instanceof Error ? error.message : "Unknown error");
     }
   };
 
@@ -209,9 +207,13 @@ export function ProductsList({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(product.id)}
-                            title="Delete product">
-                            <Trash2 className="h-3 w-3" />
+                            onClick={() => handleToggleActive(product.id)}
+                            title={product.info.isActive ? "Disable Product" : "Enable Product"}>
+                            {product.info.isActive ? (
+                              <ToggleRight className="h-3 w-3" />
+                            ) : (
+                              <ToggleLeft className="h-3 w-3" />
+                            )}
                           </Button>
                         </div>
                       </TableCell>

@@ -693,6 +693,27 @@ export const productService = {
     );
   },
 
+  // Toggle product active status
+  async toggleActiveStatus(id: string): Promise<void> {
+    try {
+      const product = await this.getById(id);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      const newActiveStatus = !product.info.isActive;
+      await this.update(id, {
+        info: {
+          ...product.info,
+          isActive: newActiveStatus,
+        },
+      });
+    } catch (error) {
+      console.error("Error toggling product active status:", error);
+      throw error;
+    }
+  },
+
   // Delete product
   async delete(id: string): Promise<void> {
     // Get the product to access its categories, manufacturer, and media

@@ -11,4 +11,6 @@ export interface Batch {
   supplier?: string;
   location?: string; // Storage location
   notes?: string;
+  isActive: boolean;
+  createdAt: Date;
 }

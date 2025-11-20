@@ -14,10 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Search, Trash2 } from "lucide-react";
+import { Eye, Search, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useToast } from "@/components/ui/toast-context";
 import Image from "next/image";
 
 interface BannersListProps {
@@ -26,39 +27,19 @@ interface BannersListProps {
 
 export default function BannersList({ banners }: BannersListProps) {
   const router = useRouter();
-
-  const handleDelete = async (bannerId: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete the banner "${title}"?`)) {
-      return;
-    }
-
-    try {
-      await bannerService.deleteBanner(bannerId);
-      showToast("Banner deleted successfully!");
-      router.refresh();
-    } catch (error: any) {
-      showToast(error.message || "Failed to delete banner");
-    }
-  };
+  const { showToast } = useToast();
 
   const handleToggleStatus = async (
     bannerId: string,
     currentStatus: boolean,
     bannerType: string
   ) => {
-    const action = currentStatus ? "deactivate" : "activate";
-
-    if (
-      !confirm(`Are you sure you want to ${action} this ${bannerType} banner?`)
-    ) {
-      return;
-    }
-
     try {
       await bannerService.toggleActiveStatus(bannerId);
+      showToast("success", "Banner status updated successfully!");
       router.refresh();
     } catch (error: any) {
-      showToast(error.message || "Failed to update banner status");
+      showToast("error", "Failed to update banner status", error.message || "Unknown error");
     }
   };
 
@@ -168,8 +149,19 @@ export default function BannersList({ banners }: BannersListProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDelete(banner.id, banner.title)}>
-                          <Trash2 className="h-3 w-3" />
+                          onClick={() =>
+                            handleToggleStatus(
+                              banner.id,
+                              banner.isActive,
+                              banner.bannerType
+                            )
+                          }
+                          title={banner.isActive ? "Disable Banner" : "Enable Banner"}>
+                          {banner.isActive ? (
+                            <ToggleRight className="h-3 w-3" />
+                          ) : (
+                            <ToggleLeft className="h-3 w-3" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>

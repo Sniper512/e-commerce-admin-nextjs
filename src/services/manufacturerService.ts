@@ -29,7 +29,9 @@ const firestoreToManufacturer = (id: string, data: any): Manufacturer => {
     description: data.description || "",
     logo: data.logo || undefined,
     displayOrder: data.displayOrder || 1,
+    isActive: data.isActive !== undefined ? data.isActive : true,
     productCount: data.productCount || 0,
+    createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
   };
 };
 
@@ -147,8 +149,10 @@ const manufacturerService = {
         name: manufacturerData.name || "",
         description: manufacturerData.description || "",
         displayOrder: manufacturerData.displayOrder || 1,
+        isActive: manufacturerData.isActive !== undefined ? manufacturerData.isActive : true,
         logo: null,
         productCount: 0,
+        createdAt: new Date(),
       };
 
       const sanitizedData = sanitizeForFirestore(newManufacturerData);
@@ -217,6 +221,22 @@ const manufacturerService = {
 
       return;
     } catch (error) {
+      throw error;
+    }
+  },
+
+  // Toggle manufacturer active status
+  async toggleActiveStatus(id: string): Promise<void> {
+    try {
+      const manufacturer = await this.getManufacturerById(id);
+      if (!manufacturer) {
+        throw new Error("Manufacturer not found");
+      }
+
+      const newActiveStatus = !manufacturer.isActive;
+      await this.updateManufacturer(id, { isActive: newActiveStatus });
+    } catch (error) {
+      console.error("Error toggling manufacturer active status:", error);
       throw error;
     }
   },

@@ -21,12 +21,15 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import batchService from "@/services/batchService";
 import { formatDate } from "@/lib/utils";
 import type { Batch } from "@/types";
+import { useToast } from "@/components/ui/toast-context";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -41,20 +44,17 @@ interface BatchesListProps {
 
 export function BatchesList({ batches }: BatchesListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this batch?")) {
-      return;
-    }
-
+  const handleToggleActive = async (id: string) => {
     try {
-      await batchService.deleteBatch(id);
-      showToast("Batch deleted successfully!");
+      await batchService.toggleActiveStatus(id);
+      showToast("success", "Batch status updated successfully!");
       router.refresh(); // Refresh server component data
     } catch (error) {
-      console.error("Error deleting batch:", error);
-      showToast("Failed to delete batch");
+      console.error("Error toggling batch status:", error);
+      showToast("error", "Failed to update batch status", error instanceof Error ? error.message : "Unknown error");
     }
   };
 
@@ -190,7 +190,8 @@ export function BatchesList({ batches }: BatchesListProps) {
                 </TableHead>
                 <TableHead className="text-center">Expiry Date</TableHead>
                 <TableHead className="text-center">Price</TableHead>
-                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-center">Expiry Status</TableHead>
+                <TableHead className="text-center">Active Status</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -296,6 +297,12 @@ export function BatchesList({ batches }: BatchesListProps) {
                             : "Active"}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={batch.isActive ? "success" : "secondary"}>
+                          {batch.isActive ? "Enabled" : "Disabled"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <div className="flex justify-center gap-2">
                           <Link href={`/dashboard/batches/${batch.id}`}>
@@ -309,9 +316,13 @@ export function BatchesList({ batches }: BatchesListProps) {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(batch.id)}
-                            title="Delete batch">
-                            <Trash2 className="h-3 w-3" />
+                            onClick={() => handleToggleActive(batch.id)}
+                            title={batch.isActive ? "Disable Batch" : "Enable Batch"}>
+                            {batch.isActive ? (
+                              <ToggleRight className="h-3 w-3" />
+                            ) : (
+                              <ToggleLeft className="h-3 w-3" />
+                            )}
                           </Button>
                         </div>
                       </TableCell>
