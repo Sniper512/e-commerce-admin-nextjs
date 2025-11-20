@@ -27,6 +27,7 @@ import {
 import type { Category, SubCategory } from "@/types";
 import categoryService from "@/services/categoryService";
 import { LinkButton } from "@/components/ui/link-button";
+import { useToast } from "@/components/ui/toast-context";
 import Image from "next/image";
 
 interface CategoriesListProps {
@@ -46,6 +47,7 @@ export function CategoriesList({
   categoriesWithSubCategories,
 }: CategoriesListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Flatten the data structure for display
@@ -78,10 +80,10 @@ export function CategoriesList({
   const handleToggleCategory = async (categoryId: string) => {
     try {
       await categoryService.toggleActiveStatus(categoryId);
-      alert("Category status updated successfully!");
+      showToast("success", "Category status updated successfully!");
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Error updating category status");
+      showToast("error", "Error updating category status", error instanceof Error ? error.message : "Unknown error");
     }
   };
 
@@ -91,12 +93,10 @@ export function CategoriesList({
   ) => {
     try {
       await categoryService.toggleSubCategoryActiveStatus(parentCategoryId, subCategoryId);
-      alert("Subcategory status updated successfully!");
+      showToast("success", "Subcategory status updated successfully!");
       router.refresh();
     } catch (error) {
-      alert(
-        error instanceof Error ? error.message : "Error updating subcategory status"
-      );
+      showToast("error", "Error updating subcategory status", error instanceof Error ? error.message : "Unknown error");
     }
   };
 

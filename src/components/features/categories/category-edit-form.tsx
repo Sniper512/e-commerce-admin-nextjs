@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import type { Category, SubCategory, Product } from "@/types";
 import categoryService from "@/services/categoryService";
+import { useToast } from "@/components/ui/toast-context";
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/link-button";
 import Image from "next/image";
@@ -56,6 +57,7 @@ export function CategoryEditForm({
   isSubCategory,
 }: CategoryEditFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -178,16 +180,10 @@ export function CategoryEditForm({
       setIsEditing(false);
       setImageFile(null);
       setImagePreview("");
-      alert(
-        `${isSubCategory ? "Subcategory" : "Category"} updated successfully!`
-      );
+      showToast("success", `${isSubCategory ? "Subcategory" : "Category"} updated successfully!`);
       router.refresh();
     } catch (err) {
-      alert(
-        err instanceof Error
-          ? err.message
-          : `Failed to update ${isSubCategory ? "subcategory" : "category"}`
-      );
+      showToast("error", `Failed to update ${isSubCategory ? "subcategory" : "category"}`, err instanceof Error ? err.message : "Unknown error");
     } finally {
       setSaving(false);
     }
