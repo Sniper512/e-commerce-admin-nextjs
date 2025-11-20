@@ -14,6 +14,7 @@ import bannerService from "@/services/bannerService";
 import type { Product } from "@/types";
 import { ProductSearchDropdown } from "../products/product-search-dropdown";
 import { CategorySearchDropdown } from "../categories/category-search-dropdown";
+import { useToast } from "@/components/ui/toast-context";
 import Image from "next/image";
 
 interface BannerAddFormProps {
@@ -22,6 +23,7 @@ interface BannerAddFormProps {
 
 export default function BannerAddForm({ products }: BannerAddFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -138,7 +140,7 @@ export default function BannerAddForm({ products }: BannerAddFormProps) {
         imageFile
       );
 
-      alert("Banner created successfully!");
+      showToast("success", "Banner created successfully!");
       router.push("/dashboard/banners");
       router.refresh();
     } catch (error: any) {

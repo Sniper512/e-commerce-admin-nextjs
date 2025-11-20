@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Edit, CreditCard, CheckCircle2, XCircle, Power } from "lucide-react";
 import paymentMethodService from "@/services/paymentMethodService";
+import { useToast } from "@/components/ui/toast-context";
 import type { PaymentMethod } from "@/types";
 import Image from "next/image";
 import { LinkButton } from "@/components/ui/link-button";
@@ -27,6 +28,7 @@ export function PaymentMethodsList({
   paymentMethods,
 }: PaymentMethodsListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const handleToggleActive = async (
@@ -49,10 +51,7 @@ export function PaymentMethodsList({
       router.refresh();
     } catch (error: any) {
       console.error("Error toggling payment method status:", error);
-      alert(
-        error.message ||
-          "Failed to update payment method status. Please try again."
-      );
+      showToast("error", "Failed to update payment method status", error.message || "Please try again.");
     } finally {
       setTogglingId(null);
     }

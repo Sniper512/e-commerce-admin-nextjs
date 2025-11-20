@@ -19,6 +19,7 @@ import type { Manufacturer } from "@/types";
 import manufacturerService from "@/services/manufacturerService";
 import { LinkButton } from "@/components/ui/link-button";
 import Image from "next/image";
+import { useToast } from "@/components/ui/toast-context";
 
 const DEFAULT_LOGO = "/images/default-manufacturer.svg";
 
@@ -28,6 +29,7 @@ interface ManufacturersListProps {
 
 export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter manufacturers based on search
@@ -52,10 +54,10 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
 
     try {
       await manufacturerService.deleteManufacturer(manufacturerId);
-      alert("Manufacturer deleted successfully!");
+      showToast("success","Manufacturer deleted successfully!");
       router.refresh();
     } catch (error) {
-      alert(
+      showToast("error",
         error instanceof Error ? error.message : "Error deleting manufacturer"
       );
     }
@@ -96,7 +98,8 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                 <TableRow>
                   <TableCell
                     colSpan={6}
-                    className="text-center py-8 text-gray-500">
+                    className="text-center py-8 text-gray-500"
+                  >
                     No manufacturers found
                   </TableCell>
                 </TableRow>
@@ -131,7 +134,8 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                         <LinkButton
                           variant="outline"
                           size="sm"
-                          href={`/dashboard/manufacturers/${manufacturer.id}`}>
+                          href={`/dashboard/manufacturers/${manufacturer.id}`}
+                        >
                           <Eye className="h-3 w-3" />
                         </LinkButton>
                         <Button
@@ -139,7 +143,8 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                           size="sm"
                           onClick={() =>
                             handleDelete(manufacturer.id, manufacturer.name)
-                          }>
+                          }
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>

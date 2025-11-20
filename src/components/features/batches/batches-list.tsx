@@ -50,11 +50,11 @@ export function BatchesList({ batches }: BatchesListProps) {
 
     try {
       await batchService.deleteBatch(id);
-      alert("Batch deleted successfully!");
+      showToast("Batch deleted successfully!");
       router.refresh(); // Refresh server component data
     } catch (error) {
       console.error("Error deleting batch:", error);
-      alert("Failed to delete batch");
+      showToast("Failed to delete batch");
     }
   };
 

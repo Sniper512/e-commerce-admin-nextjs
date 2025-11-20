@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import customerService from "@/services/customerService";
+import { useToast } from "@/components/ui/toast-context";
 import type { Customer } from "@/types";
 
 interface CustomerAddFormProps {
@@ -15,6 +16,7 @@ export function CustomerForm({
   isEditMode = false,
 }: CustomerAddFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,11 +69,11 @@ export function CustomerForm({
       if (isEditMode && customer) {
         // Update existing customer
         await customerService.updateCustomer(customer.id, formData);
-        alert("Customer updated successfully!");
+        showToast("success", "Customer updated successfully!");
       } else {
         // Create new customer
         await customerService.createCustomer(formData);
-        alert("Customer created successfully!");
+        showToast("success", "Customer created successfully!");
       }
       router.push("/dashboard/customers");
       router.refresh();

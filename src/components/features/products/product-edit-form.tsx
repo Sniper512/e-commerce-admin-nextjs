@@ -128,11 +128,11 @@ export function ProductEditForm({
 
       // Pass images and video to service for upload
       await productService.update(product.id, updatedProduct, images, video);
-      alert("Product updated successfully!");
+      showToast("Product updated successfully!");
       router.push("/dashboard/products");
     } catch (err) {
       console.error("Error updating product:", err);
-      alert("Failed to update product. Please try again.");
+      showToast("Failed to update product. Please try again.");
     } finally {
       setSaving(false);
     }

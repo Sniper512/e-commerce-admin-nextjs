@@ -53,11 +53,11 @@ export function BatchDetail({ batch, product }: BatchDetailProps) {
     try {
       setDeleting(true);
       await batchService.deleteBatch(batch.id);
-      alert("Batch deleted successfully");
+      showToast("Batch deleted successfully");
       router.push("/dashboard/batches");
     } catch (error) {
       console.error("Error deleting batch:", error);
-      alert("Failed to delete batch");
+      showToast("Failed to delete batch");
       setDeleting(false);
     }
   };

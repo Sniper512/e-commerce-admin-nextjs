@@ -63,11 +63,11 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
 
     try {
       await orderService.updateOrderStatus(orderId, newStatus as any);
-      alert("Order status updated successfully!");
+      showToast("Order status updated successfully!");
       router.refresh();
     } catch (error) {
       console.error("Error updating order status:", error);
-      alert("Failed to update order status");
+      showToast("Failed to update order status");
     }
   };
 

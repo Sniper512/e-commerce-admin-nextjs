@@ -71,11 +71,11 @@ export function ProductsList({
 
     try {
       await productService.delete(productId);
-      alert("Product deleted successfully!");
+      showToast("Product deleted successfully!");
       router.refresh();
     } catch (error) {
       console.error("Error deleting product:", error);
-      alert("Failed to delete product");
+      showToast("Failed to delete product");
     }
   };
 

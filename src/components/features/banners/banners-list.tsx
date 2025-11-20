@@ -34,10 +34,10 @@ export default function BannersList({ banners }: BannersListProps) {
 
     try {
       await bannerService.deleteBanner(bannerId);
-      alert("Banner deleted successfully!");
+      showToast("Banner deleted successfully!");
       router.refresh();
     } catch (error: any) {
-      alert(error.message || "Failed to delete banner");
+      showToast(error.message || "Failed to delete banner");
     }
   };
 
@@ -58,7 +58,7 @@ export default function BannersList({ banners }: BannersListProps) {
       await bannerService.toggleActiveStatus(bannerId);
       router.refresh();
     } catch (error: any) {
-      alert(error.message || "Failed to update banner status");
+      showToast(error.message || "Failed to update banner status");
     }
   };
 

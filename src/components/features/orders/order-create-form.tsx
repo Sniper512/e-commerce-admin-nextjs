@@ -14,6 +14,7 @@ import { ArrowLeft, Save, Loader2, Trash2, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import orderService from "@/services/orderService";
 import discountService from "@/services/discountService";
+import { useToast } from "@/components/ui/toast-context";
 import type {
   PaymentMethod,
   OrderItem,
@@ -51,6 +52,7 @@ export function OrderCreateForm({
   paymentMethods,
 }: OrderCreateFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -162,7 +164,7 @@ export function OrderCreateForm({
         if (item.productId === productId) {
           // Check stock
           if (newQuantity > item.availableStock) {
-            alert(`Only ${item.availableStock} units available in stock`);
+            showToast("warning", "Stock Limit Exceeded", `Only ${item.availableStock} units available in stock`);
             return item;
           }
 
@@ -267,7 +269,7 @@ export function OrderCreateForm({
       };
 
       await orderService.createOrder(orderData);
-      alert("Order created successfully!");
+      showToast("success", "Order created successfully!");
       router.push("/dashboard/orders");
       router.refresh();
     } catch (error: any) {

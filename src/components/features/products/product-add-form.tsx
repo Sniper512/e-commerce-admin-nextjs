@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
+import { useToast } from "@/components/ui/toast-context";
 import type { Product } from "@/types";
 import type {
   ProductImageWithFile,
@@ -35,6 +36,7 @@ export function ProductAddForm({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
 
   // Get active tab from URL search params, default to "info"
@@ -82,12 +84,12 @@ export function ProductAddForm({
     try {
       // Validation for required fields
       if (!formData.name.trim()) {
-        alert("Product Name is required!");
+        showToast("error", "Validation Error", "Product Name is required!");
         return;
       }
 
       if (formData.categoryIds.length === 0) {
-        alert("Please select at least one category!");
+        showToast("error", "Validation Error", "Please select at least one category!");
         return;
       }
 
@@ -95,7 +97,7 @@ export function ProductAddForm({
         formData.minimumStockQuantity === undefined ||
         formData.minimumStockQuantity < 0
       ) {
-        alert("Minimum Stock Quantity is required and must be 0 or greater!");
+        showToast("error", "Validation Error", "Minimum Stock Quantity is required and must be 0 or greater!");
         return;
       }
 
@@ -132,11 +134,11 @@ export function ProductAddForm({
         images,
         video
       );
-      alert("Product created successfully!");
+      showToast("success", "Product created successfully!");
       router.push("/dashboard/products");
     } catch (err) {
       console.error("Error creating product:", err);
-      alert("Failed to create product. Please try again.");
+      showToast("error", "Failed to create product", "Please try again.");
     } finally {
       setSaving(false);
     }

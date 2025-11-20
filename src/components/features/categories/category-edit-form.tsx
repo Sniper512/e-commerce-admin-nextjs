@@ -90,13 +90,13 @@ export function CategoryEditForm({
   const handleFileValidation = (file: File): boolean => {
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      showToast("error","Please select an image file");
       return false;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size must be less than 5MB");
+      showToast("error","Image size must be less than 5MB");
       return false;
     }
 
@@ -155,7 +155,7 @@ export function CategoryEditForm({
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      alert(
+      showToast("error",
         `Please enter a ${isSubCategory ? "subcategory" : "category"} name`
       );
       return;

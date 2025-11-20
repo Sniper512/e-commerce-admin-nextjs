@@ -122,7 +122,7 @@ export function DiscountForm({
       }
     } catch (error) {
       console.error("Error loading categories:", error);
-      alert("Failed to load categories. Please try again.");
+      showToast("Failed to load categories. Please try again.");
     } finally {
       setLoadingCategories(false);
     }
@@ -133,17 +133,17 @@ export function DiscountForm({
 
     // Validation
     if (!formData.name.trim()) {
-      alert("Please enter discount name");
+      showToast("Please enter discount name");
       return;
     }
 
     if (formData.value <= 0) {
-      alert("Please enter a valid discount value");
+      showToast("Please enter a valid discount value");
       return;
     }
 
     if (formData.value > 100) {
-      alert("Percentage discount cannot exceed 100%");
+      showToast("Percentage discount cannot exceed 100%");
       return;
     }
 
@@ -151,12 +151,12 @@ export function DiscountForm({
     const decimalPlaces = (formData.value.toString().split(".")[1] || "")
       .length;
     if (decimalPlaces > 2) {
-      alert("Percentage can have maximum 2 decimal places");
+      showToast("Percentage can have maximum 2 decimal places");
       return;
     }
 
     if (!formData.startDate || !formData.endDate) {
-      alert("Please select start and end dates");
+      showToast("Please select start and end dates");
       return;
     }
 
@@ -164,7 +164,7 @@ export function DiscountForm({
     const endDate = new Date(formData.endDate);
 
     if (endDate <= startDate) {
-      alert("End date must be after start date");
+      showToast("End date must be after start date");
       return;
     }
 
@@ -204,7 +204,7 @@ export function DiscountForm({
           productIds,
           categoryIds
         );
-        alert("Discount updated successfully!");
+        showToast("Discount updated successfully!");
       } else {
         // Create new discount
         await discountService.create(
@@ -212,7 +212,7 @@ export function DiscountForm({
           productIds,
           categoryIds
         );
-        alert("Discount created successfully!");
+        showToast("Discount created successfully!");
       }
 
       router.push("/dashboard/discounts");
@@ -221,7 +221,7 @@ export function DiscountForm({
         `Error ${isEditMode ? "updating" : "creating"} discount:`,
         error
       );
-      alert(
+      showToast(
         `Failed to ${
           isEditMode ? "update" : "create"
         } discount. Please try again.`

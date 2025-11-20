@@ -22,6 +22,7 @@ import {
 import type { Manufacturer } from "@/types";
 import manufacturerService from "@/services/manufacturerService";
 import Image from "next/image";
+import { useToast } from "@/components/ui/toast-context";
 
 const DEFAULT_LOGO = "/images/default-manufacturer.svg";
 
@@ -38,6 +39,7 @@ export function ManufacturerEditForm({
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const {showToast} = useToast()
 
   const [formData, setFormData] = useState({
     name: manufacturer.name,
@@ -48,13 +50,13 @@ export function ManufacturerEditForm({
   const handleFileValidation = (file: File): boolean => {
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      showToast("error","Please select an image file");
       return false;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size must be less than 5MB");
+      showToast("error","Image size must be less than 5MB");
       return false;
     }
 
@@ -113,7 +115,7 @@ export function ManufacturerEditForm({
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      alert("Please enter a manufacturer name");
+      showToast("error","Please enter a manufacturer name");
       return;
     }
 
@@ -127,10 +129,10 @@ export function ManufacturerEditForm({
       setIsEditing(false);
       setLogoFile(null);
       setLogoPreview("");
-      alert("Manufacturer updated successfully!");
+      showToast("success","Manufacturer updated successfully!");
       router.refresh();
     } catch (err) {
-      alert(
+      showToast("error",
         err instanceof Error ? err.message : "Failed to update manufacturer"
       );
     } finally {

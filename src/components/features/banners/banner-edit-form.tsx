@@ -141,7 +141,7 @@ export default function BannerEditForm({
         imageFile || undefined
       );
 
-      alert("Banner updated successfully!");
+      showToast("Banner updated successfully!");
       router.push("/dashboard/banners");
       router.refresh();
     } catch (error: any) {
@@ -164,11 +164,11 @@ export default function BannerEditForm({
 
     try {
       await bannerService.deleteBanner(banner.id);
-      alert("Banner deleted successfully!");
+      showToast("Banner deleted successfully!");
       router.push("/dashboard/banners");
       router.refresh();
     } catch (error: any) {
-      alert(error.message || "Failed to delete banner");
+      showToast(error.message || "Failed to delete banner");
       setDeleting(false);
     }
   };

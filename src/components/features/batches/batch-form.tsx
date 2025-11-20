@@ -79,17 +79,17 @@ export function BatchForm({ products }: BatchFormProps) {
 
     // Validation
     if (!formData.batchId.trim()) {
-      alert("Please enter or scan a batch ID");
+      showToast("Please enter or scan a batch ID");
       return;
     }
 
     if (!formData.productId) {
-      alert("Please select a product");
+      showToast("Please select a product");
       return;
     }
 
     if (!formData.manufacturingDate || !formData.expiryDate) {
-      alert("Please enter manufacturing and expiry dates");
+      showToast("Please enter manufacturing and expiry dates");
       return;
     }
 
@@ -97,7 +97,7 @@ export function BatchForm({ products }: BatchFormProps) {
     const expDate = new Date(formData.expiryDate);
 
     if (expDate <= mfgDate) {
-      alert("Expiry date must be after manufacturing date");
+      showToast("Expiry date must be after manufacturing date");
       return;
     }
 
@@ -106,12 +106,12 @@ export function BatchForm({ products }: BatchFormProps) {
     const priceNum = Number(formData.price);
 
     if (!quantityNum || quantityNum <= 0) {
-      alert("Please enter a valid quantity");
+      showToast("Please enter a valid quantity");
       return;
     }
 
     if (!priceNum || priceNum <= 0) {
-      alert("Please enter a valid price");
+      showToast("Please enter a valid price");
       return;
     }
 
@@ -123,7 +123,7 @@ export function BatchForm({ products }: BatchFormProps) {
         formData.batchId
       );
       if (existingBatch) {
-        alert("A batch with this ID already exists");
+        showToast("A batch with this ID already exists");
         setLoading(false);
         return;
       }
@@ -143,11 +143,11 @@ export function BatchForm({ products }: BatchFormProps) {
       };
 
       await batchService.createBatch(batchData);
-      alert("Batch created successfully!");
+      showToast("Batch created successfully!");
       router.push("/dashboard/batches");
     } catch (error) {
       console.error(`Error creating batch:`, error);
-      alert(`Failed to create batch. Please try again.`);
+      showToast(`Failed to create batch. Please try again.`);
     } finally {
       setLoading(false);
     }

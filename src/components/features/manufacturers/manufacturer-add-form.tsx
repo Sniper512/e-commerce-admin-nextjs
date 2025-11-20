@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save, Loader2, Upload, X } from "lucide-react";
 import manufacturerService from "@/services/manufacturerService";
 import Image from "next/image";
+import { useToast } from "@/components/ui/toast-context";
 
 export function ManufacturerAddForm() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export function ManufacturerAddForm() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const {showToast} = useToast()
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -27,13 +29,13 @@ export function ManufacturerAddForm() {
   const handleFileValidation = (file: File): boolean => {
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      showToast("error","Please select an image file");
       return false;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size must be less than 5MB");
+      showToast("error","Image size must be less than 5MB");
       return false;
     }
 
@@ -90,17 +92,17 @@ export function ManufacturerAddForm() {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      alert("Please enter a manufacturer name");
+      showToast("error","Please enter a manufacturer name");
       return;
     }
 
     try {
       setLoading(true);
       await manufacturerService.createManufacturer(formData, logoFile);
-      alert("Manufacturer created successfully!");
+      showToast("success","Manufacturer created successfully!");
       router.push("/dashboard/manufacturers");
     } catch (error) {
-      alert(
+      showToast("error",
         error instanceof Error ? error.message : "Error creating manufacturer"
       );
     } finally {
