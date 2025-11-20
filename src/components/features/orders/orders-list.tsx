@@ -18,6 +18,7 @@ import { Search, Eye, Filter } from "lucide-react";
 import { formatCurrency, formatDateTime, getStatusColor } from "@/lib/utils";
 import { Order } from "@/types";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast-context";
 import orderService from "@/services/orderService";
 
 // Type for serialized orders (dates as strings for client component)
@@ -33,6 +34,7 @@ interface OrdersListProps {
 
 export function OrdersList({ orders, customers }: OrdersListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
 
@@ -48,11 +50,9 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
 
   const statusCounts = {
     all: orders.length,
-    placed: orders.filter((o) => o.status === "placed").length,
-    pending_confirmation: orders.filter(
-      (o) => o.status === "pending_confirmation"
-    ).length,
+    pending: orders.filter((o) => o.status === "pending").length,
     confirmed: orders.filter((o) => o.status === "confirmed").length,
+    shipped: orders.filter((o) => o.status === "shipped").length,
     delivered: orders.filter((o) => o.status === "delivered").length,
     cancelled: orders.filter((o) => o.status === "cancelled").length,
     refunded: orders.filter((o) => o.status === "refunded").length,
@@ -63,11 +63,11 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
 
     try {
       await orderService.updateOrderStatus(orderId, newStatus as any);
-      showToast("Order status updated successfully!");
+      showToast("success", "Order status updated successfully!");
       router.refresh();
     } catch (error) {
       console.error("Error updating order status:", error);
-      showToast("Failed to update order status");
+      showToast("error", "Failed to update order status", error instanceof Error ? error.message : "Unknown error");
     }
   };
 
@@ -189,11 +189,9 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                             }
                             defaultValue="">
                             <option value="">Change Status</option>
-                            <option value="placed">Placed</option>
-                            <option value="pending_confirmation">
-                              Pending Confirmation
-                            </option>
+                            <option value="pending">Pending</option>
                             <option value="confirmed">Confirmed</option>
+                            <option value="shipped">Shipped</option>
                             <option value="delivered">Delivered</option>
                             <option value="cancelled">Cancelled</option>
                             <option value="refunded">Refunded</option>

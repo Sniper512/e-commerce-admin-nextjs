@@ -8,4 +8,5 @@ export interface Banner {
   link: string; // Could be categoryId or productId based on linkType
   isActive: boolean;
   displayOrder: number;
+  createdAt: Date;
 }

@@ -41,6 +41,7 @@ const firestoreToCategory = (id: string, data: any): Category => {
     showOnNavbar: data.showOnNavbar ?? false,
     discountIds: data.discountIds || [],
     manufacturerIds: data.manufacturerIds || [],
+    createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
   };
 };
 
@@ -63,6 +64,7 @@ const firestoreToSubCategory = (
     productCount: data.productCount || 0,
     showOnNavbar: data.showOnNavbar ?? false,
     discountIds: data.discountIds || [],
+    createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
   };
 };
 

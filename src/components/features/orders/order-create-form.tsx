@@ -223,13 +223,13 @@ export function OrderCreateForm({
       }
 
       // Determine payment status based on payment method type
-      let paymentStatus: "pending" | "pending_confirmation" = "pending";
+      let paymentStatus: "pending" | "awaiting_confirmation" = "pending";
       if (
         ["easypaisa", "jazzcash", "bank_transfer"].includes(
           selectedPaymentMethod.type
         )
       ) {
-        paymentStatus = "pending_confirmation";
+        paymentStatus = "awaiting_confirmation";
       }
 
       const now = new Date();
@@ -258,10 +258,10 @@ export function OrderCreateForm({
           },
         ],
         deliveryAddress: deliveryAddress.trim(),
-        status: "placed" as const,
+        status: "pending" as const,
         statusHistory: [
           {
-            status: "placed" as const,
+            status: "pending" as const,
             updatedAt: now,
           },
         ],
@@ -623,7 +623,7 @@ export function OrderCreateForm({
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status</span>
-                  <span className="font-medium text-blue-600">Placed</span>
+                  <span className="font-medium text-blue-600">Pending</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Payment Status</span>

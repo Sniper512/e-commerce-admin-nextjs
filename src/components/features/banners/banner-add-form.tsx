@@ -136,6 +136,7 @@ export default function BannerAddForm({ products }: BannerAddFormProps) {
           link: formData.link,
           isActive: formData.isActive,
           displayOrder: formData.displayOrder as number,
+          createdAt: new Date(),
         },
         imageFile
       );

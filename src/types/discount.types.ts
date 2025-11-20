@@ -5,6 +5,7 @@ export interface Discount {
   name: string;
   description?: string;
   value: number; // percentage value (e.g., 10 for 10%)
+  createdAt: Date;
 
   // Applicability
   applicableTo: DiscountApplicableTo; // products, categories, or order (total)

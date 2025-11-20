@@ -21,6 +21,7 @@ const firestoreToPaymentMethod = (id: string, data: any): PaymentMethod => {
     type: data.type || "cash_on_delivery",
     isActive: data.isActive ?? true,
     displayOrder: data.displayOrder || 1,
+    createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
     accountDetails: data.accountDetails || undefined,
   };
 };
@@ -180,6 +181,7 @@ const paymentMethodService = {
       type: methodData.type || "cash_on_delivery",
       isActive: methodData.isActive ?? true,
       displayOrder: methodData.displayOrder || 1,
+      createdAt: methodData.createdAt || new Date(),
       accountDetails: methodData.accountDetails || null,
     };
 

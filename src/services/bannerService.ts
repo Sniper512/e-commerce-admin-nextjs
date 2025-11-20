@@ -33,6 +33,7 @@ const firestoreToBanner = (id: string, data: any): Banner => {
     link: data.link || "",
     isActive: data.isActive ?? false,
     displayOrder: data.displayOrder || 1,
+    createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
   };
 };
 
@@ -155,6 +156,7 @@ const bannerService = {
       const sanitizedData = sanitizeForFirestore({
         ...data,
         imageUrl: "", // Temporary, will be updated after upload
+        createdAt: data.createdAt || new Date(),
       });
 
       const docRef = await addDoc(
