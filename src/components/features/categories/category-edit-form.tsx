@@ -71,6 +71,7 @@ export function CategoryEditForm({
           image: subCategory.image || "",
           displayOrder: subCategory.displayOrder,
           isActive: subCategory.isActive,
+          showOnNavbar: subCategory.showOnNavbar || false,
         }
       : {
           name: category.name,
@@ -201,6 +202,7 @@ export function CategoryEditForm({
             image: subCategory.image || "",
             displayOrder: subCategory.displayOrder,
             isActive: subCategory.isActive,
+            showOnNavbar: subCategory.showOnNavbar || false,
           }
         : {
             name: category.name,
@@ -654,7 +656,7 @@ export function CategoryEditForm({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Status</Label>
+                <Label>{isEditing ? "Active" : "Status"}</Label>
                 {isEditing ? (
                   <input
                     type="checkbox"
@@ -688,6 +690,32 @@ export function CategoryEditForm({
                   </Badge>
                 )}
               </div>
+
+              {isSubCategory && (
+                <div className="flex items-center justify-between">
+                  <Label>Show on Navbar</Label>
+                  {isEditing ? (
+                    <input
+                      type="checkbox"
+                      checked={(formData as any).showOnNavbar}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          showOnNavbar: e.target.checked,
+                        } as any)
+                      }
+                      className="w-4 h-4"
+                    />
+                  ) : (
+                    <Badge
+                      variant={
+                        subCategory?.showOnNavbar ? "success" : "secondary"
+                      }>
+                      {subCategory?.showOnNavbar ? "Yes" : "No"}
+                    </Badge>
+                  )}
+                </div>
+              )}
 
               {!isSubCategory && (
                 <>
