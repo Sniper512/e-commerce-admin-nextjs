@@ -16,12 +16,13 @@ import {
 } from "@/components/ui/table";
 import {
   Search,
-  Trash2,
   Eye,
   Check,
   X,
   Folder,
   FolderOpen,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import type { Category, SubCategory } from "@/types";
 import categoryService from "@/services/categoryService";
@@ -74,35 +75,27 @@ export function CategoriesList({
     });
   }, [displayItems, searchQuery]);
 
-  const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) {
-      return;
-    }
-
+  const handleToggleCategory = async (categoryId: string) => {
     try {
-      await categoryService.deleteCategory(categoryId);
-      alert("Category deleted successfully!");
+      await categoryService.toggleActiveStatus(categoryId);
+      alert("Category status updated successfully!");
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Error deleting category");
+      alert(error instanceof Error ? error.message : "Error updating category status");
     }
   };
 
-  const handleDeleteSubCategory = async (
+  const handleToggleSubCategory = async (
     parentCategoryId: string,
     subCategoryId: string
   ) => {
-    if (!confirm("Are you sure you want to delete this sub-category?")) {
-      return;
-    }
-
     try {
-      await categoryService.deleteSubCategory(parentCategoryId, subCategoryId);
-      alert("Sub-category deleted successfully!");
+      await categoryService.toggleSubCategoryActiveStatus(parentCategoryId, subCategoryId);
+      alert("Subcategory status updated successfully!");
       router.refresh();
     } catch (error) {
       alert(
-        error instanceof Error ? error.message : "Error deleting sub-category"
+        error instanceof Error ? error.message : "Error updating subcategory status"
       );
     }
   };
@@ -159,7 +152,7 @@ export function CategoriesList({
                     return (
                       <TableRow
                         key={`cat-${category.id}`}
-                        className="bg-gray-50">
+                        className={`bg-gray-50 ${!category.isActive ? 'opacity-60' : ''}`}>
                         <TableCell className="font-medium">
                           {category.displayOrder}
                         </TableCell>
@@ -239,8 +232,13 @@ export function CategoriesList({
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDeleteCategory(category.id)}>
-                              <Trash2 className="h-3 w-3" />
+                              onClick={() => handleToggleCategory(category.id)}
+                              title={category.isActive ? "Disable Category" : "Enable Category"}>
+                              {category.isActive ? (
+                                <ToggleRight className="h-3 w-3" />
+                              ) : (
+                                <ToggleLeft className="h-3 w-3" />
+                              )}
                             </Button>
                           </div>
                         </TableCell>
@@ -252,7 +250,7 @@ export function CategoriesList({
                     return (
                       <TableRow
                         key={`subcat-${subCategory.id}`}
-                        className="hover:bg-blue-50/50">
+                        className={`hover:bg-blue-50/50 ${!subCategory.isActive ? 'opacity-60' : ''}`}>
                         <TableCell className="pl-8">
                           {subCategory.displayOrder}
                         </TableCell>
@@ -316,12 +314,17 @@ export function CategoriesList({
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                handleDeleteSubCategory(
+                                handleToggleSubCategory(
                                   item.parentId,
                                   subCategory.id
                                 )
-                              }>
-                              <Trash2 className="h-3 w-3" />
+                              }
+                              title={subCategory.isActive ? "Disable Subcategory" : "Enable Subcategory"}>
+                              {subCategory.isActive ? (
+                                <ToggleRight className="h-3 w-3" />
+                              ) : (
+                                <ToggleLeft className="h-3 w-3" />
+                              )}
                             </Button>
                           </div>
                         </TableCell>

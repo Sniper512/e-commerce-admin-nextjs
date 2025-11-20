@@ -687,6 +687,21 @@ export const categoryService = {
     });
   },
 
+  // Toggle subcategory active status
+  async toggleSubCategoryActiveStatus(
+    parentCategoryId: string,
+    subCategoryId: string
+  ): Promise<void> {
+    const subCategory = await this.getSubCategoryById(parentCategoryId, subCategoryId);
+    if (!subCategory) {
+      throw new Error("Subcategory not found");
+    }
+
+    await this.updateSubCategory(parentCategoryId, subCategoryId, {
+      isActive: !subCategory.isActive,
+    });
+  },
+
   // Reorder categories
   async reorderCategories(
     categoryOrders: { id: string; displayOrder: number }[]
