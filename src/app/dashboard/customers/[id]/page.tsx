@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 import { notFound } from "next/navigation";
 import customerService from "@/services/customerService";
 import { CustomerForm } from "@/components/features/customers/customer-form";

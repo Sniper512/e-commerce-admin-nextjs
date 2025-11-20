@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import batchService from "@/services/batchService";
+import { useToast } from "@/components/ui/toast-context";
 import type { Batch, Product } from "@/types";
 import {
   ArrowLeft,
@@ -29,6 +30,7 @@ interface BatchDetailProps {
 
 export function BatchDetail({ batch, product }: BatchDetailProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [deleting, setDeleting] = useState(false);
 
   // Calculate expiry info once
@@ -53,11 +55,11 @@ export function BatchDetail({ batch, product }: BatchDetailProps) {
     try {
       setDeleting(true);
       await batchService.deleteBatch(batch.id);
-      showToast("Batch deleted successfully");
+      showToast("success", "Batch deleted successfully");
       router.push("/dashboard/batches");
     } catch (error) {
       console.error("Error deleting batch:", error);
-      showToast("Failed to delete batch");
+      showToast("error", "Failed to delete batch");
       setDeleting(false);
     }
   };

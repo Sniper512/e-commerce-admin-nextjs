@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { ArrowLeft, Save, Loader2, Upload, X, Trash2 } from "lucide-react";
 import bannerService from "@/services/bannerService";
+import { useToast } from "@/components/ui/toast-context";
 import type { Banner, Category, Product } from "@/types";
 import { ProductSearchDropdown } from "../products/product-search-dropdown";
 import { CategorySearchDropdown } from "../categories/category-search-dropdown";
@@ -28,6 +29,7 @@ export default function BannerEditForm({
   products,
 }: BannerEditFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +143,7 @@ export default function BannerEditForm({
         imageFile || undefined
       );
 
-      showToast("Banner updated successfully!");
+      showToast("success", "Banner updated successfully!");
       router.push("/dashboard/banners");
       router.refresh();
     } catch (error: any) {
@@ -164,11 +166,11 @@ export default function BannerEditForm({
 
     try {
       await bannerService.deleteBanner(banner.id);
-      showToast("Banner deleted successfully!");
+      showToast("success", "Banner deleted successfully!");
       router.push("/dashboard/banners");
       router.refresh();
     } catch (error: any) {
-      showToast(error.message || "Failed to delete banner");
+      showToast("error", error.message || "Failed to delete banner");
       setDeleting(false);
     }
   };

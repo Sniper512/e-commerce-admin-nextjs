@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from "react";
 import customerService from "@/services/customerService";
 import paymentMethodService from "@/services/paymentMethodService";

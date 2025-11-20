@@ -20,6 +20,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import batchService from "@/services/batchService";
+import { useToast } from "@/components/ui/toast-context";
 import { Batch, Product } from "@/types";
 import { useSymbologyScanner } from "@use-symbology-scanner/react";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
@@ -30,6 +31,7 @@ interface BatchFormProps {
 
 export function BatchForm({ products }: BatchFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [productSearchValue, setProductSearchValue] = useState("");
   const [scannerActive, setScannerActive] = useState(false);
@@ -79,17 +81,17 @@ export function BatchForm({ products }: BatchFormProps) {
 
     // Validation
     if (!formData.batchId.trim()) {
-      showToast("Please enter or scan a batch ID");
+      showToast("error", "Please enter or scan a batch ID");
       return;
     }
 
     if (!formData.productId) {
-      showToast("Please select a product");
+      showToast("error", "Please select a product");
       return;
     }
 
     if (!formData.manufacturingDate || !formData.expiryDate) {
-      showToast("Please enter manufacturing and expiry dates");
+      showToast("error", "Please enter manufacturing and expiry dates");
       return;
     }
 
@@ -97,7 +99,7 @@ export function BatchForm({ products }: BatchFormProps) {
     const expDate = new Date(formData.expiryDate);
 
     if (expDate <= mfgDate) {
-      showToast("Expiry date must be after manufacturing date");
+      showToast("error", "Expiry date must be after manufacturing date");
       return;
     }
 
@@ -106,12 +108,12 @@ export function BatchForm({ products }: BatchFormProps) {
     const priceNum = Number(formData.price);
 
     if (!quantityNum || quantityNum <= 0) {
-      showToast("Please enter a valid quantity");
+      showToast("error", "Please enter a valid quantity");
       return;
     }
 
     if (!priceNum || priceNum <= 0) {
-      showToast("Please enter a valid price");
+      showToast("error", "Please enter a valid price");
       return;
     }
 
@@ -123,7 +125,7 @@ export function BatchForm({ products }: BatchFormProps) {
         formData.batchId
       );
       if (existingBatch) {
-        showToast("A batch with this ID already exists");
+        showToast("error", "A batch with this ID already exists");
         setLoading(false);
         return;
       }
@@ -140,14 +142,16 @@ export function BatchForm({ products }: BatchFormProps) {
         supplier: formData.supplier.trim() || undefined,
         location: formData.location.trim() || undefined,
         notes: formData.notes.trim() || undefined,
+        isActive: true,
+        createdAt: new Date(),
       };
 
       await batchService.createBatch(batchData);
-      showToast("Batch created successfully!");
+      showToast("success", "Batch created successfully!");
       router.push("/dashboard/batches");
     } catch (error) {
       console.error(`Error creating batch:`, error);
-      showToast(`Failed to create batch. Please try again.`);
+      showToast("error", "Failed to create batch. Please try again.");
     } finally {
       setLoading(false);
     }

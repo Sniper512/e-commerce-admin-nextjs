@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 import manufacturerService from "@/services/manufacturerService";
 import { notFound } from "next/navigation";
 import { ManufacturerEditForm } from "@/components/features/manufacturers/manufacturer-edit-form";

@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 import orderService from "@/services/orderService";
 import customerService from "@/services/customerService";
 import OrdersList from "@/components/features/orders/orders-list";

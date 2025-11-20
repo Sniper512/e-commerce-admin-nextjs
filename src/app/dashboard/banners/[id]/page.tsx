@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import bannerService from "@/services/bannerService";

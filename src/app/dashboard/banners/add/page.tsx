@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 import { productService } from "@/services/productService";
 import BannerAddForm from "@/components/features/banners/banner-add-form";
 

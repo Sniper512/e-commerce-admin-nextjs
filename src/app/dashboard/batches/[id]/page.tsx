@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 ﻿import batchService from "@/services/batchService";
 import { productService } from "@/services/productService";
 import { notFound } from "next/navigation";

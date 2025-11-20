@@ -21,8 +21,9 @@ const firestoreToDiscount = (id: string, data: any): Discount => {
     name: data.name || "",
     description: data.description || undefined,
     value: data.value || 0,
+    createdAt: convertTimestamp(data.createdAt),
     applicableTo: data.applicableTo,
-    minPurchaseAmount: data.minPurchaseAmount || undefined,
+    minPurchaseAmount: data.minPurchaseAmount || 0,
     currentUsageCount: data.currentUsageCount || 0,
     startDate: convertTimestamp(data.startDate),
     endDate: convertTimestamp(data.endDate),
@@ -349,7 +350,7 @@ export const discountService = {
       // Handle product associations if applicable
       if (productIds !== undefined) {
         const { productService } = await import("./productService");
-        const allProducts = await productService.getAll();
+        const { products: allProducts } = await productService.getAll();
 
         // Get old product IDs that have this discount
         const oldProductIds = allProducts

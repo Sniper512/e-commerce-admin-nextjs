@@ -1,5 +1,9 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 ﻿import { productService } from "@/services/productService";
 import { BatchForm } from "@/components/features/batches/batch-form";
+
 
 export default async function AddBatchPage() {
   // Fetch products on the server

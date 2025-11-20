@@ -9,6 +9,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import discountService from "@/services/discountService";
+import { useToast } from "@/components/ui/toast-context";
 import { Discount, Category, Product } from "@/types";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
 import { CategorySearchDropdown } from "@/components/features/categories/category-search-dropdown";
@@ -26,6 +27,7 @@ export function DiscountForm({
   products,
 }: DiscountFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [productSearchValue, setProductSearchValue] = useState("");
   const [categorySearchValue, setCategorySearchValue] = useState("");
@@ -122,7 +124,7 @@ export function DiscountForm({
       }
     } catch (error) {
       console.error("Error loading categories:", error);
-      showToast("Failed to load categories. Please try again.");
+      showToast("error", "Failed to load categories. Please try again.");
     } finally {
       setLoadingCategories(false);
     }
@@ -133,17 +135,17 @@ export function DiscountForm({
 
     // Validation
     if (!formData.name.trim()) {
-      showToast("Please enter discount name");
+      showToast("error", "Please enter discount name");
       return;
     }
 
     if (formData.value <= 0) {
-      showToast("Please enter a valid discount value");
+      showToast("error", "Please enter a valid discount value");
       return;
     }
 
     if (formData.value > 100) {
-      showToast("Percentage discount cannot exceed 100%");
+      showToast("error", "Percentage discount cannot exceed 100%");
       return;
     }
 
@@ -151,12 +153,12 @@ export function DiscountForm({
     const decimalPlaces = (formData.value.toString().split(".")[1] || "")
       .length;
     if (decimalPlaces > 2) {
-      showToast("Percentage can have maximum 2 decimal places");
+      showToast("error", "Percentage can have maximum 2 decimal places");
       return;
     }
 
     if (!formData.startDate || !formData.endDate) {
-      showToast("Please select start and end dates");
+      showToast("error", "Please select start and end dates");
       return;
     }
 
@@ -164,7 +166,7 @@ export function DiscountForm({
     const endDate = new Date(formData.endDate);
 
     if (endDate <= startDate) {
-      showToast("End date must be after start date");
+      showToast("error", "End date must be after start date");
       return;
     }
 
@@ -204,7 +206,7 @@ export function DiscountForm({
           productIds,
           categoryIds
         );
-        showToast("Discount updated successfully!");
+        showToast("success", "Discount updated successfully!");
       } else {
         // Create new discount
         await discountService.create(
@@ -212,7 +214,7 @@ export function DiscountForm({
           productIds,
           categoryIds
         );
-        showToast("Discount created successfully!");
+        showToast("success", "Discount created successfully!");
       }
 
       router.push("/dashboard/discounts");
@@ -222,6 +224,7 @@ export function DiscountForm({
         error
       );
       showToast(
+        "error",
         `Failed to ${
           isEditMode ? "update" : "create"
         } discount. Please try again.`
