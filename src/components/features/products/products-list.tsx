@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Trash2, Eye } from "lucide-react";
+import { Search, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product, SubCategory } from "@/types";
 import { parseCategoryId } from "@/types";
 import { productService } from "@/services/productService";
@@ -24,9 +24,20 @@ import Image from "next/image";
 interface ProductsListProps {
   products: Product[];
   categories: any[]; // Categories with subcategories populated
+  currentPage: number;
+  totalPages: number;
+  totalProducts: number;
+  pageSize: number;
 }
 
-export function ProductsList({ products, categories }: ProductsListProps) {
+export function ProductsList({
+  products,
+  categories,
+  currentPage,
+  totalPages,
+  totalProducts,
+  pageSize,
+}: ProductsListProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -212,6 +223,109 @@ export function ProductsList({ products, categories }: ProductsListProps) {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, totalProducts)} of{" "}
+                {totalProducts} products
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/dashboard/products?page=${
+                    currentPage - 1
+                  }&limit=${pageSize}`}
+                  className={
+                    currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                  }>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}>
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                </Link>
+
+                <div className="flex items-center gap-1">
+                  {/* Show first page */}
+                  {currentPage > 3 && (
+                    <>
+                      <Link
+                        href={`/dashboard/products?page=1&limit=${pageSize}`}>
+                        <Button variant="outline" size="sm">
+                          1
+                        </Button>
+                      </Link>
+                      {currentPage > 4 && <span className="px-2">...</span>}
+                    </>
+                  )}
+
+                  {/* Show pages around current */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (page) =>
+                        page === currentPage ||
+                        page === currentPage - 1 ||
+                        page === currentPage + 1 ||
+                        (page === currentPage - 2 && currentPage <= 3) ||
+                        (page === currentPage + 2 &&
+                          currentPage >= totalPages - 2)
+                    )
+                    .map((page) => (
+                      <Link
+                        key={page}
+                        href={`/dashboard/products?page=${page}&limit=${pageSize}`}>
+                        <Button
+                          variant={page === currentPage ? "default" : "outline"}
+                          size="sm">
+                          {page}
+                        </Button>
+                      </Link>
+                    ))}
+
+                  {/* Show last page */}
+                  {currentPage < totalPages - 2 && (
+                    <>
+                      {currentPage < totalPages - 3 && (
+                        <span className="px-2">...</span>
+                      )}
+                      <Link
+                        href={`/dashboard/products?page=${totalPages}&limit=${pageSize}`}>
+                        <Button variant="outline" size="sm">
+                          {totalPages}
+                        </Button>
+                      </Link>
+                    </>
+                  )}
+                </div>
+
+                <Link
+                  href={`/dashboard/products?page=${
+                    currentPage + 1
+                  }&limit=${pageSize}`}
+                  className={
+                    currentPage === totalPages
+                      ? "pointer-events-none opacity-50"
+                      : ""
+                  }>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages}>
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }

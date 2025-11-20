@@ -19,7 +19,6 @@ interface CategorySearchDropdownProps {
 }
 
 const MIN_SEARCH_LENGTH = 2;
-const MAX_RESULTS = 20;
 
 export function CategorySearchDropdown({
   onSelect,
@@ -58,7 +57,7 @@ export function CategorySearchDropdown({
         );
         if (response.ok) {
           const results = await response.json();
-          setSearchResults(results.slice(0, MAX_RESULTS));
+          setSearchResults(results);
         }
       } catch (error) {
         console.error("Error fetching search results:", error);
@@ -105,10 +104,7 @@ export function CategorySearchDropdown({
     setIsOpen(false);
   };
 
-  const shouldShowDropdown =
-    isOpen &&
-    searchValue.length >= MIN_SEARCH_LENGTH &&
-    searchResults.length > 0;
+  const shouldShowDropdown = isOpen && searchValue.length >= MIN_SEARCH_LENGTH;
 
   const showMinLengthHint =
     isOpen && searchValue.length > 0 && searchValue.length < MIN_SEARCH_LENGTH;
@@ -140,7 +136,13 @@ export function CategorySearchDropdown({
           {isSearching ? (
             <div className="px-4 py-8 text-center text-gray-500">
               <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-              <p className="mt-2 text-sm">Searching...</p>
+              <p className="mt-2 text-sm">Searching categories...</p>
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-500">
+              <p className="text-sm">
+                No categories found for "{debouncedSearch}"
+              </p>
             </div>
           ) : (
             <>

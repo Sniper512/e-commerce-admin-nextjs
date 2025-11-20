@@ -19,6 +19,9 @@ export * from "./discount.types";
 // Batch types
 export * from "./batch.types";
 
+// Banner types
+export * from "./banner.types";
+
 // Customer types
 export * from "./customer.types";
 
@@ -31,8 +34,8 @@ export * from "./payment_method.types";
 // Expense types
 export * from "./expense.types";
 
-// Marketing types (Banner, Review, Notification)
-export * from "./marketing.types";
+// Marketing types (Review, Notification - Banner exported separately)
+export type { Review, ReviewStatus, Notification, NotificationType } from "./marketing.types";
 
 // Alert types
 export * from "./alert.types";

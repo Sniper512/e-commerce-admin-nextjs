@@ -289,22 +289,57 @@ export const productService = {
   async getAll(filters?: {
     categoryId?: string;
     isActive?: boolean;
-  }): Promise<Product[]> {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ products: Product[]; total: number }> {
     const constraints: QueryConstraint[] = [];
 
     if (filters?.categoryId) {
       constraints.push(
-        where("categoryIds", "array-contains", filters.categoryId)
+        where("info.categoryIds", "array-contains", filters.categoryId)
       );
     }
     if (filters?.isActive !== undefined) {
       constraints.push(where("info.isActive", "==", filters.isActive));
     }
 
+    // Get total count first (for pagination)
+    const countQuery = query(
+      collection(db, PRODUCTS_COLLECTION),
+      ...constraints
+    );
+    const countSnapshot = await getDocs(countQuery);
+    const total = countSnapshot.size;
+
+    // Validate and apply pagination with safety limits
+    const MAX_LIMIT = 500; // Hard limit to prevent abuse
+    const DEFAULT_LIMIT = 50;
+
+    let limit = filters?.limit || DEFAULT_LIMIT;
+    let offset = filters?.offset || 0;
+
+    // Enforce maximum limit
+    if (limit > MAX_LIMIT) {
+      limit = MAX_LIMIT;
+    }
+
+    // Ensure positive values
+    if (limit <= 0) limit = DEFAULT_LIMIT;
+    if (offset < 0) offset = 0;
+
+    // Ensure offset doesn't exceed total
+    if (offset >= total && total > 0) {
+      offset = Math.max(0, total - limit);
+    }
+
+    // Get paginated results
     const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints);
     const snapshot = await getDocs(q);
 
-    const products = snapshot.docs.map((doc) => {
+    // Apply manual pagination (slice after fetching)
+    const allDocs = snapshot.docs.slice(offset, offset + limit);
+
+    const products = allDocs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -333,13 +368,21 @@ export const productService = {
     // Fetch batch stock data for all products
     const productIds = products.map((p) => p.id);
     if (productIds.length > 0) {
-      const batchStockData = await batchService.getStockDataForProducts(
-        productIds
-      );
+      // Batch productIds into chunks of 30 to respect Firestore IN query limit
+      const BATCH_SIZE = 30;
+      const allBatchStockData: Record<string, any> = {};
+
+      for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
+        const chunk = productIds.slice(i, i + BATCH_SIZE);
+        const chunkStockData = await batchService.getStockDataForProducts(
+          chunk
+        );
+        Object.assign(allBatchStockData, chunkStockData);
+      }
 
       // Enrich products with batch stock data
       products.forEach((product) => {
-        product.batchStock = batchStockData[product.id] || {
+        product.batchStock = allBatchStockData[product.id] || {
           usableStock: 0,
           expiredStock: 0,
           totalStock: 0,
@@ -348,7 +391,7 @@ export const productService = {
       });
     }
 
-    return products;
+    return { products, total };
   },
 
   // Get product by ID
@@ -736,7 +779,6 @@ export const productService = {
     }
 
     const allProducts: Array<{ id: string; name: string; image: string }> = [];
-
     for (const batch of batches) {
       const q = query(
         collection(db, PRODUCTS_COLLECTION),
@@ -982,7 +1024,7 @@ export const productService = {
 
       // Check all products in these categories
       for (const categoryId of allCategoryIds) {
-        const products = await this.getAll({ categoryId });
+        const { products } = await this.getAll({ categoryId });
 
         const hasOtherProduct = products.some(
           (product) =>

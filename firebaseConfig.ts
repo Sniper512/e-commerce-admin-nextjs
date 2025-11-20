@@ -25,43 +25,61 @@ const app =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 // Initialize Firebase services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+const authInstance = getAuth(app);
+const dbInstance = getFirestore(app);
+const storageInstance = getStorage(app);
 
 // Connect to Firebase Emulators in development
 const USE_EMULATOR = process.env.NODE_ENV === "development";
 
-if (USE_EMULATOR) {
-  const isEmulatorConnected = {
-    auth: false,
-    firestore: false,
-    storage: false,
-  };
+// Track emulator connection state globally
+const isEmulatorConnected = {
+  auth: false,
+  firestore: false,
+  storage: false,
+};
 
+if (USE_EMULATOR) {
   // Connect Auth Emulator
   if (!isEmulatorConnected.auth) {
-    connectAuthEmulator(auth, "http://localhost:9099", {
-      disableWarnings: true,
-    });
-    isEmulatorConnected.auth = true;
-    console.log("🔧 Connected to Auth Emulator");
+    try {
+      connectAuthEmulator(authInstance, "http://localhost:9099", {
+        disableWarnings: true,
+      });
+      isEmulatorConnected.auth = true;
+      console.log("🔧 Connected to Auth Emulator");
+    } catch (error) {
+      // Emulator already connected
+    }
   }
 
   // Connect Firestore Emulator
   if (!isEmulatorConnected.firestore) {
-    connectFirestoreEmulator(db, "localhost", 8080);
-    isEmulatorConnected.firestore = true;
-    console.log("🔧 Connected to Firestore Emulator");
+    try {
+      connectFirestoreEmulator(dbInstance, "localhost", 8080);
+      isEmulatorConnected.firestore = true;
+      console.log("🔧 Connected to Firestore Emulator");
+    } catch (error) {
+      // Emulator already connected
+    }
   }
 
   // Connect Storage Emulator
   if (!isEmulatorConnected.storage) {
-    connectStorageEmulator(storage, "localhost", 9199);
-    isEmulatorConnected.storage = true;
-    console.log("🔧 Connected to Storage Emulator");
+    try {
+      connectStorageEmulator(storageInstance, "localhost", 9199);
+      isEmulatorConnected.storage = true;
+      console.log("🔧 Connected to Storage Emulator");
+    } catch (error) {
+      // Emulator already connected
+    }
   }
 }
+
+// Export Firebase services
+export const auth = authInstance;
+export const db = dbInstance;
+export const storage = storageInstance;
 
 // Initialize Analytics (only on client side and NOT in emulator mode)
 export const analytics =
