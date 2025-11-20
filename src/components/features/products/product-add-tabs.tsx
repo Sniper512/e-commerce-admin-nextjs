@@ -4,7 +4,6 @@ import {
   Package,
   ShoppingCart,
   Image as ImageIcon,
-  Sparkles,
   ShoppingBag,
 } from "lucide-react";
 
@@ -17,7 +16,6 @@ const tabs = [
   },
   { id: "inventory", label: "Inventory", icon: ShoppingCart },
   { id: "multimedia", label: "Multimedia", icon: ImageIcon },
-  { id: "similar", label: "Similar Products", icon: Sparkles },
   {
     id: "bought-together",
     label: "Bought Together Products",

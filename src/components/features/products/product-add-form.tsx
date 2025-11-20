@@ -16,7 +16,6 @@ import { ProductInfoTab } from "./tabs/product-info-tab";
 import { ProductDiscountsTab } from "./tabs/product-discounts-tab";
 import { ProductInventoryTab } from "./tabs/product-inventory-tab";
 import { ProductMultimediaTab } from "./tabs/product-multimedia-tab";
-import { ProductSimilarTab } from "./tabs/product-similar-tab";
 import { ProductBoughtTogetherTab } from "./tabs/product-bought-together-tab";
 import { ProductAddTabs } from "./product-add-tabs";
 
@@ -64,7 +63,6 @@ export function ProductAddForm({
 
   const [video, setVideo] = useState<ProductVideoWithFile | null>(null);
 
-  const [similarProductIds, setSimilarProductIds] = useState<string[]>([]);
 
   const [boughtTogetherProductIds, setBoughtTogetherProductIds] = useState<
     string[]
@@ -123,7 +121,6 @@ export function ProductAddForm({
           images: [],
           video: "",
         },
-        similarProductIds: similarProductIds,
         boughtTogetherProductIds: boughtTogetherProductIds,
         purchaseHistory: [],
       };
@@ -255,15 +252,6 @@ export function ProductAddForm({
           onImagesChange={setImages}
           video={video}
           onVideoChange={setVideo}
-        />
-      )}
-      {activeTab === "similar" && (
-        <ProductSimilarTab
-          similarProductIds={similarProductIds}
-          onSimilarProductIdsChange={setSimilarProductIds}
-          availableProducts={availableProducts}
-          selectedProducts={[]} // Empty for new product
-          defaultImage=""
         />
       )}
       {activeTab === "bought-together" && (
