@@ -7,6 +7,9 @@ export interface Discount {
   value: number; // percentage value (e.g., 10 for 10%)
   createdAt: Date;
 
+  // Status
+  isActive: boolean; // Whether this discount is manually enabled/disabled
+
   // Applicability
   applicableTo: DiscountApplicableTo; // products, categories, or order (total)
   applicableProductIds?: string[]; // Product IDs this discount applies to (when applicableTo = 'products')
@@ -16,6 +19,9 @@ export interface Discount {
   // Validity
   startDate: Date;
   endDate: Date;
+
+  // Display
+  isFeaturedOnHomepage: boolean; // Whether this discount should be featured on the homepage
 
   currentUsageCount: number; // Number of times the discount has been used (auto-updated)
 }

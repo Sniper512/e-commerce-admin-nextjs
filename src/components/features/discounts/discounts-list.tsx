@@ -12,12 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Tag, CheckCircle2, XCircle } from "lucide-react";
+import { Search, Eye, Tag, CheckCircle2, XCircle, ToggleLeft, ToggleRight } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import discountService from "@/services/discountService";
 import { Discount } from "@/types";
+import { useToast } from "@/components/ui/toast-context";
 import Link from "next/link";
 
 interface DiscountsListProps {
@@ -26,6 +27,7 @@ interface DiscountsListProps {
 
 export function DiscountsList({ discounts }: DiscountsListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -33,8 +35,19 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
   const stats = {
     total: discounts.length,
     active: discounts.filter(
-      (d) => d.startDate <= new Date() && d.endDate >= new Date()
+      (d) => discountService.isDiscountActive(d)
     ).length,
+  };
+
+  const handleToggleActive = async (discountId: string) => {
+    try {
+      await discountService.toggleActiveStatus(discountId);
+      showToast("success", "Discount status updated successfully!");
+      router.refresh();
+    } catch (error) {
+      console.error("Error toggling discount status:", error);
+      showToast("error", "Failed to update discount status", error instanceof Error ? error.message : "Unknown error");
+    }
   };
 
   return (
@@ -111,6 +124,7 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                 <TableHead className="text-center">Value</TableHead>
                 <TableHead className="text-center">Period</TableHead>
                 <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-center">Homepage</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -118,7 +132,7 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
               {discounts.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="text-center py-8 text-gray-500">
                     {searchTerm || filterStatus !== "all"
                       ? "No discounts found matching your filters"
@@ -189,6 +203,13 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                           : "Inactive"}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-center">
+                      {discount.isFeaturedOnHomepage ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto" />
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex justify-center gap-2">
                         <Link href={`/dashboard/discounts/${discount.id}`}>
@@ -199,6 +220,17 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                             <Eye className="h-3 w-3" />
                           </Button>
                         </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleActive(discount.id)}
+                          title={discount.isActive ? "Disable Discount" : "Enable Discount"}>
+                          {discount.isActive ? (
+                            <ToggleRight className="h-3 w-3" />
+                          ) : (
+                            <ToggleLeft className="h-3 w-3" />
+                          )}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

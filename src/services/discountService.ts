@@ -22,6 +22,7 @@ const firestoreToDiscount = (id: string, data: any): Discount => {
     description: data.description || undefined,
     value: data.value || 0,
     createdAt: convertTimestamp(data.createdAt),
+    isActive: data.isActive !== undefined ? data.isActive : true, // Default to true for existing discounts
     applicableTo: data.applicableTo,
     applicableProductIds: data.applicableProductIds || undefined,
     applicableCategoryIds: data.applicableCategoryIds || undefined,
@@ -29,6 +30,7 @@ const firestoreToDiscount = (id: string, data: any): Discount => {
     currentUsageCount: data.currentUsageCount || 0,
     startDate: convertTimestamp(data.startDate),
     endDate: convertTimestamp(data.endDate),
+    isFeaturedOnHomepage: data.isFeaturedOnHomepage || false,
   };
 };
 
@@ -558,8 +560,26 @@ export const discountService = {
   isDiscountActive(discount: Discount): boolean {
     const now = new Date();
     return (
-      new Date(discount.startDate) <= now && new Date(discount.endDate) >= now
+      discount.isActive &&
+      new Date(discount.startDate) <= now &&
+      new Date(discount.endDate) >= now
     );
+  },
+
+  // Toggle discount active status
+  async toggleActiveStatus(id: string): Promise<void> {
+    try {
+      const discount = await this.getById(id);
+      if (!discount) {
+        throw new Error("Discount not found");
+      }
+
+      const newActiveStatus = !discount.isActive;
+      await this.update(id, { isActive: newActiveStatus });
+    } catch (error) {
+      console.error("Error toggling discount active status:", error);
+      throw error;
+    }
   },
 
   // Calculate discount amount (always percentage-based)

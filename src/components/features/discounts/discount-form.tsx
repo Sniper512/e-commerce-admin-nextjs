@@ -73,6 +73,8 @@ export function DiscountForm({
     minPurchaseAmount: discount?.minPurchaseAmount || 0,
     startDate: discount?.startDate,
     endDate: discount?.endDate,
+    isActive: discount?.isActive ?? true,
+    isFeaturedOnHomepage: discount?.isFeaturedOnHomepage || false,
   });
 
   const handleInputChange = (
@@ -228,6 +230,8 @@ export function DiscountForm({
           formData.applicableTo === "order"
             ? formData.minPurchaseAmount || 0
             : undefined,
+        isActive: formData.isActive,
+        isFeaturedOnHomepage: formData.isFeaturedOnHomepage,
         ...(!isEditMode && { currentUsageCount: 0 }),
         startDate,
         endDate,
@@ -666,55 +670,81 @@ export function DiscountForm({
                 )}
               </CardContent>
             </Card>
+
+            {/* Display Options */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Display Options</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    id="isFeaturedOnHomepage"
+                    type="checkbox"
+                    checked={formData.isFeaturedOnHomepage}
+                    onChange={(e) =>
+                      handleInputChange("isFeaturedOnHomepage", e.target.checked)
+                    }
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="isFeaturedOnHomepage" className="cursor-pointer">
+                    Featured on Homepage
+                  </Label>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Check this box to feature this discount prominently on the homepage.
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Validity Period */}
           <Card>
-            <CardHeader>
-              <CardTitle>Validity Period</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="startDate">Start Date *</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={
-                    formData.startDate
-                      ? new Date(formData.startDate).toISOString().split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) =>
-                    handleInputChange(
-                      "startDate",
-                      e.target.value ? new Date(e.target.value) : undefined
-                    )
-                  }
-                  required
-                />
-              </div>
+           <CardHeader>
+             <CardTitle>Validity Period</CardTitle>
+           </CardHeader>
+           <CardContent className="space-y-4">
+             <div>
+               <Label htmlFor="startDate">Start Date *</Label>
+               <Input
+                 id="startDate"
+                 type="date"
+                 value={
+                   formData.startDate
+                     ? new Date(formData.startDate).toISOString().split("T")[0]
+                     : ""
+                 }
+                 onChange={(e) =>
+                   handleInputChange(
+                     "startDate",
+                     e.target.value ? new Date(e.target.value) : undefined
+                   )
+                 }
+                 required
+               />
+             </div>
 
-              <div>
-                <Label htmlFor="endDate">End Date *</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={
-                    formData.endDate
-                      ? new Date(formData.endDate).toISOString().split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) =>
-                    handleInputChange(
-                      "endDate",
-                      e.target.value ? new Date(e.target.value) : undefined
-                    )
-                  }
-                  required
-                />
-              </div>
-            </CardContent>
-          </Card>
+             <div>
+               <Label htmlFor="endDate">End Date *</Label>
+               <Input
+                 id="endDate"
+                 type="date"
+                 value={
+                   formData.endDate
+                     ? new Date(formData.endDate).toISOString().split("T")[0]
+                     : ""
+                 }
+                 onChange={(e) =>
+                   handleInputChange(
+                     "endDate",
+                     e.target.value ? new Date(e.target.value) : undefined
+                   )
+                 }
+                 required
+               />
+             </div>
+           </CardContent>
+         </Card>
         </div>
       </form>
     </div>
