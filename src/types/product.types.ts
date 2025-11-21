@@ -43,6 +43,7 @@ export interface Product {
 
   // Discounts Section
   discountIds: string[]; // Array of associated discount IDs
+  featuredDiscountIds: string[]; // Array of discount IDs that should be featured on homepage for this product
 
   // Inventory Section
   minimumStockQuantity: number;

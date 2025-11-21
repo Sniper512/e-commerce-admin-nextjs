@@ -468,6 +468,7 @@ export const productService = {
         nameLower: data.info.name.toLowerCase(), // Add lowercase name for case-insensitive search
       },
       price: 0, // Initialize price to 0, will be updated when first batch is added
+      featuredDiscountIds: [], // Initialize empty array for featured discounts
       multimedia: {
         images: uploadedImages,
         video: uploadedVideo,
@@ -732,6 +733,35 @@ export const productService = {
       });
     } catch (error) {
       console.error("Error toggling product active status:", error);
+      throw error;
+    }
+  },
+
+  // Toggle featured discount status for a product
+  async toggleFeaturedDiscount(productId: string, discountId: string): Promise<void> {
+    try {
+      const product = await this.getById(productId);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      const featuredDiscountIds = product.featuredDiscountIds || [];
+      const isCurrentlyFeatured = featuredDiscountIds.includes(discountId);
+
+      let newFeaturedDiscountIds: string[];
+      if (isCurrentlyFeatured) {
+        // Remove from featured
+        newFeaturedDiscountIds = featuredDiscountIds.filter(id => id !== discountId);
+      } else {
+        // Add to featured
+        newFeaturedDiscountIds = [...featuredDiscountIds, discountId];
+      }
+
+      await this.update(productId, {
+        featuredDiscountIds: newFeaturedDiscountIds,
+      });
+    } catch (error) {
+      console.error("Error toggling featured discount status:", error);
       throw error;
     }
   },

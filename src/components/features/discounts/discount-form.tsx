@@ -37,6 +37,8 @@ export function DiscountForm({
   );
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [selectedProductDetails, setSelectedProductDetails] = useState<Record<string, { id: string; name: string; image: string }>>({});
+  const [featuredProducts, setFeaturedProducts] = useState<Record<string, boolean>>({});
+  const [loadingProductDetails, setLoadingProductDetails] = useState(false);
   const isEditMode = !!discount;
 
   // Get initial product IDs for edit mode from the discount data
@@ -122,6 +124,7 @@ export function DiscountForm({
         );
 
         if (missingProductIds.length > 0) {
+          setLoadingProductDetails(true);
           try {
             // Fetch details for missing products
             const productDetails: Record<string, { id: string; name: string; image: string }> = {};
@@ -168,13 +171,44 @@ export function DiscountForm({
             setSelectedProductDetails((prev) => ({ ...prev, ...productDetails }));
           } catch (error) {
             console.error("Error fetching product details:", error);
+          } finally {
+            setLoadingProductDetails(false);
           }
+        } else {
+          setLoadingProductDetails(false);
         }
+      } else {
+        setLoadingProductDetails(false);
       }
     };
 
     fetchProductDetails();
   }, [formData.applicableProductIds, products]);
+
+  // Load featured status for products
+  useEffect(() => {
+    const loadFeaturedStatus = async () => {
+      if (formData.applicableProductIds.length > 0 && isEditMode && discount) {
+        const featuredStatus: Record<string, boolean> = {};
+
+        for (const productId of formData.applicableProductIds) {
+          try {
+            const product = await productService.getById(productId);
+            if (product) {
+              featuredStatus[productId] = product.featuredDiscountIds?.includes(discount.id) || false;
+            }
+          } catch (error) {
+            console.error(`Error loading featured status for product ${productId}:`, error);
+            featuredStatus[productId] = false;
+          }
+        }
+
+        setFeaturedProducts(featuredStatus);
+      }
+    };
+
+    loadFeaturedStatus();
+  }, [formData.applicableProductIds, isEditMode, discount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -313,6 +347,22 @@ export function DiscountForm({
       "applicableCategoryIds",
       formData.applicableCategoryIds.filter((id) => id !== categoryId)
     );
+  };
+
+  const handleToggleFeatured = async (productId: string) => {
+    if (!isEditMode || !discount) return;
+
+    try {
+      await productService.toggleFeaturedDiscount(productId, discount.id);
+      setFeaturedProducts(prev => ({
+        ...prev,
+        [productId]: !prev[productId]
+      }));
+      showToast("success", "Featured status updated successfully!");
+    } catch (error) {
+      console.error("Error toggling featured status:", error);
+      showToast("error", "Failed to update featured status", error instanceof Error ? error.message : "Unknown error");
+    }
   };
 
   // Helper to find category or subcategory by ID (supports composite IDs like "parentId/subId")
@@ -527,52 +577,70 @@ export function DiscountForm({
                       onSearchChange={setProductSearchValue}
                       defaultProductImage="/images/default-image.svg"
                     />
-                    {formData.applicableProductIds.length > 0 ? (
-                      <div className="mt-3 space-y-3">
-                        {formData.applicableProductIds.map(
-                          (productId: string) => {
-                            const productDetail = selectedProductDetails[productId];
-                            if (!productDetail) return null;
+                    {loadingProductDetails ? (
+                       <div className="mt-3 flex items-center justify-center py-8">
+                         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                         <span className="ml-2 text-sm text-gray-500">Loading products...</span>
+                       </div>
+                     ) : formData.applicableProductIds.length > 0 ? (
+                       <div className="mt-3 space-y-3">
+                         {formData.applicableProductIds.map(
+                           (productId: string) => {
+                             const productDetail = selectedProductDetails[productId];
+                             if (!productDetail) return null;
 
-                            return (
-                              <div
-                                key={productId}
-                                className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                                <Image
-                                  src={productDetail.image}
-                                  alt={productDetail.name}
-                                  className="w-12 h-12 object-cover rounded"
-                                  width={48}
-                                  height={48}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src =
-                                      "/images/default-image.svg";
-                                  }}
-                                />
-                                <div className="flex-1">
-                                  <h4 className="font-medium">
-                                    {productDetail.name}
-                                  </h4>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleRemoveProduct(productId)
-                                  }>
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
-                            );
-                          }
-                        )}
-                      </div>
-                    ) : (
-                      <div className="mt-3 text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                        No products selected yet
-                      </div>
-                    )}
+                             return (
+                               <div
+                                 key={productId}
+                                 className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                 <Image
+                                   src={productDetail.image}
+                                   alt={productDetail.name}
+                                   className="w-12 h-12 object-cover rounded"
+                                   width={48}
+                                   height={48}
+                                   onError={(e) => {
+                                     (e.target as HTMLImageElement).src =
+                                       "/images/default-image.svg";
+                                   }}
+                                 />
+                                 <div className="flex-1">
+                                   <h4 className="font-medium">
+                                     {productDetail.name}
+                                   </h4>
+                                 </div>
+                                 {isEditMode && (
+                                   <div className="flex items-center gap-2">
+                                     <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                       <input
+                                         type="checkbox"
+                                         checked={featuredProducts[productId] || false}
+                                         onChange={() => handleToggleFeatured(productId)}
+                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                       />
+                                       <span className="text-xs text-gray-600">Feature on Homepage</span>
+                                     </label>
+                                   </div>
+                                 )}
+                                 <Button
+                                   type="button"
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={() =>
+                                     handleRemoveProduct(productId)
+                                   }>
+                                   <Trash2 className="h-4 w-4 text-red-500" />
+                                 </Button>
+                               </div>
+                             );
+                           }
+                         )}
+                       </div>
+                     ) : (
+                       <div className="mt-3 text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                         No products selected yet
+                       </div>
+                     )}
                   </div>
                 )}
 
