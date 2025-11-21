@@ -292,6 +292,7 @@ export const productService = {
     isActive?: boolean;
     limit?: number;
     offset?: number;
+    searchQuery?: string;
   }): Promise<{ products: Product[]; total: number }> {
     const constraints: QueryConstraint[] = [];
 
@@ -302,6 +303,14 @@ export const productService = {
     }
     if (filters?.isActive !== undefined) {
       constraints.push(where("info.isActive", "==", filters.isActive));
+    }
+    if (filters?.searchQuery) {
+      const searchTermLower = filters.searchQuery.toLowerCase().trim();
+      if (searchTermLower) {
+        constraints.push(where("info.nameLower", ">=", searchTermLower));
+        constraints.push(where("info.nameLower", "<=", searchTermLower + "\uf8ff"));
+        constraints.push(orderBy("info.nameLower"));
+      }
     }
 
     // Get total count first (for pagination)

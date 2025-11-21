@@ -10,16 +10,18 @@ interface ProductsPageProps {
   searchParams?: Promise<{
     page?: string;
     limit?: string;
+    search?: string;
   }>;
 }
 
 export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps) {
-  // Get pagination params from URL with validation
+  // Get pagination and search params from URL with validation
   const params = await searchParams;
   const rawPage = Number(params?.page) || 1;
   const rawLimit = Number(params?.limit) || 50;
+  const searchQuery = params?.search?.trim() || "";
 
   // Validate and constrain parameters
   const MIN_LIMIT = 10;
@@ -42,9 +44,13 @@ export default async function ProductsPage({
 
   const offset = (page - 1) * limit;
 
-  // Fetch data on the server with pagination
+  // Fetch data on the server with pagination and search
   const [productsData, categories] = await Promise.all([
-    productService.getAll({ limit, offset }),
+    productService.getAll({
+      limit,
+      offset,
+      searchQuery: searchQuery || undefined
+    }),
     categoryService.getAllCategoriesWithSubCategories(),
   ]);
 

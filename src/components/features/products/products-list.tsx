@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +40,35 @@ export function ProductsList({
   pageSize,
 }: ProductsListProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
+
+  // Get search query from URL params
+  const urlSearchQuery = searchParams.get("search") || "";
+  const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
+
+  // Update URL when search query changes (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      if (searchQuery.trim()) {
+        params.set("search", searchQuery.trim());
+        // Reset to page 1 when searching
+        params.set("page", "1");
+      } else {
+        params.delete("search");
+      }
+
+      const newUrl = `${pathname}?${params.toString()}`;
+      if (newUrl !== window.location.pathname + window.location.search) {
+        router.push(newUrl);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, pathname, router, searchParams]);
 
   // Helper function to get category name from categoryId string
   const getCategoryName = (categoryIdString: string): string => {
@@ -77,9 +104,19 @@ export function ProductsList({
     }
   };
 
-  const filteredProducts = products.filter((product) =>
-    product.info.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // For server-side search, we show all fetched products (already filtered by server)
+  const filteredProducts = products;
+
+  // Helper function to build URL with search params
+  const buildUrl = (page: number, limit: number) => {
+    const params = new URLSearchParams();
+    params.set("page", page.toString());
+    params.set("limit", limit.toString());
+    if (searchQuery.trim()) {
+      params.set("search", searchQuery.trim());
+    }
+    return `${pathname}?${params.toString()}`;
+  };
 
   return (
     <>
@@ -238,9 +275,7 @@ export function ProductsList({
               </div>
               <div className="flex items-center gap-2">
                 <Link
-                  href={`/dashboard/products?page=${
-                    currentPage - 1
-                  }&limit=${pageSize}`}
+                  href={buildUrl(currentPage - 1, pageSize)}
                   className={
                     currentPage === 1 ? "pointer-events-none opacity-50" : ""
                   }>
@@ -258,7 +293,7 @@ export function ProductsList({
                   {currentPage > 3 && (
                     <>
                       <Link
-                        href={`/dashboard/products?page=1&limit=${pageSize}`}>
+                        href={buildUrl(1, pageSize)}>
                         <Button variant="outline" size="sm">
                           1
                         </Button>
@@ -281,7 +316,7 @@ export function ProductsList({
                     .map((page) => (
                       <Link
                         key={page}
-                        href={`/dashboard/products?page=${page}&limit=${pageSize}`}>
+                        href={buildUrl(page, pageSize)}>
                         <Button
                           variant={page === currentPage ? "default" : "outline"}
                           size="sm">
@@ -297,7 +332,7 @@ export function ProductsList({
                         <span className="px-2">...</span>
                       )}
                       <Link
-                        href={`/dashboard/products?page=${totalPages}&limit=${pageSize}`}>
+                        href={buildUrl(totalPages, pageSize)}>
                         <Button variant="outline" size="sm">
                           {totalPages}
                         </Button>
@@ -307,9 +342,7 @@ export function ProductsList({
                 </div>
 
                 <Link
-                  href={`/dashboard/products?page=${
-                    currentPage + 1
-                  }&limit=${pageSize}`}
+                  href={buildUrl(currentPage + 1, pageSize)}
                   className={
                     currentPage === totalPages
                       ? "pointer-events-none opacity-50"
