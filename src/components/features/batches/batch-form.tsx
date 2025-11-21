@@ -157,14 +157,7 @@ export function BatchForm({ products }: BatchFormProps) {
     }
   };
 
-  // Convert products to dropdown format
-  const availableProductsForDropdown = products.map((product) => ({
-    id: product.id,
-    name: product.info.name,
-    image: product.multimedia.images[0] || "/images/default-image.svg",
-  }));
-
-  const selectedProduct = products.find((p) => p.id === formData.productId);
+  // Note: ProductSearchDropdown now uses API search instead of pre-filtered products
 
   return (
     <div className="space-y-6">
@@ -270,18 +263,13 @@ export function BatchForm({ products }: BatchFormProps) {
                     Product <span className="text-red-500">*</span>
                   </Label>
                   <ProductSearchDropdown
-                    availableProducts={availableProductsForDropdown}
                     selectedProductId={formData.productId}
                     onSelect={handleProductSelect}
                     searchValue={productSearchValue}
                     onSearchChange={setProductSearchValue}
                     defaultProductImage="/images/default-image.svg"
                   />
-                  {selectedProduct && (
-                    <div className="text-sm text-gray-600 mt-2">
-                      <p>Selected: {selectedProduct.info.name}</p>
-                    </div>
-                  )}
+                  {/* Note: Selected product display removed since dropdown now uses API search */}
                 </div>
 
                 {/* Dates */}

@@ -330,11 +330,6 @@ export default function BannerAddForm({ products }: BannerAddFormProps) {
                     />
                   ) : (
                     <ProductSearchDropdown
-                      availableProducts={products.map((p) => ({
-                        id: p.id,
-                        name: p.info.name,
-                        image: p.multimedia?.images?.[0] || "",
-                      }))}
                       selectedProductId={formData.link}
                       onSelect={(productId) =>
                         setFormData({ ...formData, link: productId })

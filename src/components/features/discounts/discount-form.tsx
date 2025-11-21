@@ -234,15 +234,7 @@ export function DiscountForm({
     }
   };
 
-  // Convert products to the format expected by ProductSearchDropdown
-  // Filter out already selected products
-  const availableProductsForDropdown = products
-    .filter((product) => !formData.applicableProductIds.includes(product.id))
-    .map((product) => ({
-      id: product.id,
-      name: product.info.name,
-      image: product.multimedia.images[0] || "/images/default-image.svg",
-    }));
+  // Note: ProductSearchDropdown now uses API search instead of pre-filtered products
 
   const handleAddProduct = (productId: string) => {
     if (!formData.applicableProductIds.includes(productId)) {
@@ -482,7 +474,6 @@ export function DiscountForm({
                   <div>
                     <Label>Select Products</Label>
                     <ProductSearchDropdown
-                      availableProducts={availableProductsForDropdown}
                       selectedProductId=""
                       onSelect={handleAddProduct}
                       searchValue={productSearchValue}

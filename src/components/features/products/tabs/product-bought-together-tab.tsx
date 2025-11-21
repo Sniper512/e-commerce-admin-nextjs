@@ -25,10 +25,7 @@ export function ProductBoughtTogetherTab({
 }: ProductBoughtTogetherTabProps) {
   const [searchValue, setSearchValue] = useState("");
 
-  // Filter out already selected products from available list
-  const availableProductsForDropdown = availableProducts.filter(
-    (product) => !boughtTogetherProductIds.includes(product.id)
-  );
+  // Note: ProductSearchDropdown now uses API search instead of pre-filtered products
 
   const addBoughtTogetherProduct = (productId: string) => {
     if (boughtTogetherProductIds?.includes(productId)) {
@@ -62,7 +59,6 @@ export function ProductBoughtTogetherTab({
           <div className="space-y-2">
             <Label className="form-label">Search and Add Product</Label>
             <ProductSearchDropdown
-              availableProducts={availableProductsForDropdown}
               selectedProductId=""
               onSelect={addBoughtTogetherProduct}
               placeholder="Search for a product to add..."

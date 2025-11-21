@@ -19,10 +19,12 @@ export default async function DiscountDetailPage({
   const { id } = await params;
 
   // Fetch data on the server
-  const [discount, products] = await Promise.all([
+  const [discount, productsData] = await Promise.all([
     discountService.getById(id),
     productService.getAll({ isActive: true }),
   ]);
+
+  const { products } = productsData;
 
   // If discount not found, show 404
   if (!discount) {
