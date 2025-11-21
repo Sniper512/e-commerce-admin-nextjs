@@ -20,8 +20,5 @@ export interface Discount {
   startDate: Date;
   endDate: Date;
 
-  // Display
-  isFeaturedOnHomepage: boolean; // Whether this discount should be featured on the homepage
-
   currentUsageCount: number; // Number of times the discount has been used (auto-updated)
 }

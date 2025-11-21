@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Tag, CheckCircle2, XCircle, ToggleLeft, ToggleRight } from "lucide-react";
+import { Search, Eye, Tag, XCircle, ToggleLeft, ToggleRight } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
@@ -77,7 +77,9 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                 </p>
                 <p className="text-2xl font-bold">{stats.active}</p>
               </div>
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                <span className="text-green-600 font-bold text-sm">{stats.active}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -124,7 +126,6 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                 <TableHead className="text-center">Value</TableHead>
                 <TableHead className="text-center">Period</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-center">Homepage</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -132,7 +133,7 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
               {discounts.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={6}
                     className="text-center py-8 text-gray-500">
                     {searchTerm || filterStatus !== "all"
                       ? "No discounts found matching your filters"
@@ -202,13 +203,6 @@ export function DiscountsList({ discounts }: DiscountsListProps) {
                           ? "Active"
                           : "Inactive"}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {discount.isFeaturedOnHomepage ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto" />
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-center gap-2">

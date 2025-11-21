@@ -30,7 +30,6 @@ const firestoreToDiscount = (id: string, data: any): Discount => {
     currentUsageCount: data.currentUsageCount || 0,
     startDate: convertTimestamp(data.startDate),
     endDate: convertTimestamp(data.endDate),
-    isFeaturedOnHomepage: data.isFeaturedOnHomepage || false,
   };
 };
 

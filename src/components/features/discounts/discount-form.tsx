@@ -74,7 +74,6 @@ export function DiscountForm({
     startDate: discount?.startDate,
     endDate: discount?.endDate,
     isActive: discount?.isActive ?? true,
-    isFeaturedOnHomepage: discount?.isFeaturedOnHomepage || false,
   });
 
   const handleInputChange = (
@@ -231,7 +230,6 @@ export function DiscountForm({
             ? formData.minPurchaseAmount || 0
             : undefined,
         isActive: formData.isActive,
-        isFeaturedOnHomepage: formData.isFeaturedOnHomepage,
         ...(!isEditMode && { currentUsageCount: 0 }),
         startDate,
         endDate,
@@ -668,32 +666,6 @@ export function DiscountForm({
                     </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Display Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Display Options</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    id="isFeaturedOnHomepage"
-                    type="checkbox"
-                    checked={formData.isFeaturedOnHomepage}
-                    onChange={(e) =>
-                      handleInputChange("isFeaturedOnHomepage", e.target.checked)
-                    }
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="isFeaturedOnHomepage" className="cursor-pointer">
-                    Featured on Homepage
-                  </Label>
-                </div>
-                <p className="text-sm text-gray-500">
-                  Check this box to feature this discount prominently on the homepage.
-                </p>
               </CardContent>
             </Card>
           </div>
