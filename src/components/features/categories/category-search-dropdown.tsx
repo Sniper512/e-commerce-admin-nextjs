@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import type { Category } from "@/types";
 
 // Flattened item for search (can be category or subcategory)
 interface SearchableItem {
@@ -16,6 +17,8 @@ interface CategorySearchDropdownProps {
   placeholder?: string;
   searchValue: string;
   onSearchChange: (value: string) => void;
+  selectedCategoryId?: string;
+  categories?: Array<Category & { subcategories?: any[] }>; // Categories data for displaying selected category
 }
 
 const MIN_SEARCH_LENGTH = 2;
@@ -25,6 +28,8 @@ export function CategorySearchDropdown({
   placeholder = "Search and select a category...",
   searchValue,
   onSearchChange,
+  selectedCategoryId,
+  categories = [],
 }: CategorySearchDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -86,6 +91,45 @@ export function CategorySearchDropdown({
         document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
+
+  // Set selected item when selectedCategoryId or categories change
+  useEffect(() => {
+    if (selectedCategoryId && categories.length > 0) {
+      // Find the selected category in the provided categories data
+      const findCategory = (categoryId: string, cats: any[]): SearchableItem | null => {
+        for (const cat of cats) {
+          if (cat.id === categoryId) {
+            return {
+              id: cat.id,
+              name: cat.name,
+              description: cat.description,
+              isSubCategory: false,
+            };
+          }
+          // Check subcategories
+          if (cat.subcategories) {
+            for (const subCat of cat.subcategories) {
+              if (subCat.id === categoryId) {
+                return {
+                  id: subCat.id,
+                  name: subCat.name,
+                  description: subCat.description,
+                  parentName: cat.name,
+                  isSubCategory: true,
+                };
+              }
+            }
+          }
+        }
+        return null;
+      };
+
+      const selected = findCategory(selectedCategoryId, categories);
+      setSelectedItem(selected);
+    } else {
+      setSelectedItem(null);
+    }
+  }, [selectedCategoryId, categories]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

@@ -365,6 +365,8 @@ export default function BannerEditForm({
                       searchValue={categorySearch}
                       onSearchChange={setCategorySearch}
                       placeholder="Search for a category..."
+                      selectedCategoryId={formData.link}
+                      categories={categories}
                     />
                   ) : (
                     <ProductSearchDropdown

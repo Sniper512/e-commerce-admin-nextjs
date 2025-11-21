@@ -25,7 +25,7 @@ export default async function BannerEditPage({ params }: BannerEditPageProps) {
   }
 
   // Fetch categories and products for link selection
-  const categories = await categoryService.getAllCategories();
+  const categories = await categoryService.getAllCategoriesWithSubCategories();
   const { products } = await productService.getAll({});
 
   return (
