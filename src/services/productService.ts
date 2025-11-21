@@ -7,6 +7,7 @@ import {
   deleteDoc,
   query,
   where,
+  orderBy,
   QueryConstraint,
   arrayUnion,
   arrayRemove,
@@ -453,6 +454,10 @@ export const productService = {
     // Prepare product data with uploaded media URLs
     const productData = {
       ...data,
+      info: {
+        ...data.info,
+        nameLower: data.info.name.toLowerCase(), // Add lowercase name for case-insensitive search
+      },
       price: 0, // Initialize price to 0, will be updated when first batch is added
       multimedia: {
         images: uploadedImages,
@@ -613,6 +618,14 @@ export const productService = {
 
     // Prepare update data with uploaded media
     const updateData = { ...data };
+
+    // Update nameLower if name is being updated
+    if (data.info?.name) {
+      updateData.info = {
+        ...data.info,
+        nameLower: data.info.name.toLowerCase(),
+      };
+    }
 
     // Build multimedia object based on what was provided
     if (images !== undefined || video !== undefined) {
@@ -784,6 +797,88 @@ export const productService = {
         image: data.multimedia?.images?.[0] || "",
       };
     });
+  },
+
+  // Search products by name (case-insensitive)
+  async searchProducts(searchTerm: string, limit: number = 20): Promise<Product[]> {
+    try {
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        return [];
+      }
+
+      const searchTermLower = searchTerm.toLowerCase().trim();
+
+      // Use range query for prefix matching on nameLower
+      // Note: Firestore requires orderBy on the same field as range queries
+      const q = query(
+        collection(db, PRODUCTS_COLLECTION),
+        where("info.nameLower", ">=", searchTermLower),
+        where("info.nameLower", "<=", searchTermLower + "\uf8ff"),
+        orderBy("info.nameLower")
+      );
+
+      const querySnapshot = await getDocs(q);
+// Filter active products client-side since we can't combine isActive with range query easily
+const activeProducts = querySnapshot.docs.filter(doc => {
+  const data = doc.data();
+  return data.info?.isActive === true;
+}).slice(0, limit);
+
+const products = activeProducts.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Convert nested date fields in purchaseHistory
+          purchaseHistory:
+            data.purchaseHistory?.map((entry: any) => ({
+              ...entry,
+              orderDate: entry.orderDate?.toDate?.() || entry.orderDate,
+            })) || [],
+          // Convert nested date fields in info section
+          info: data.info
+            ? {
+                ...data.info,
+                markAsNewStartDate:
+                  data.info.markAsNewStartDate?.toDate?.() ||
+                  data.info.markAsNewStartDate,
+                markAsNewEndDate:
+                  data.info.markAsNewEndDate?.toDate?.() ||
+                  data.info.markAsNewEndDate,
+              }
+            : data.info,
+        };
+      }) as Product[];
+
+      // Fetch batch stock data for search results
+      const productIds = products.map((p) => p.id);
+      if (productIds.length > 0) {
+        const allBatchStockData: Record<string, any> = {};
+
+        // Batch productIds into chunks of 30
+        const BATCH_SIZE = 30;
+        for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
+          const chunk = productIds.slice(i, i + BATCH_SIZE);
+          const chunkStockData = await batchService.getStockDataForProducts(chunk);
+          Object.assign(allBatchStockData, chunkStockData);
+        }
+
+        // Enrich products with batch stock data
+        products.forEach((product) => {
+          product.batchStock = allBatchStockData[product.id] || {
+            usableStock: 0,
+            expiredStock: 0,
+            totalStock: 0,
+            activeBatchCount: 0,
+          };
+        });
+      }
+
+      return products;
+    } catch (error) {
+      console.error("Error searching products:", error);
+      throw error;
+    }
   },
 
   // Get product details by IDs (for populating similar/bought-together products)

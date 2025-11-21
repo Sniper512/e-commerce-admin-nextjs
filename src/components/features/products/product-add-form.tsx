@@ -105,6 +105,7 @@ export function ProductAddForm({
         slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
         info: {
           name: formData.name,
+          nameLower: formData.name.toLowerCase(),
           description: formData.description,
           categoryIds: formData.categoryIds,
           manufacturerId: formData.manufacturerId,

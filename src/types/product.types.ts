@@ -3,6 +3,7 @@
 // Product Information Section
 export interface ProductInfo {
   name: string;
+  nameLower: string; // Lowercase version for case-insensitive search
   description: string;
   categoryIds: string[]; // Format: "categoryId" or "parentCategoryId/subCategoryId"
   manufacturerId: string; // Reference to manufacturer ID
