@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Save, ArrowLeft, Loader2, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import discountService from "@/services/discountService";
+import { productService } from "@/services/productService";
 import { useToast } from "@/components/ui/toast-context";
 import { Discount, Category, Product } from "@/types";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
@@ -35,38 +36,19 @@ export function DiscountForm({
     initialCategories || []
   );
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [selectedProductDetails, setSelectedProductDetails] = useState<Record<string, { id: string; name: string; image: string }>>({});
   const isEditMode = !!discount;
 
-  // Get initial product IDs for edit mode by finding products that have this discount
+  // Get initial product IDs for edit mode from the discount data
   const getInitialProductIds = () => {
     if (!discount) return [];
-    return products
-      .filter((p) => p.discountIds?.includes(discount.id))
-      .map((p) => p.id);
+    return discount.applicableProductIds || [];
   };
 
-  // Get initial category IDs for edit mode by finding categories that have this discount
+  // Get initial category IDs for edit mode from the discount data
   const getInitialCategoryIds = () => {
-    if (!discount || !categories) return [];
-    const categoryIds: string[] = [];
-
-    categories.forEach((category: any) => {
-      // Check main category
-      if (category.discountIds?.includes(discount.id)) {
-        categoryIds.push(category.id);
-      }
-
-      // Check subcategories
-      if (category.subcategories) {
-        category.subcategories.forEach((sub: any) => {
-          if (sub.discountIds?.includes(discount.id)) {
-            categoryIds.push(`${category.id}/${sub.id}`);
-          }
-        });
-      }
-    });
-
-    return categoryIds;
+    if (!discount) return [];
+    return discount.applicableCategoryIds || [];
   };
 
   const initialProductIds = getInitialProductIds();
@@ -129,6 +111,69 @@ export function DiscountForm({
       setLoadingCategories(false);
     }
   };
+
+  // Fetch product details for applicableProductIds
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      if (formData.applicableProductIds.length > 0) {
+        const missingProductIds = formData.applicableProductIds.filter(
+          (id) => !selectedProductDetails[id]
+        );
+
+        if (missingProductIds.length > 0) {
+          try {
+            // Fetch details for missing products
+            const productDetails: Record<string, { id: string; name: string; image: string }> = {};
+
+            for (const productId of missingProductIds) {
+              // First try to find in the products prop
+              const product = products.find((p) => p.id === productId);
+              if (product) {
+                productDetails[productId] = {
+                  id: product.id,
+                  name: product.info.name,
+                  image: product.multimedia?.images?.[0] || "/images/default-image.svg",
+                };
+              } else {
+                // If not found in props, try to fetch from service
+                try {
+                  const productData = await productService.getById(productId);
+                  if (productData) {
+                    productDetails[productId] = {
+                      id: productData.id,
+                      name: productData.info?.name || "Unknown Product",
+                      image: productData.multimedia?.images?.[0] || "/images/default-image.svg",
+                    };
+                  } else {
+                    // Product not found
+                    productDetails[productId] = {
+                      id: productId,
+                      name: "Product not found",
+                      image: "/images/default-image.svg",
+                    };
+                  }
+                } catch (error) {
+                  console.error(`Error fetching product ${productId}:`, error);
+                  // Add placeholder for missing product
+                  productDetails[productId] = {
+                    id: productId,
+                    name: "Product not found",
+                    image: "/images/default-image.svg",
+                  };
+                }
+              }
+            }
+
+            setSelectedProductDetails((prev) => ({ ...prev, ...productDetails }));
+          } catch (error) {
+            console.error("Error fetching product details:", error);
+          }
+        }
+      }
+    };
+
+    fetchProductDetails();
+  }, [formData.applicableProductIds, products]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -484,21 +529,16 @@ export function DiscountForm({
                       <div className="mt-3 space-y-3">
                         {formData.applicableProductIds.map(
                           (productId: string) => {
-                            const product = products.find(
-                              (p) => p.id === productId
-                            );
-                            if (!product) return null;
+                            const productDetail = selectedProductDetails[productId];
+                            if (!productDetail) return null;
 
                             return (
                               <div
                                 key={productId}
                                 className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
                                 <Image
-                                  src={
-                                    product.multimedia.images[0] ||
-                                    "/images/default-image.svg"
-                                  }
-                                  alt={product.info.name}
+                                  src={productDetail.image}
+                                  alt={productDetail.name}
                                   className="w-12 h-12 object-cover rounded"
                                   width={48}
                                   height={48}
@@ -509,7 +549,7 @@ export function DiscountForm({
                                 />
                                 <div className="flex-1">
                                   <h4 className="font-medium">
-                                    {product.info.name}
+                                    {productDetail.name}
                                   </h4>
                                 </div>
                                 <Button

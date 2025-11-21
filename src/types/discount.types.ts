@@ -9,8 +9,8 @@ export interface Discount {
 
   // Applicability
   applicableTo: DiscountApplicableTo; // products, categories, or order (total)
-  // Note: Product associations are stored in Product.discountIds
-  // Note: Category associations are stored in Category.discountIds
+  applicableProductIds?: string[]; // Product IDs this discount applies to (when applicableTo = 'products')
+  applicableCategoryIds?: string[]; // Category IDs this discount applies to (when applicableTo = 'categories')
   minPurchaseAmount: number; // Minimum order amount to qualify (Only used when applicableTo = 'order')
 
   // Validity

@@ -21,7 +21,7 @@ export default async function DiscountDetailPage({
   // Fetch data on the server
   const [discount, productsData] = await Promise.all([
     discountService.getById(id),
-    productService.getAll({ isActive: true }),
+    productService.getAll(), // Load ALL products, not just active ones
   ]);
 
   const { products } = productsData;

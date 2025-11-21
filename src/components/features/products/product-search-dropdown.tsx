@@ -10,6 +10,11 @@ interface ProductSearchDropdownProps {
   searchValue: string;
   onSearchChange: (value: string) => void;
   defaultProductImage?: string;
+  selectedProduct?: {
+    id: string;
+    name: string;
+    image: string;
+  };
 }
 
 const MIN_SEARCH_LENGTH = 2;
@@ -22,6 +27,7 @@ export function ProductSearchDropdown({
   searchValue,
   onSearchChange,
   defaultProductImage = "/images/default-image.svg",
+  selectedProduct,
 }: ProductSearchDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -31,7 +37,7 @@ export function ProductSearchDropdown({
     image: string;
   }>>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<{
+  const [selectedProductState, setSelectedProductState] = useState<{
     id: string;
     name: string;
     image: string;
@@ -102,7 +108,7 @@ export function ProductSearchDropdown({
     // Find and store the selected item for display
     const selected = searchResults.find((item) => item.id === productId);
     if (selected) {
-      setSelectedProduct(selected);
+      setSelectedProductState(selected);
     }
     onSelect(productId);
     onSearchChange(""); // Clear search after selection
@@ -120,7 +126,7 @@ export function ProductSearchDropdown({
         <input
           ref={inputRef}
           type="text"
-          placeholder={selectedProduct ? selectedProduct.name : placeholder}
+          placeholder={selectedProduct ? selectedProduct.name : selectedProductState ? selectedProductState.name : placeholder}
           value={searchValue}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}

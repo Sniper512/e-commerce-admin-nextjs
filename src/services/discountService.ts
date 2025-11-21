@@ -23,6 +23,8 @@ const firestoreToDiscount = (id: string, data: any): Discount => {
     value: data.value || 0,
     createdAt: convertTimestamp(data.createdAt),
     applicableTo: data.applicableTo,
+    applicableProductIds: data.applicableProductIds || undefined,
+    applicableCategoryIds: data.applicableCategoryIds || undefined,
     minPurchaseAmount: data.minPurchaseAmount || 0,
     currentUsageCount: data.currentUsageCount || 0,
     startDate: convertTimestamp(data.startDate),
@@ -191,14 +193,14 @@ export const discountService = {
       const discountsRef = collection(db, COLLECTION_NAME);
       const q = query(
         discountsRef,
-        where("applicableProducts", "array-contains", productId),
-        where("isActive", "==", true)
+        where("applicableProductIds", "array-contains", productId)
       );
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map((doc) =>
-        firestoreToDiscount(doc.id, doc.data())
-      );
+      // Filter active discounts client-side since we can't combine array-contains with date queries easily
+      return snapshot.docs
+        .map((doc) => firestoreToDiscount(doc.id, doc.data()))
+        .filter((discount) => this.isDiscountActive(discount));
     } catch (error) {
       console.error(
         `Error fetching discounts for product ${productId}:`,
@@ -214,14 +216,14 @@ export const discountService = {
       const discountsRef = collection(db, COLLECTION_NAME);
       const q = query(
         discountsRef,
-        where("applicableCategories", "array-contains", categoryId),
-        where("isActive", "==", true)
+        where("applicableCategoryIds", "array-contains", categoryId)
       );
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map((doc) =>
-        firestoreToDiscount(doc.id, doc.data())
-      );
+      // Filter active discounts client-side since we can't combine array-contains with date queries easily
+      return snapshot.docs
+        .map((doc) => firestoreToDiscount(doc.id, doc.data()))
+        .filter((discount) => this.isDiscountActive(discount));
     } catch (error) {
       console.error(
         `Error fetching discounts for category ${categoryId}:`,
@@ -240,6 +242,8 @@ export const discountService = {
     try {
       const sanitizedData = sanitizeForFirestore({
         ...discountData,
+        applicableProductIds: productIds,
+        applicableCategoryIds: categoryIds,
       });
 
       const discountsRef = collection(db, COLLECTION_NAME);
@@ -250,21 +254,15 @@ export const discountService = {
       if (productIds && productIds.length > 0) {
         const { productService } = await import("./productService");
         const updatePromises = productIds.map(async (productId) => {
-          try {
-            const product = await productService.getById(productId);
-            if (product) {
-              const existingDiscountIds = product.discountIds || [];
-              if (!existingDiscountIds.includes(discountId)) {
-                await productService.update(productId, {
-                  discountIds: [...existingDiscountIds, discountId],
-                });
-              }
-            }
-          } catch (error) {
-            console.error(
-              `Error adding discount to product ${productId}:`,
-              error
-            );
+          const product = await productService.getById(productId);
+          if (!product) {
+            throw new Error(`Product ${productId} not found`);
+          }
+          const existingDiscountIds = product.discountIds || [];
+          if (!existingDiscountIds.includes(discountId)) {
+            await productService.update(productId, {
+              discountIds: [...existingDiscountIds, discountId],
+            });
           }
         });
         await Promise.all(updatePromises);
@@ -274,41 +272,36 @@ export const discountService = {
       if (categoryIds && categoryIds.length > 0) {
         const categoryService = (await import("./categoryService")).default;
         const updatePromises = categoryIds.map(async (categoryId) => {
-          try {
-            // Check if it's a subcategory (composite ID: "parentId/subId")
-            if (categoryId.includes("/")) {
-              const [parentId, subId] = categoryId.split("/");
-              const subcategory = await categoryService.getSubCategoryById(
-                parentId,
-                subId
-              );
-              if (subcategory) {
-                const existingDiscountIds = subcategory.discountIds || [];
-                if (!existingDiscountIds.includes(discountId)) {
-                  await categoryService.updateSubCategory(parentId, subId, {
-                    discountIds: [...existingDiscountIds, discountId],
-                  });
-                }
-              }
-            } else {
-              // It's a main category
-              const category = await categoryService.getCategoryById(
-                categoryId
-              );
-              if (category) {
-                const existingDiscountIds = category.discountIds || [];
-                if (!existingDiscountIds.includes(discountId)) {
-                  await categoryService.updateCategory(categoryId, {
-                    discountIds: [...existingDiscountIds, discountId],
-                  });
-                }
-              }
-            }
-          } catch (error) {
-            console.error(
-              `Error adding discount to category ${categoryId}:`,
-              error
+          // Check if it's a subcategory (composite ID: "parentId/subId")
+          if (categoryId.includes("/")) {
+            const [parentId, subId] = categoryId.split("/");
+            const subcategory = await categoryService.getSubCategoryById(
+              parentId,
+              subId
             );
+            if (!subcategory) {
+              throw new Error(`Subcategory ${categoryId} not found`);
+            }
+            const existingDiscountIds = subcategory.discountIds || [];
+            if (!existingDiscountIds.includes(discountId)) {
+              await categoryService.updateSubCategory(parentId, subId, {
+                discountIds: [...existingDiscountIds, discountId],
+              });
+            }
+          } else {
+            // It's a main category
+            const category = await categoryService.getCategoryById(
+              categoryId
+            );
+            if (!category) {
+              throw new Error(`Category ${categoryId} not found`);
+            }
+            const existingDiscountIds = category.discountIds || [];
+            if (!existingDiscountIds.includes(discountId)) {
+              await categoryService.updateCategory(categoryId, {
+                discountIds: [...existingDiscountIds, discountId],
+              });
+            }
           }
         });
         await Promise.all(updatePromises);
@@ -332,6 +325,8 @@ export const discountService = {
       const discountRef = doc(db, COLLECTION_NAME, id);
       const sanitizedData = sanitizeForFirestore({
         ...discountData,
+        applicableProductIds: productIds,
+        applicableCategoryIds: categoryIds,
       });
 
       // Handle fields that should be explicitly deleted when undefined
