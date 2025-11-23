@@ -1,0 +1,19 @@
+[debug] [2025-11-11T12:54:50.913Z] ----------------------------------------------------------------------
+[debug] [2025-11-11T12:54:50.916Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\alimu\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2025-11-11T12:54:50.916Z] CLI Version:   14.24.2
+[debug] [2025-11-11T12:54:50.916Z] Platform:      win32
+[debug] [2025-11-11T12:54:50.916Z] Node Version:  v22.17.1
+[debug] [2025-11-11T12:54:50.917Z] Time:          Tue Nov 11 2025 17:54:50 GMT+0500 (Pakistan Standard Time)
+[debug] [2025-11-11T12:54:50.917Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\alimu\Desktop\e-commerce-admin-nextjs
+

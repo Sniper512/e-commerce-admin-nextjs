@@ -294,7 +294,7 @@ export const productService = {
 
     if (filters?.categoryId) {
       constraints.push(
-        where("categoryIds", "array-contains", filters.categoryId)
+        where("info.categoryIds", "array-contains", filters.categoryId)
       );
     }
     if (filters?.isActive !== undefined) {
