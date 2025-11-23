@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { productService } from "@/services/productService";
 import { notFound } from "next/navigation";
 import { BatchDetail } from "@/components/features/batches/batch-detail";
+import { getBatchById } from "@/helpers/firestore_helper_functions/batches/get_methods/getBatchByIdFromDB";
 
 interface BatchDetailPageProps {
   params: {
@@ -18,7 +19,7 @@ export default async function BatchDetailPage({
   const { id } = await params;
 
   // Fetch data on the server
-  const batch = await batchService.getBatchById(id);
+  const batch = await getBatchById(id);
 
   // If batch not found, show 404
   if (!batch) {

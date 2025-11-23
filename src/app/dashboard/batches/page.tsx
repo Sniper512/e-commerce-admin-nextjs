@@ -7,12 +7,13 @@ import { Plus } from "lucide-react";
 import batchService from "@/services/batchService";
 import { productService } from "@/services/productService";
 import { BatchesList } from "@/components/features/batches/batches-list";
+import { getAllBatches } from "@/helpers/firestore_helper_functions/batches/get_methods/getAllBatchesFromDB";
 
 
 
 export default async function BatchesPage() {
   // Fetch batches on the server
-  const batches = await batchService.getAllBatches();
+  const batches = await getAllBatches();
 
   // Get unique product IDs from batches
   const productIds = [...new Set(batches.map((b) => b.productId))];

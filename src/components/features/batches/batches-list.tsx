@@ -32,6 +32,7 @@ import type { Batch } from "@/types";
 import { useToast } from "@/components/ui/toast-context";
 import Link from "next/link";
 import Image from "next/image";
+import { toggleActiveStatus } from "@/helpers/firestore_helper_functions/batches/update_methods/toggleBatchActiveStatusInDB";
 
 interface EnrichedBatch extends Batch {
   productName: string;
@@ -49,7 +50,7 @@ export function BatchesList({ batches }: BatchesListProps) {
 
   const handleToggleActive = async (id: string) => {
     try {
-      await batchService.toggleActiveStatus(id);
+      await toggleActiveStatus(id);
       showToast("success", "Batch status updated successfully!");
       router.refresh(); // Refresh server component data
     } catch (error) {
