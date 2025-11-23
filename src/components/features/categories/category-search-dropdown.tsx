@@ -65,7 +65,7 @@ export function CategorySearchDropdown({
           setSearchResults(results);
         }
       } catch (error) {
-        console.error("Error fetching search results:", error);
+        // Silently handle search errors
       } finally {
         setIsSearching(false);
       }
@@ -95,8 +95,28 @@ export function CategorySearchDropdown({
   // Set selected item when selectedCategoryId or categories change
   useEffect(() => {
     if (selectedCategoryId && categories.length > 0) {
-      // Find the selected category in the provided categories data
+      // Handle both direct category IDs, subcategory links (parentId/subId), and corrupted data
       const findCategory = (categoryId: string, cats: any[]): SearchableItem | null => {
+        // Check if it's a subcategory link: "parentId/subId"
+        const linkParts = categoryId.split('/');
+        if (linkParts.length === 2) {
+          const [parentId, subId] = linkParts;
+          const parentCat = cats.find(cat => cat.id === parentId);
+          if (parentCat && parentCat.subcategories) {
+            const subCat = parentCat.subcategories.find((sub: any) => sub.id === subId);
+            if (subCat) {
+              return {
+                id: subCat.id,
+                name: subCat.name,
+                description: subCat.description,
+                parentName: parentCat.name,
+                isSubCategory: true,
+              };
+            }
+          }
+        }
+
+        // Check for direct category match
         for (const cat of cats) {
           if (cat.id === categoryId) {
             return {
@@ -124,7 +144,15 @@ export function CategorySearchDropdown({
         return null;
       };
 
-      const selected = findCategory(selectedCategoryId, categories);
+      // Try with full selectedCategoryId first (handles subcategory links)
+      let selected = findCategory(selectedCategoryId, categories);
+
+      // If not found and it contains spaces, try with first part (handles corrupted data)
+      if (!selected && selectedCategoryId.includes(' ')) {
+        const potentialId = selectedCategoryId.split(' ')[0];
+        selected = findCategory(potentialId, categories);
+      }
+
       setSelectedItem(selected);
     } else {
       setSelectedItem(null);
@@ -148,6 +176,12 @@ export function CategorySearchDropdown({
     setIsOpen(false);
   };
 
+  const handleClearSelection = () => {
+    setSelectedItem(null);
+    onSelect("");
+    onSearchChange("");
+  };
+
   const shouldShowDropdown = isOpen && searchValue.length >= MIN_SEARCH_LENGTH;
 
   const showMinLengthHint =
@@ -163,8 +197,19 @@ export function CategorySearchDropdown({
           value={searchValue}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
+        {selectedItem && (
+          <button
+            type="button"
+            onClick={handleClearSelection}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {showMinLengthHint && (
