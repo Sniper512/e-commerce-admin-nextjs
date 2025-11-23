@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import paymentMethodService from "@/services/paymentMethodService";
+import { useToast } from "@/components/ui/toast-context";
 import type { PaymentMethod, PaymentMethodType } from "@/types";
 
 interface PaymentMethodFormProps {
@@ -22,6 +23,7 @@ export function PaymentMethodForm({
   isEditMode = false,
 }: PaymentMethodFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,7 +101,7 @@ export function PaymentMethodForm({
           paymentMethod.id,
           updateData
         );
-        alert("Payment method updated successfully!");
+        showToast("success", "Payment method updated successfully!");
       } else {
         // Create new payment method (include type)
         const createData: Partial<PaymentMethod> = {
@@ -118,7 +120,7 @@ export function PaymentMethodForm({
         }
 
         await paymentMethodService.createPaymentMethod(createData);
-        alert("Payment method created successfully!");
+        showToast("success", "Payment method created successfully!");
       }
       router.push("/dashboard/payments/methods");
       router.refresh();

@@ -14,6 +14,7 @@ import { ArrowLeft, Save, Loader2, Trash2, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import orderService from "@/services/orderService";
 import discountService from "@/services/discountService";
+import { useToast } from "@/components/ui/toast-context";
 import type {
   PaymentMethod,
   OrderItem,
@@ -51,6 +52,7 @@ export function OrderCreateForm({
   paymentMethods,
 }: OrderCreateFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -162,7 +164,7 @@ export function OrderCreateForm({
         if (item.productId === productId) {
           // Check stock
           if (newQuantity > item.availableStock) {
-            alert(`Only ${item.availableStock} units available in stock`);
+            showToast("warning", "Stock Limit Exceeded", `Only ${item.availableStock} units available in stock`);
             return item;
           }
 
@@ -221,13 +223,13 @@ export function OrderCreateForm({
       }
 
       // Determine payment status based on payment method type
-      let paymentStatus: "pending" | "pending_confirmation" = "pending";
+      let paymentStatus: "pending" | "awaiting_confirmation" = "pending";
       if (
         ["easypaisa", "jazzcash", "bank_transfer"].includes(
           selectedPaymentMethod.type
         )
       ) {
-        paymentStatus = "pending_confirmation";
+        paymentStatus = "awaiting_confirmation";
       }
 
       const now = new Date();
@@ -256,10 +258,10 @@ export function OrderCreateForm({
           },
         ],
         deliveryAddress: deliveryAddress.trim(),
-        status: "placed" as const,
+        status: "pending" as const,
         statusHistory: [
           {
-            status: "placed" as const,
+            status: "pending" as const,
             updatedAt: now,
           },
         ],
@@ -267,7 +269,7 @@ export function OrderCreateForm({
       };
 
       await orderService.createOrder(orderData);
-      alert("Order created successfully!");
+      showToast("success", "Order created successfully!");
       router.push("/dashboard/orders");
       router.refresh();
     } catch (error: any) {
@@ -621,7 +623,7 @@ export function OrderCreateForm({
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status</span>
-                  <span className="font-medium text-blue-600">Placed</span>
+                  <span className="font-medium text-blue-600">Pending</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Payment Status</span>

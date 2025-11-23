@@ -3,6 +3,7 @@
 // Product Information Section
 export interface ProductInfo {
   name: string;
+  nameLower: string; // Lowercase version for case-insensitive search
   description: string;
   categoryIds: string[]; // Format: "categoryId" or "parentCategoryId/subCategoryId"
   manufacturerId: string; // Reference to manufacturer ID
@@ -42,6 +43,7 @@ export interface Product {
 
   // Discounts Section
   discountIds: string[]; // Array of associated discount IDs
+  featuredDiscountIds: string[]; // Array of discount IDs that should be featured on homepage for this product
 
   // Inventory Section
   minimumStockQuantity: number;

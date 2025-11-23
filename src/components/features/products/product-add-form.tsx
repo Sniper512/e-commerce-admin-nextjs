@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
+import { useToast } from "@/components/ui/toast-context";
 import type { Product } from "@/types";
 import type {
   ProductImageWithFile,
@@ -15,7 +16,6 @@ import { ProductInfoTab } from "./tabs/product-info-tab";
 import { ProductDiscountsTab } from "./tabs/product-discounts-tab";
 import { ProductInventoryTab } from "./tabs/product-inventory-tab";
 import { ProductMultimediaTab } from "./tabs/product-multimedia-tab";
-import { ProductSimilarTab } from "./tabs/product-similar-tab";
 import { ProductBoughtTogetherTab } from "./tabs/product-bought-together-tab";
 import { ProductAddTabs } from "./product-add-tabs";
 
@@ -35,6 +35,7 @@ export function ProductAddForm({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
 
   // Get active tab from URL search params, default to "info"
@@ -62,7 +63,6 @@ export function ProductAddForm({
 
   const [video, setVideo] = useState<ProductVideoWithFile | null>(null);
 
-  const [similarProductIds, setSimilarProductIds] = useState<string[]>([]);
 
   const [boughtTogetherProductIds, setBoughtTogetherProductIds] = useState<
     string[]
@@ -82,12 +82,12 @@ export function ProductAddForm({
     try {
       // Validation for required fields
       if (!formData.name.trim()) {
-        alert("Product Name is required!");
+        showToast("error", "Validation Error", "Product Name is required!");
         return;
       }
 
       if (formData.categoryIds.length === 0) {
-        alert("Please select at least one category!");
+        showToast("error", "Validation Error", "Please select at least one category!");
         return;
       }
 
@@ -95,7 +95,7 @@ export function ProductAddForm({
         formData.minimumStockQuantity === undefined ||
         formData.minimumStockQuantity < 0
       ) {
-        alert("Minimum Stock Quantity is required and must be 0 or greater!");
+        showToast("error", "Validation Error", "Minimum Stock Quantity is required and must be 0 or greater!");
         return;
       }
 
@@ -105,6 +105,7 @@ export function ProductAddForm({
         slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
         info: {
           name: formData.name,
+          nameLower: formData.name.toLowerCase(),
           description: formData.description,
           categoryIds: formData.categoryIds,
           manufacturerId: formData.manufacturerId,
@@ -121,7 +122,6 @@ export function ProductAddForm({
           images: [],
           video: "",
         },
-        similarProductIds: similarProductIds,
         boughtTogetherProductIds: boughtTogetherProductIds,
         purchaseHistory: [],
       };
@@ -132,11 +132,11 @@ export function ProductAddForm({
         images,
         video
       );
-      alert("Product created successfully!");
+      showToast("success", "Product created successfully!");
       router.push("/dashboard/products");
     } catch (err) {
       console.error("Error creating product:", err);
-      alert("Failed to create product. Please try again.");
+      showToast("error", "Failed to create product", "Please try again.");
     } finally {
       setSaving(false);
     }
@@ -253,15 +253,6 @@ export function ProductAddForm({
           onImagesChange={setImages}
           video={video}
           onVideoChange={setVideo}
-        />
-      )}
-      {activeTab === "similar" && (
-        <ProductSimilarTab
-          similarProductIds={similarProductIds}
-          onSimilarProductIdsChange={setSimilarProductIds}
-          availableProducts={availableProducts}
-          selectedProducts={[]} // Empty for new product
-          defaultImage=""
         />
       )}
       {activeTab === "bought-together" && (

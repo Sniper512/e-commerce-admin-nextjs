@@ -14,11 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Trash2, Eye } from "lucide-react";
+import { Search, Trash2, Eye, ToggleLeft, ToggleRight } from "lucide-react";
 import type { Manufacturer } from "@/types";
 import manufacturerService from "@/services/manufacturerService";
 import { LinkButton } from "@/components/ui/link-button";
 import Image from "next/image";
+import { useToast } from "@/components/ui/toast-context";
 
 const DEFAULT_LOGO = "/images/default-manufacturer.svg";
 
@@ -28,6 +29,7 @@ interface ManufacturersListProps {
 
 export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter manufacturers based on search
@@ -42,22 +44,13 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
     });
   }, [manufacturers, searchQuery]);
 
-  const handleDelete = async (
-    manufacturerId: string,
-    manufacturerName: string
-  ) => {
-    if (!confirm(`Are you sure you want to delete "${manufacturerName}"?`)) {
-      return;
-    }
-
+  const handleToggleActive = async (manufacturerId: string) => {
     try {
-      await manufacturerService.deleteManufacturer(manufacturerId);
-      alert("Manufacturer deleted successfully!");
+      await manufacturerService.toggleActiveStatus(manufacturerId);
+      showToast("success", "Manufacturer status updated successfully!");
       router.refresh();
     } catch (error) {
-      alert(
-        error instanceof Error ? error.message : "Error deleting manufacturer"
-      );
+      showToast("error", "Failed to update manufacturer status", error instanceof Error ? error.message : "Unknown error");
     }
   };
 
@@ -88,6 +81,7 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                 <TableHead>Logo</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead className="text-center">Products</TableHead>
+                <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -96,7 +90,8 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                 <TableRow>
                   <TableCell
                     colSpan={6}
-                    className="text-center py-8 text-gray-500">
+                    className="text-center py-8 text-gray-500"
+                  >
                     No manufacturers found
                   </TableCell>
                 </TableRow>
@@ -126,21 +121,32 @@ export function ManufacturersList({ manufacturers }: ManufacturersListProps) {
                         {manufacturer.productCount || 0}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant={manufacturer.isActive ? "success" : "secondary"}>
+                        {manufacturer.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <div className="flex justify-center gap-2">
                         <LinkButton
                           variant="outline"
                           size="sm"
-                          href={`/dashboard/manufacturers/${manufacturer.id}`}>
+                          href={`/dashboard/manufacturers/${manufacturer.id}`}
+                        >
                           <Eye className="h-3 w-3" />
                         </LinkButton>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() =>
-                            handleDelete(manufacturer.id, manufacturer.name)
-                          }>
-                          <Trash2 className="h-3 w-3" />
+                          onClick={() => handleToggleActive(manufacturer.id)}
+                          title={manufacturer.isActive ? "Disable Manufacturer" : "Enable Manufacturer"}
+                        >
+                          {manufacturer.isActive ? (
+                            <ToggleRight className="h-3 w-3" />
+                          ) : (
+                            <ToggleLeft className="h-3 w-3" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>

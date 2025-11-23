@@ -1,9 +1,14 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 ﻿import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import batchService from "@/services/batchService";
 import { productService } from "@/services/productService";
 import { BatchesList } from "@/components/features/batches/batches-list";
+
+
 
 export default async function BatchesPage() {
   // Fetch batches on the server

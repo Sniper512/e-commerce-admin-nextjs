@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
+import { useToast } from "@/components/ui/toast-context";
 import type { Product, Batch } from "@/types";
 import type {
   ProductImageWithFile,
@@ -16,7 +17,6 @@ import { ProductInfoTab } from "./tabs/product-info-tab";
 import { ProductDiscountsTab } from "./tabs/product-discounts-tab";
 import { ProductInventoryTab } from "./tabs/product-inventory-tab";
 import { ProductMultimediaTab } from "./tabs/product-multimedia-tab";
-import { ProductSimilarTab } from "./tabs/product-similar-tab";
 import { ProductBoughtTogetherTab } from "./tabs/product-bought-together-tab";
 import { ProductOrderHistoryTab } from "./tabs/product-order-history-tab";
 
@@ -44,6 +44,7 @@ export function ProductEditForm({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
 
   // Get active tab from URL search params, default to "info"
@@ -77,9 +78,6 @@ export function ProductEditForm({
       : null
   );
 
-  const [similarProductIds, setSimilarProductIds] = useState(
-    product.similarProductIds || []
-  );
 
   const [boughtTogetherProductIds, setBoughtTogetherProductIds] = useState(
     product.boughtTogetherProductIds || []
@@ -106,6 +104,7 @@ export function ProductEditForm({
         slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
         info: {
           name: formData.name,
+          nameLower: formData.name.toLowerCase(),
           description: formData.description,
           categoryIds: formData.categoryIds,
           manufacturerId: formData.manufacturerId,
@@ -122,17 +121,16 @@ export function ProductEditForm({
           images: [],
           video: "",
         },
-        similarProductIds: similarProductIds,
         boughtTogetherProductIds: boughtTogetherProductIds,
       };
 
       // Pass images and video to service for upload
       await productService.update(product.id, updatedProduct, images, video);
-      alert("Product updated successfully!");
+      showToast("success", "Product updated successfully!");
       router.push("/dashboard/products");
     } catch (err) {
       console.error("Error updating product:", err);
-      alert("Failed to update product. Please try again.");
+      showToast("error", "Failed to update product. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -252,15 +250,6 @@ export function ProductEditForm({
           onImagesChange={setImages}
           video={video}
           onVideoChange={setVideo}
-        />
-      )}
-      {activeTab === "similar" && (
-        <ProductSimilarTab
-          similarProductIds={similarProductIds}
-          onSimilarProductIdsChange={setSimilarProductIds}
-          availableProducts={availableProducts}
-          selectedProducts={similarProducts}
-          defaultImage=""
         />
       )}
       {activeTab === "bought-together" && (

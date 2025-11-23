@@ -17,6 +17,7 @@ import {
 import { Search, Eye, Users, CheckCircle2, XCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import customerService from "@/services/customerService";
+import { useToast } from "@/components/ui/toast-context";
 import type { Customer } from "@/types";
 
 interface CustomersListProps {
@@ -25,6 +26,7 @@ interface CustomersListProps {
 
 export function CustomersList({ customers }: CustomersListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleToggleActive = async (id: string) => {
@@ -33,7 +35,7 @@ export function CustomersList({ customers }: CustomersListProps) {
       router.refresh();
     } catch (error) {
       console.error("Error toggling customer status:", error);
-      alert("Failed to update customer status");
+      showToast("error", "Failed to update customer status", error instanceof Error ? error.message : "Unknown error");
     }
   };
 

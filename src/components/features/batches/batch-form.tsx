@@ -20,6 +20,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import batchService from "@/services/batchService";
+import { useToast } from "@/components/ui/toast-context";
 import { Batch, Product } from "@/types";
 import { useSymbologyScanner } from "@use-symbology-scanner/react";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
@@ -30,6 +31,7 @@ interface BatchFormProps {
 
 export function BatchForm({ products }: BatchFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [productSearchValue, setProductSearchValue] = useState("");
   const [scannerActive, setScannerActive] = useState(false);
@@ -79,17 +81,17 @@ export function BatchForm({ products }: BatchFormProps) {
 
     // Validation
     if (!formData.batchId.trim()) {
-      alert("Please enter or scan a batch ID");
+      showToast("error", "Please enter or scan a batch ID");
       return;
     }
 
     if (!formData.productId) {
-      alert("Please select a product");
+      showToast("error", "Please select a product");
       return;
     }
 
     if (!formData.manufacturingDate || !formData.expiryDate) {
-      alert("Please enter manufacturing and expiry dates");
+      showToast("error", "Please enter manufacturing and expiry dates");
       return;
     }
 
@@ -97,7 +99,7 @@ export function BatchForm({ products }: BatchFormProps) {
     const expDate = new Date(formData.expiryDate);
 
     if (expDate <= mfgDate) {
-      alert("Expiry date must be after manufacturing date");
+      showToast("error", "Expiry date must be after manufacturing date");
       return;
     }
 
@@ -106,12 +108,12 @@ export function BatchForm({ products }: BatchFormProps) {
     const priceNum = Number(formData.price);
 
     if (!quantityNum || quantityNum <= 0) {
-      alert("Please enter a valid quantity");
+      showToast("error", "Please enter a valid quantity");
       return;
     }
 
     if (!priceNum || priceNum <= 0) {
-      alert("Please enter a valid price");
+      showToast("error", "Please enter a valid price");
       return;
     }
 
@@ -123,7 +125,7 @@ export function BatchForm({ products }: BatchFormProps) {
         formData.batchId
       );
       if (existingBatch) {
-        alert("A batch with this ID already exists");
+        showToast("error", "A batch with this ID already exists");
         setLoading(false);
         return;
       }
@@ -140,27 +142,22 @@ export function BatchForm({ products }: BatchFormProps) {
         supplier: formData.supplier.trim() || undefined,
         location: formData.location.trim() || undefined,
         notes: formData.notes.trim() || undefined,
+        isActive: true,
+        createdAt: new Date(),
       };
 
       await batchService.createBatch(batchData);
-      alert("Batch created successfully!");
+      showToast("success", "Batch created successfully!");
       router.push("/dashboard/batches");
     } catch (error) {
       console.error(`Error creating batch:`, error);
-      alert(`Failed to create batch. Please try again.`);
+      showToast("error", "Failed to create batch. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Convert products to dropdown format
-  const availableProductsForDropdown = products.map((product) => ({
-    id: product.id,
-    name: product.info.name,
-    image: product.multimedia.images[0] || "/images/default-image.svg",
-  }));
-
-  const selectedProduct = products.find((p) => p.id === formData.productId);
+  // Note: ProductSearchDropdown now uses API search instead of pre-filtered products
 
   return (
     <div className="space-y-6">
@@ -266,18 +263,13 @@ export function BatchForm({ products }: BatchFormProps) {
                     Product <span className="text-red-500">*</span>
                   </Label>
                   <ProductSearchDropdown
-                    availableProducts={availableProductsForDropdown}
                     selectedProductId={formData.productId}
                     onSelect={handleProductSelect}
                     searchValue={productSearchValue}
                     onSearchChange={setProductSearchValue}
                     defaultProductImage="/images/default-image.svg"
                   />
-                  {selectedProduct && (
-                    <div className="text-sm text-gray-600 mt-2">
-                      <p>Selected: {selectedProduct.info.name}</p>
-                    </div>
-                  )}
+                  {/* Note: Selected product display removed since dropdown now uses API search */}
                 </div>
 
                 {/* Dates */}

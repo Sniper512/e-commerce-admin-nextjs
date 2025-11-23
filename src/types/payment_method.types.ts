@@ -9,6 +9,7 @@ export interface PaymentMethod {
   type: PaymentMethodType;
   isActive: boolean;
   displayOrder: number;
+  createdAt: Date;
   accountDetails?: {
     accountNumber: string;
     accountTitle: string;

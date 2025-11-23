@@ -241,7 +241,7 @@ const orderService = {
       return {
         totalOrders: orders.length,
         pendingOrders: orders.filter(
-          (o) => o.status === "placed" || o.status === "pending_confirmation"
+          (o) => o.status === "pending"
         ).length,
         confirmedOrders: orders.filter((o) => o.status === "confirmed").length,
         deliveredOrders: orders.filter((o) => o.status === "delivered").length,

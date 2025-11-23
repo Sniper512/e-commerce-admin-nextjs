@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 import categoryService from "@/services/categoryService";
 import { CategoryAddForm } from "@/components/features/categories/category-add-form";
 

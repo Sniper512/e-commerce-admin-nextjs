@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 ﻿import categoryService from "@/services/categoryService";
 import { productService } from "@/services/productService";
 import discountService from "@/services/discountService";
@@ -16,10 +19,12 @@ export default async function DiscountDetailPage({
   const { id } = await params;
 
   // Fetch data on the server
-  const [discount, products] = await Promise.all([
+  const [discount, productsData] = await Promise.all([
     discountService.getById(id),
-    productService.getAll({ isActive: true }),
+    productService.getAll(), // Load ALL products, not just active ones
   ]);
+
+  const { products } = productsData;
 
   // If discount not found, show 404
   if (!discount) {

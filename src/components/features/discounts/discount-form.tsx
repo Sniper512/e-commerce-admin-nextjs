@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Save, ArrowLeft, Loader2, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import discountService from "@/services/discountService";
+import { productService } from "@/services/productService";
+import { useToast } from "@/components/ui/toast-context";
 import { Discount, Category, Product } from "@/types";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
 import { CategorySearchDropdown } from "@/components/features/categories/category-search-dropdown";
@@ -26,6 +28,7 @@ export function DiscountForm({
   products,
 }: DiscountFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [productSearchValue, setProductSearchValue] = useState("");
   const [categorySearchValue, setCategorySearchValue] = useState("");
@@ -33,38 +36,21 @@ export function DiscountForm({
     initialCategories || []
   );
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [selectedProductDetails, setSelectedProductDetails] = useState<Record<string, { id: string; name: string; image: string }>>({});
+  const [featuredProducts, setFeaturedProducts] = useState<Record<string, boolean>>({});
+  const [loadingProductDetails, setLoadingProductDetails] = useState(false);
   const isEditMode = !!discount;
 
-  // Get initial product IDs for edit mode by finding products that have this discount
+  // Get initial product IDs for edit mode from the discount data
   const getInitialProductIds = () => {
     if (!discount) return [];
-    return products
-      .filter((p) => p.discountIds?.includes(discount.id))
-      .map((p) => p.id);
+    return discount.applicableProductIds || [];
   };
 
-  // Get initial category IDs for edit mode by finding categories that have this discount
+  // Get initial category IDs for edit mode from the discount data
   const getInitialCategoryIds = () => {
-    if (!discount || !categories) return [];
-    const categoryIds: string[] = [];
-
-    categories.forEach((category: any) => {
-      // Check main category
-      if (category.discountIds?.includes(discount.id)) {
-        categoryIds.push(category.id);
-      }
-
-      // Check subcategories
-      if (category.subcategories) {
-        category.subcategories.forEach((sub: any) => {
-          if (sub.discountIds?.includes(discount.id)) {
-            categoryIds.push(`${category.id}/${sub.id}`);
-          }
-        });
-      }
-    });
-
-    return categoryIds;
+    if (!discount) return [];
+    return discount.applicableCategoryIds || [];
   };
 
   const initialProductIds = getInitialProductIds();
@@ -89,6 +75,7 @@ export function DiscountForm({
     minPurchaseAmount: discount?.minPurchaseAmount || 0,
     startDate: discount?.startDate,
     endDate: discount?.endDate,
+    isActive: discount?.isActive ?? true,
   });
 
   const handleInputChange = (
@@ -122,28 +109,123 @@ export function DiscountForm({
       }
     } catch (error) {
       console.error("Error loading categories:", error);
-      alert("Failed to load categories. Please try again.");
+      showToast("error", "Failed to load categories. Please try again.");
     } finally {
       setLoadingCategories(false);
     }
   };
+
+  // Fetch product details for applicableProductIds
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      if (formData.applicableProductIds.length > 0) {
+        const missingProductIds = formData.applicableProductIds.filter(
+          (id) => !selectedProductDetails[id]
+        );
+
+        if (missingProductIds.length > 0) {
+          setLoadingProductDetails(true);
+          try {
+            // Fetch details for missing products
+            const productDetails: Record<string, { id: string; name: string; image: string }> = {};
+
+            for (const productId of missingProductIds) {
+              // First try to find in the products prop
+              const product = products.find((p) => p.id === productId);
+              if (product) {
+                productDetails[productId] = {
+                  id: product.id,
+                  name: product.info.name,
+                  image: product.multimedia?.images?.[0] || "/images/default-image.svg",
+                };
+              } else {
+                // If not found in props, try to fetch from service
+                try {
+                  const productData = await productService.getById(productId);
+                  if (productData) {
+                    productDetails[productId] = {
+                      id: productData.id,
+                      name: productData.info?.name || "Unknown Product",
+                      image: productData.multimedia?.images?.[0] || "/images/default-image.svg",
+                    };
+                  } else {
+                    // Product not found
+                    productDetails[productId] = {
+                      id: productId,
+                      name: "Product not found",
+                      image: "/images/default-image.svg",
+                    };
+                  }
+                } catch (error) {
+                  console.error(`Error fetching product ${productId}:`, error);
+                  // Add placeholder for missing product
+                  productDetails[productId] = {
+                    id: productId,
+                    name: "Product not found",
+                    image: "/images/default-image.svg",
+                  };
+                }
+              }
+            }
+
+            setSelectedProductDetails((prev) => ({ ...prev, ...productDetails }));
+          } catch (error) {
+            console.error("Error fetching product details:", error);
+          } finally {
+            setLoadingProductDetails(false);
+          }
+        } else {
+          setLoadingProductDetails(false);
+        }
+      } else {
+        setLoadingProductDetails(false);
+      }
+    };
+
+    fetchProductDetails();
+  }, [formData.applicableProductIds, products]);
+
+  // Load featured status for products
+  useEffect(() => {
+    const loadFeaturedStatus = async () => {
+      if (formData.applicableProductIds.length > 0 && isEditMode && discount) {
+        const featuredStatus: Record<string, boolean> = {};
+
+        for (const productId of formData.applicableProductIds) {
+          try {
+            const product = await productService.getById(productId);
+            if (product) {
+              featuredStatus[productId] = product.featuredDiscountIds?.includes(discount.id) || false;
+            }
+          } catch (error) {
+            console.error(`Error loading featured status for product ${productId}:`, error);
+            featuredStatus[productId] = false;
+          }
+        }
+
+        setFeaturedProducts(featuredStatus);
+      }
+    };
+
+    loadFeaturedStatus();
+  }, [formData.applicableProductIds, isEditMode, discount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
     if (!formData.name.trim()) {
-      alert("Please enter discount name");
+      showToast("error", "Please enter discount name");
       return;
     }
 
     if (formData.value <= 0) {
-      alert("Please enter a valid discount value");
+      showToast("error", "Please enter a valid discount value");
       return;
     }
 
     if (formData.value > 100) {
-      alert("Percentage discount cannot exceed 100%");
+      showToast("error", "Percentage discount cannot exceed 100%");
       return;
     }
 
@@ -151,12 +233,12 @@ export function DiscountForm({
     const decimalPlaces = (formData.value.toString().split(".")[1] || "")
       .length;
     if (decimalPlaces > 2) {
-      alert("Percentage can have maximum 2 decimal places");
+      showToast("error", "Percentage can have maximum 2 decimal places");
       return;
     }
 
     if (!formData.startDate || !formData.endDate) {
-      alert("Please select start and end dates");
+      showToast("error", "Please select start and end dates");
       return;
     }
 
@@ -164,7 +246,7 @@ export function DiscountForm({
     const endDate = new Date(formData.endDate);
 
     if (endDate <= startDate) {
-      alert("End date must be after start date");
+      showToast("error", "End date must be after start date");
       return;
     }
 
@@ -181,6 +263,7 @@ export function DiscountForm({
           formData.applicableTo === "order"
             ? formData.minPurchaseAmount || 0
             : undefined,
+        isActive: formData.isActive,
         ...(!isEditMode && { currentUsageCount: 0 }),
         startDate,
         endDate,
@@ -204,7 +287,7 @@ export function DiscountForm({
           productIds,
           categoryIds
         );
-        alert("Discount updated successfully!");
+        showToast("success", "Discount updated successfully!");
       } else {
         // Create new discount
         await discountService.create(
@@ -212,7 +295,7 @@ export function DiscountForm({
           productIds,
           categoryIds
         );
-        alert("Discount created successfully!");
+        showToast("success", "Discount created successfully!");
       }
 
       router.push("/dashboard/discounts");
@@ -221,7 +304,8 @@ export function DiscountForm({
         `Error ${isEditMode ? "updating" : "creating"} discount:`,
         error
       );
-      alert(
+      showToast(
+        "error",
         `Failed to ${
           isEditMode ? "update" : "create"
         } discount. Please try again.`
@@ -231,15 +315,7 @@ export function DiscountForm({
     }
   };
 
-  // Convert products to the format expected by ProductSearchDropdown
-  // Filter out already selected products
-  const availableProductsForDropdown = products
-    .filter((product) => !formData.applicableProductIds.includes(product.id))
-    .map((product) => ({
-      id: product.id,
-      name: product.info.name,
-      image: product.multimedia.images[0] || "/images/default-image.svg",
-    }));
+  // Note: ProductSearchDropdown now uses API search instead of pre-filtered products
 
   const handleAddProduct = (productId: string) => {
     if (!formData.applicableProductIds.includes(productId)) {
@@ -271,6 +347,22 @@ export function DiscountForm({
       "applicableCategoryIds",
       formData.applicableCategoryIds.filter((id) => id !== categoryId)
     );
+  };
+
+  const handleToggleFeatured = async (productId: string) => {
+    if (!isEditMode || !discount) return;
+
+    try {
+      await productService.toggleFeaturedDiscount(productId, discount.id);
+      setFeaturedProducts(prev => ({
+        ...prev,
+        [productId]: !prev[productId]
+      }));
+      showToast("success", "Featured status updated successfully!");
+    } catch (error) {
+      console.error("Error toggling featured status:", error);
+      showToast("error", "Failed to update featured status", error instanceof Error ? error.message : "Unknown error");
+    }
   };
 
   // Helper to find category or subcategory by ID (supports composite IDs like "parentId/subId")
@@ -479,64 +571,76 @@ export function DiscountForm({
                   <div>
                     <Label>Select Products</Label>
                     <ProductSearchDropdown
-                      availableProducts={availableProductsForDropdown}
                       selectedProductId=""
                       onSelect={handleAddProduct}
                       searchValue={productSearchValue}
                       onSearchChange={setProductSearchValue}
                       defaultProductImage="/images/default-image.svg"
                     />
-                    {formData.applicableProductIds.length > 0 ? (
-                      <div className="mt-3 space-y-3">
-                        {formData.applicableProductIds.map(
-                          (productId: string) => {
-                            const product = products.find(
-                              (p) => p.id === productId
-                            );
-                            if (!product) return null;
+                    {loadingProductDetails ? (
+                       <div className="mt-3 flex items-center justify-center py-8">
+                         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                         <span className="ml-2 text-sm text-gray-500">Loading products...</span>
+                       </div>
+                     ) : formData.applicableProductIds.length > 0 ? (
+                       <div className="mt-3 space-y-3">
+                         {formData.applicableProductIds.map(
+                           (productId: string) => {
+                             const productDetail = selectedProductDetails[productId];
+                             if (!productDetail) return null;
 
-                            return (
-                              <div
-                                key={productId}
-                                className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                                <Image
-                                  src={
-                                    product.multimedia.images[0] ||
-                                    "/images/default-image.svg"
-                                  }
-                                  alt={product.info.name}
-                                  className="w-12 h-12 object-cover rounded"
-                                  width={48}
-                                  height={48}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src =
-                                      "/images/default-image.svg";
-                                  }}
-                                />
-                                <div className="flex-1">
-                                  <h4 className="font-medium">
-                                    {product.info.name}
-                                  </h4>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleRemoveProduct(productId)
-                                  }>
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
-                            );
-                          }
-                        )}
-                      </div>
-                    ) : (
-                      <div className="mt-3 text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                        No products selected yet
-                      </div>
-                    )}
+                             return (
+                               <div
+                                 key={productId}
+                                 className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                 <Image
+                                   src={productDetail.image}
+                                   alt={productDetail.name}
+                                   className="w-12 h-12 object-cover rounded"
+                                   width={48}
+                                   height={48}
+                                   onError={(e) => {
+                                     (e.target as HTMLImageElement).src =
+                                       "/images/default-image.svg";
+                                   }}
+                                 />
+                                 <div className="flex-1">
+                                   <h4 className="font-medium">
+                                     {productDetail.name}
+                                   </h4>
+                                 </div>
+                                 {isEditMode && (
+                                   <div className="flex items-center gap-2">
+                                     <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                       <input
+                                         type="checkbox"
+                                         checked={featuredProducts[productId] || false}
+                                         onChange={() => handleToggleFeatured(productId)}
+                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                       />
+                                       <span className="text-xs text-gray-600">Feature on Homepage</span>
+                                     </label>
+                                   </div>
+                                 )}
+                                 <Button
+                                   type="button"
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={() =>
+                                     handleRemoveProduct(productId)
+                                   }>
+                                   <Trash2 className="h-4 w-4 text-red-500" />
+                                 </Button>
+                               </div>
+                             );
+                           }
+                         )}
+                       </div>
+                     ) : (
+                       <div className="mt-3 text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                         No products selected yet
+                       </div>
+                     )}
                   </div>
                 )}
 
@@ -636,51 +740,51 @@ export function DiscountForm({
 
           {/* Validity Period */}
           <Card>
-            <CardHeader>
-              <CardTitle>Validity Period</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="startDate">Start Date *</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={
-                    formData.startDate
-                      ? new Date(formData.startDate).toISOString().split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) =>
-                    handleInputChange(
-                      "startDate",
-                      e.target.value ? new Date(e.target.value) : undefined
-                    )
-                  }
-                  required
-                />
-              </div>
+           <CardHeader>
+             <CardTitle>Validity Period</CardTitle>
+           </CardHeader>
+           <CardContent className="space-y-4">
+             <div>
+               <Label htmlFor="startDate">Start Date *</Label>
+               <Input
+                 id="startDate"
+                 type="date"
+                 value={
+                   formData.startDate
+                     ? new Date(formData.startDate).toISOString().split("T")[0]
+                     : ""
+                 }
+                 onChange={(e) =>
+                   handleInputChange(
+                     "startDate",
+                     e.target.value ? new Date(e.target.value) : undefined
+                   )
+                 }
+                 required
+               />
+             </div>
 
-              <div>
-                <Label htmlFor="endDate">End Date *</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={
-                    formData.endDate
-                      ? new Date(formData.endDate).toISOString().split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) =>
-                    handleInputChange(
-                      "endDate",
-                      e.target.value ? new Date(e.target.value) : undefined
-                    )
-                  }
-                  required
-                />
-              </div>
-            </CardContent>
-          </Card>
+             <div>
+               <Label htmlFor="endDate">End Date *</Label>
+               <Input
+                 id="endDate"
+                 type="date"
+                 value={
+                   formData.endDate
+                     ? new Date(formData.endDate).toISOString().split("T")[0]
+                     : ""
+                 }
+                 onChange={(e) =>
+                   handleInputChange(
+                     "endDate",
+                     e.target.value ? new Date(e.target.value) : undefined
+                   )
+                 }
+                 required
+               />
+             </div>
+           </CardContent>
+         </Card>
         </div>
       </form>
     </div>

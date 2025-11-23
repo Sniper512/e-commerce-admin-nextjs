@@ -5,6 +5,9 @@ import categoryService from "@/services/categoryService";
 import manufacturerService from "@/services/manufacturerService";
 import { ProductAddForm } from "@/components/features/products/product-add-form";
 
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 export default async function AddProductPage() {
   // Fetch data on the server
   const [productSearchList, discounts, categories, manufacturers] =

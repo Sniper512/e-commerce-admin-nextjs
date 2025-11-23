@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import type { Category } from "@/types";
 
 // Flattened item for search (can be category or subcategory)
 interface SearchableItem {
@@ -16,16 +17,19 @@ interface CategorySearchDropdownProps {
   placeholder?: string;
   searchValue: string;
   onSearchChange: (value: string) => void;
+  selectedCategoryId?: string;
+  categories?: Array<Category & { subcategories?: any[] }>; // Categories data for displaying selected category
 }
 
 const MIN_SEARCH_LENGTH = 2;
-const MAX_RESULTS = 20;
 
 export function CategorySearchDropdown({
   onSelect,
   placeholder = "Search and select a category...",
   searchValue,
   onSearchChange,
+  selectedCategoryId,
+  categories = [],
 }: CategorySearchDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -58,7 +62,7 @@ export function CategorySearchDropdown({
         );
         if (response.ok) {
           const results = await response.json();
-          setSearchResults(results.slice(0, MAX_RESULTS));
+          setSearchResults(results);
         }
       } catch (error) {
         console.error("Error fetching search results:", error);
@@ -88,6 +92,45 @@ export function CategorySearchDropdown({
     }
   }, [isOpen]);
 
+  // Set selected item when selectedCategoryId or categories change
+  useEffect(() => {
+    if (selectedCategoryId && categories.length > 0) {
+      // Find the selected category in the provided categories data
+      const findCategory = (categoryId: string, cats: any[]): SearchableItem | null => {
+        for (const cat of cats) {
+          if (cat.id === categoryId) {
+            return {
+              id: cat.id,
+              name: cat.name,
+              description: cat.description,
+              isSubCategory: false,
+            };
+          }
+          // Check subcategories
+          if (cat.subcategories) {
+            for (const subCat of cat.subcategories) {
+              if (subCat.id === categoryId) {
+                return {
+                  id: subCat.id,
+                  name: subCat.name,
+                  description: subCat.description,
+                  parentName: cat.name,
+                  isSubCategory: true,
+                };
+              }
+            }
+          }
+        }
+        return null;
+      };
+
+      const selected = findCategory(selectedCategoryId, categories);
+      setSelectedItem(selected);
+    } else {
+      setSelectedItem(null);
+    }
+  }, [selectedCategoryId, categories]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     onSearchChange(value);
@@ -105,10 +148,7 @@ export function CategorySearchDropdown({
     setIsOpen(false);
   };
 
-  const shouldShowDropdown =
-    isOpen &&
-    searchValue.length >= MIN_SEARCH_LENGTH &&
-    searchResults.length > 0;
+  const shouldShowDropdown = isOpen && searchValue.length >= MIN_SEARCH_LENGTH;
 
   const showMinLengthHint =
     isOpen && searchValue.length > 0 && searchValue.length < MIN_SEARCH_LENGTH;
@@ -140,7 +180,13 @@ export function CategorySearchDropdown({
           {isSearching ? (
             <div className="px-4 py-8 text-center text-gray-500">
               <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-              <p className="mt-2 text-sm">Searching...</p>
+              <p className="mt-2 text-sm">Searching categories...</p>
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-500">
+              <p className="text-sm">
+                No categories found for "{debouncedSearch}"
+              </p>
             </div>
           ) : (
             <>

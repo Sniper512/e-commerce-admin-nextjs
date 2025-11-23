@@ -16,16 +16,18 @@ import {
 } from "@/components/ui/table";
 import {
   Search,
-  Trash2,
   Eye,
   Check,
   X,
   Folder,
   FolderOpen,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import type { Category, SubCategory } from "@/types";
 import categoryService from "@/services/categoryService";
 import { LinkButton } from "@/components/ui/link-button";
+import { useToast } from "@/components/ui/toast-context";
 import Image from "next/image";
 
 interface CategoriesListProps {
@@ -45,6 +47,7 @@ export function CategoriesList({
   categoriesWithSubCategories,
 }: CategoriesListProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Flatten the data structure for display
@@ -74,36 +77,26 @@ export function CategoriesList({
     });
   }, [displayItems, searchQuery]);
 
-  const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) {
-      return;
-    }
-
+  const handleToggleCategory = async (categoryId: string) => {
     try {
-      await categoryService.deleteCategory(categoryId);
-      alert("Category deleted successfully!");
+      await categoryService.toggleActiveStatus(categoryId);
+      showToast("success", "Category status updated successfully!");
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Error deleting category");
+      showToast("error", "Error updating category status", error instanceof Error ? error.message : "Unknown error");
     }
   };
 
-  const handleDeleteSubCategory = async (
+  const handleToggleSubCategory = async (
     parentCategoryId: string,
     subCategoryId: string
   ) => {
-    if (!confirm("Are you sure you want to delete this sub-category?")) {
-      return;
-    }
-
     try {
-      await categoryService.deleteSubCategory(parentCategoryId, subCategoryId);
-      alert("Sub-category deleted successfully!");
+      await categoryService.toggleSubCategoryActiveStatus(parentCategoryId, subCategoryId);
+      showToast("success", "Subcategory status updated successfully!");
       router.refresh();
     } catch (error) {
-      alert(
-        error instanceof Error ? error.message : "Error deleting sub-category"
-      );
+      showToast("error", "Error updating subcategory status", error instanceof Error ? error.message : "Unknown error");
     }
   };
 
@@ -159,7 +152,7 @@ export function CategoriesList({
                     return (
                       <TableRow
                         key={`cat-${category.id}`}
-                        className="bg-gray-50">
+                        className={`bg-gray-50 ${!category.isActive ? 'opacity-60' : ''}`}>
                         <TableCell className="font-medium">
                           {category.displayOrder}
                         </TableCell>
@@ -239,8 +232,13 @@ export function CategoriesList({
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDeleteCategory(category.id)}>
-                              <Trash2 className="h-3 w-3" />
+                              onClick={() => handleToggleCategory(category.id)}
+                              title={category.isActive ? "Disable Category" : "Enable Category"}>
+                              {category.isActive ? (
+                                <ToggleRight className="h-3 w-3" />
+                              ) : (
+                                <ToggleLeft className="h-3 w-3" />
+                              )}
                             </Button>
                           </div>
                         </TableCell>
@@ -252,7 +250,7 @@ export function CategoriesList({
                     return (
                       <TableRow
                         key={`subcat-${subCategory.id}`}
-                        className="hover:bg-blue-50/50">
+                        className={`hover:bg-blue-50/50 ${!subCategory.isActive ? 'opacity-60' : ''}`}>
                         <TableCell className="pl-8">
                           {subCategory.displayOrder}
                         </TableCell>
@@ -281,9 +279,15 @@ export function CategoriesList({
                             subCategory.productIds.length}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary" className="text-gray-400">
-                            —
-                          </Badge>
+                          {subCategory.showOnNavbar ? (
+                            <Badge variant="success">
+                              <Check className="h-4 w-4" />
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              <X className="h-4 w-4" />
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="secondary" className="text-gray-400">
@@ -310,12 +314,17 @@ export function CategoriesList({
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                handleDeleteSubCategory(
+                                handleToggleSubCategory(
                                   item.parentId,
                                   subCategory.id
                                 )
-                              }>
-                              <Trash2 className="h-3 w-3" />
+                              }
+                              title={subCategory.isActive ? "Disable Subcategory" : "Enable Subcategory"}>
+                              {subCategory.isActive ? (
+                                <ToggleRight className="h-3 w-3" />
+                              ) : (
+                                <ToggleLeft className="h-3 w-3" />
+                              )}
                             </Button>
                           </div>
                         </TableCell>

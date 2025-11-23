@@ -20,6 +20,7 @@ import Link from "next/link";
 import categoryService from "@/services/categoryService";
 import type { Category } from "@/types";
 import Image from "next/image";
+import { useToast } from "@/components/ui/toast-context";
 
 interface CategoryAddFormProps {
   categories: Category[];
@@ -33,6 +34,7 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const{showToast} = useToast()
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -46,13 +48,13 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
   const handleFileValidation = (file: File): boolean => {
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      showToast("error","Please select an image file");
       return false;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size must be less than 5MB");
+      showToast("error","Image size must be less than 5MB");
       return false;
     }
 
@@ -107,12 +109,12 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
 
   const handleSaveCategory = async () => {
     if (!formData.name.trim()) {
-      alert("Please enter a category name");
+      showToast("error","Please enter a category name");
       return;
     }
 
     if (isSubCategory && !parentCategoryId) {
-      alert("Please select a parent category");
+      showToast("error","Please select a parent category");
       return;
     }
 
@@ -134,7 +136,7 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
           subCategoryData,
           imageFile
         );
-        alert("Subcategory created successfully!");
+        showToast("success","Subcategory created successfully!");
       } else {
         // Create root category
         const categoryData = {
@@ -149,12 +151,12 @@ export function CategoryAddForm({ categories }: CategoryAddFormProps) {
         };
 
         await categoryService.createCategory(categoryData, imageFile);
-        alert("Category created successfully!");
+        showToast("success","Category created successfully!");
       }
 
       router.push("/dashboard/categories");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Error saving category");
+      showToast("error","Error saving category");
     } finally {
       setLoading(false);
     }

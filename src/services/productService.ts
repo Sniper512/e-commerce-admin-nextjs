@@ -7,6 +7,7 @@ import {
   deleteDoc,
   query,
   where,
+  orderBy,
   QueryConstraint,
   arrayUnion,
   arrayRemove,
@@ -289,22 +290,66 @@ export const productService = {
   async getAll(filters?: {
     categoryId?: string;
     isActive?: boolean;
-  }): Promise<Product[]> {
+    limit?: number;
+    offset?: number;
+    searchQuery?: string;
+  }): Promise<{ products: Product[]; total: number }> {
     const constraints: QueryConstraint[] = [];
 
     if (filters?.categoryId) {
       constraints.push(
-        where("categoryIds", "array-contains", filters.categoryId)
+        where("info.categoryIds", "array-contains", filters.categoryId)
       );
     }
     if (filters?.isActive !== undefined) {
       constraints.push(where("info.isActive", "==", filters.isActive));
     }
+    if (filters?.searchQuery) {
+      const searchTermLower = filters.searchQuery.toLowerCase().trim();
+      if (searchTermLower) {
+        constraints.push(where("info.nameLower", ">=", searchTermLower));
+        constraints.push(where("info.nameLower", "<=", searchTermLower + "\uf8ff"));
+        constraints.push(orderBy("info.nameLower"));
+      }
+    }
 
+    // Get total count first (for pagination)
+    const countQuery = query(
+      collection(db, PRODUCTS_COLLECTION),
+      ...constraints
+    );
+    const countSnapshot = await getDocs(countQuery);
+    const total = countSnapshot.size;
+
+    // Validate and apply pagination with safety limits
+    const MAX_LIMIT = 500; // Hard limit to prevent abuse
+    const DEFAULT_LIMIT = 50;
+
+    let limit = filters?.limit || DEFAULT_LIMIT;
+    let offset = filters?.offset || 0;
+
+    // Enforce maximum limit
+    if (limit > MAX_LIMIT) {
+      limit = MAX_LIMIT;
+    }
+
+    // Ensure positive values
+    if (limit <= 0) limit = DEFAULT_LIMIT;
+    if (offset < 0) offset = 0;
+
+    // Ensure offset doesn't exceed total
+    if (offset >= total && total > 0) {
+      offset = Math.max(0, total - limit);
+    }
+
+    // Get paginated results
     const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints);
     const snapshot = await getDocs(q);
 
-    const products = snapshot.docs.map((doc) => {
+    // Apply manual pagination (slice after fetching)
+    const allDocs = snapshot.docs.slice(offset, offset + limit);
+
+    const products = allDocs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -333,13 +378,21 @@ export const productService = {
     // Fetch batch stock data for all products
     const productIds = products.map((p) => p.id);
     if (productIds.length > 0) {
-      const batchStockData = await batchService.getStockDataForProducts(
-        productIds
-      );
+      // Batch productIds into chunks of 30 to respect Firestore IN query limit
+      const BATCH_SIZE = 30;
+      const allBatchStockData: Record<string, any> = {};
+
+      for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
+        const chunk = productIds.slice(i, i + BATCH_SIZE);
+        const chunkStockData = await batchService.getStockDataForProducts(
+          chunk
+        );
+        Object.assign(allBatchStockData, chunkStockData);
+      }
 
       // Enrich products with batch stock data
       products.forEach((product) => {
-        product.batchStock = batchStockData[product.id] || {
+        product.batchStock = allBatchStockData[product.id] || {
           usableStock: 0,
           expiredStock: 0,
           totalStock: 0,
@@ -348,7 +401,7 @@ export const productService = {
       });
     }
 
-    return products;
+    return { products, total };
   },
 
   // Get product by ID
@@ -410,7 +463,12 @@ export const productService = {
     // Prepare product data with uploaded media URLs
     const productData = {
       ...data,
+      info: {
+        ...data.info,
+        nameLower: data.info.name.toLowerCase(), // Add lowercase name for case-insensitive search
+      },
       price: 0, // Initialize price to 0, will be updated when first batch is added
+      featuredDiscountIds: [], // Initialize empty array for featured discounts
       multimedia: {
         images: uploadedImages,
         video: uploadedVideo,
@@ -571,6 +629,14 @@ export const productService = {
     // Prepare update data with uploaded media
     const updateData = { ...data };
 
+    // Update nameLower if name is being updated
+    if (data.info?.name) {
+      updateData.info = {
+        ...data.info,
+        nameLower: data.info.name.toLowerCase(),
+      };
+    }
+
     // Build multimedia object based on what was provided
     if (images !== undefined || video !== undefined) {
       updateData.multimedia = {
@@ -650,6 +716,56 @@ export const productService = {
     );
   },
 
+  // Toggle product active status
+  async toggleActiveStatus(id: string): Promise<void> {
+    try {
+      const product = await this.getById(id);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      const newActiveStatus = !product.info.isActive;
+      await this.update(id, {
+        info: {
+          ...product.info,
+          isActive: newActiveStatus,
+        },
+      });
+    } catch (error) {
+      console.error("Error toggling product active status:", error);
+      throw error;
+    }
+  },
+
+  // Toggle featured discount status for a product
+  async toggleFeaturedDiscount(productId: string, discountId: string): Promise<void> {
+    try {
+      const product = await this.getById(productId);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      const featuredDiscountIds = product.featuredDiscountIds || [];
+      const isCurrentlyFeatured = featuredDiscountIds.includes(discountId);
+
+      let newFeaturedDiscountIds: string[];
+      if (isCurrentlyFeatured) {
+        // Remove from featured
+        newFeaturedDiscountIds = featuredDiscountIds.filter(id => id !== discountId);
+      } else {
+        // Add to featured
+        newFeaturedDiscountIds = [...featuredDiscountIds, discountId];
+      }
+
+      await this.update(productId, {
+        featuredDiscountIds: newFeaturedDiscountIds,
+      });
+    } catch (error) {
+      console.error("Error toggling featured discount status:", error);
+      throw error;
+    }
+  },
+
   // Delete product
   async delete(id: string): Promise<void> {
     // Get the product to access its categories, manufacturer, and media
@@ -722,6 +838,88 @@ export const productService = {
     });
   },
 
+  // Search products by name (case-insensitive)
+  async searchProducts(searchTerm: string, limit: number = 20): Promise<Product[]> {
+    try {
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        return [];
+      }
+
+      const searchTermLower = searchTerm.toLowerCase().trim();
+
+      // Use range query for prefix matching on nameLower
+      // Note: Firestore requires orderBy on the same field as range queries
+      const q = query(
+        collection(db, PRODUCTS_COLLECTION),
+        where("info.nameLower", ">=", searchTermLower),
+        where("info.nameLower", "<=", searchTermLower + "\uf8ff"),
+        orderBy("info.nameLower")
+      );
+
+      const querySnapshot = await getDocs(q);
+// Filter active products client-side since we can't combine isActive with range query easily
+const activeProducts = querySnapshot.docs.filter(doc => {
+  const data = doc.data();
+  return data.info?.isActive === true;
+}).slice(0, limit);
+
+const products = activeProducts.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Convert nested date fields in purchaseHistory
+          purchaseHistory:
+            data.purchaseHistory?.map((entry: any) => ({
+              ...entry,
+              orderDate: entry.orderDate?.toDate?.() || entry.orderDate,
+            })) || [],
+          // Convert nested date fields in info section
+          info: data.info
+            ? {
+                ...data.info,
+                markAsNewStartDate:
+                  data.info.markAsNewStartDate?.toDate?.() ||
+                  data.info.markAsNewStartDate,
+                markAsNewEndDate:
+                  data.info.markAsNewEndDate?.toDate?.() ||
+                  data.info.markAsNewEndDate,
+              }
+            : data.info,
+        };
+      }) as Product[];
+
+      // Fetch batch stock data for search results
+      const productIds = products.map((p) => p.id);
+      if (productIds.length > 0) {
+        const allBatchStockData: Record<string, any> = {};
+
+        // Batch productIds into chunks of 30
+        const BATCH_SIZE = 30;
+        for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
+          const chunk = productIds.slice(i, i + BATCH_SIZE);
+          const chunkStockData = await batchService.getStockDataForProducts(chunk);
+          Object.assign(allBatchStockData, chunkStockData);
+        }
+
+        // Enrich products with batch stock data
+        products.forEach((product) => {
+          product.batchStock = allBatchStockData[product.id] || {
+            usableStock: 0,
+            expiredStock: 0,
+            totalStock: 0,
+            activeBatchCount: 0,
+          };
+        });
+      }
+
+      return products;
+    } catch (error) {
+      console.error("Error searching products:", error);
+      throw error;
+    }
+  },
+
   // Get product details by IDs (for populating similar/bought-together products)
   async getProductsByIds(
     productIds: string[]
@@ -736,7 +934,6 @@ export const productService = {
     }
 
     const allProducts: Array<{ id: string; name: string; image: string }> = [];
-
     for (const batch of batches) {
       const q = query(
         collection(db, PRODUCTS_COLLECTION),
@@ -982,7 +1179,7 @@ export const productService = {
 
       // Check all products in these categories
       for (const categoryId of allCategoryIds) {
-        const products = await this.getAll({ categoryId });
+        const { products } = await this.getAll({ categoryId });
 
         const hasOtherProduct = products.some(
           (product) =>

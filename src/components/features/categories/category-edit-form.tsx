@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import type { Category, SubCategory, Product } from "@/types";
 import categoryService from "@/services/categoryService";
+import { useToast } from "@/components/ui/toast-context";
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/link-button";
 import Image from "next/image";
@@ -56,6 +57,7 @@ export function CategoryEditForm({
   isSubCategory,
 }: CategoryEditFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -71,6 +73,7 @@ export function CategoryEditForm({
           image: subCategory.image || "",
           displayOrder: subCategory.displayOrder,
           isActive: subCategory.isActive,
+          showOnNavbar: subCategory.showOnNavbar || false,
         }
       : {
           name: category.name,
@@ -87,13 +90,13 @@ export function CategoryEditForm({
   const handleFileValidation = (file: File): boolean => {
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      showToast("error","Please select an image file");
       return false;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size must be less than 5MB");
+      showToast("error","Image size must be less than 5MB");
       return false;
     }
 
@@ -152,7 +155,7 @@ export function CategoryEditForm({
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      alert(
+      showToast("error",
         `Please enter a ${isSubCategory ? "subcategory" : "category"} name`
       );
       return;
@@ -177,16 +180,10 @@ export function CategoryEditForm({
       setIsEditing(false);
       setImageFile(null);
       setImagePreview("");
-      alert(
-        `${isSubCategory ? "Subcategory" : "Category"} updated successfully!`
-      );
+      showToast("success", `${isSubCategory ? "Subcategory" : "Category"} updated successfully!`);
       router.refresh();
     } catch (err) {
-      alert(
-        err instanceof Error
-          ? err.message
-          : `Failed to update ${isSubCategory ? "subcategory" : "category"}`
-      );
+      showToast("error", `Failed to update ${isSubCategory ? "subcategory" : "category"}`, err instanceof Error ? err.message : "Unknown error");
     } finally {
       setSaving(false);
     }
@@ -201,6 +198,7 @@ export function CategoryEditForm({
             image: subCategory.image || "",
             displayOrder: subCategory.displayOrder,
             isActive: subCategory.isActive,
+            showOnNavbar: subCategory.showOnNavbar || false,
           }
         : {
             name: category.name,
@@ -654,7 +652,7 @@ export function CategoryEditForm({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Status</Label>
+                <Label>{isEditing ? "Active" : "Status"}</Label>
                 {isEditing ? (
                   <input
                     type="checkbox"
@@ -688,6 +686,32 @@ export function CategoryEditForm({
                   </Badge>
                 )}
               </div>
+
+              {isSubCategory && (
+                <div className="flex items-center justify-between">
+                  <Label>Show on Navbar</Label>
+                  {isEditing ? (
+                    <input
+                      type="checkbox"
+                      checked={(formData as any).showOnNavbar}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          showOnNavbar: e.target.checked,
+                        } as any)
+                      }
+                      className="w-4 h-4"
+                    />
+                  ) : (
+                    <Badge
+                      variant={
+                        subCategory?.showOnNavbar ? "success" : "secondary"
+                      }>
+                      {subCategory?.showOnNavbar ? "Yes" : "No"}
+                    </Badge>
+                  )}
+                </div>
+              )}
 
               {!isSubCategory && (
                 <>

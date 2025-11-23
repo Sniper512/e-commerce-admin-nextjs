@@ -2,18 +2,19 @@ import { PaymentMethod, PaymentMethodType } from "./payment_method.types";
 
 // Order Types
 export type OrderStatus =
-  | "placed" // When user provides address and clicks place order
-  | "pending_confirmation" // When user selects payment method
+  | "pending" // When order is created
   | "confirmed" // When admin confirms the order
+  | "shipped" // When order is shipped
   | "delivered" // When order is delivered to customer
   | "cancelled" // When admin or user cancels the order
   | "refunded"; // When order is refunded
 
 export type PaymentStatus =
   | "pending" // Either payment method not selected or cash on delivery selected
-  | "pending_confirmation" // For online payments, waiting for payment confirmation by admin
-  | "paid" // Payment confirmed by admin
-  | "refunded"; // Payment refunded
+  | "awaiting_confirmation" // For online payments, waiting for payment confirmation by admin
+  | "confirmed" // Payment confirmed by admin
+  | "refunded" // Payment refunded
+  | "cancelled"; // Payment cancelled
 
 export interface Order {
   id: string;

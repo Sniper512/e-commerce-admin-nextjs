@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         protocol: "http",
         hostname: "localhost",
       },
+      {
+        protocol: "https",
+        hostname: "nayabazar.pk",
+      },
     ],
     dangerouslyAllowSVG: true,
     dangerouslyAllowLocalIP: true, // Required for Firebase Storage Emulator on localhost

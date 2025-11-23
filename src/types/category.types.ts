@@ -17,6 +17,7 @@ export interface Category {
   showOnNavbar: boolean;
   discountIds: string[]; // Array of associated discount IDs
   manufacturerIds: string[]; // Array of manufacturer IDs with products in this category (including subcategories)
+  createdAt: Date;
 }
 
 // SubCategory interface for two-level hierarchy
@@ -31,7 +32,9 @@ export interface SubCategory {
   isActive: boolean;
   productIds: string[];
   productCount?: number;
+  showOnNavbar: boolean;
   discountIds: string[]; // Array of associated discount IDs
+  createdAt: Date;
 }
 
 // Category Helper Types and Functions

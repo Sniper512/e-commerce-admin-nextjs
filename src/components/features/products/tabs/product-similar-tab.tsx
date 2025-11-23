@@ -25,10 +25,7 @@ export function ProductSimilarTab({
 }: ProductSimilarTabProps) {
   const [searchValue, setSearchValue] = useState("");
 
-  // Filter out already selected products from available list
-  const availableProductsForDropdown = availableProducts.filter(
-    (product) => !similarProductIds.includes(product.id)
-  );
+  // Note: ProductSearchDropdown now uses API search instead of pre-filtered products
 
   const addSimilarProduct = (productId: string) => {
     if (similarProductIds?.includes(productId)) {
@@ -58,7 +55,6 @@ export function ProductSimilarTab({
           <div className="space-y-2">
             <Label className="form-label">Search and Add Product</Label>
             <ProductSearchDropdown
-              availableProducts={availableProductsForDropdown}
               selectedProductId=""
               onSelect={addSimilarProduct}
               placeholder="Search for a product to add..."

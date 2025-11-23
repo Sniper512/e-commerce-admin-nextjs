@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast-context";
 import {
   X,
   Upload,
@@ -58,6 +59,7 @@ export function ProductMultimediaTab({
   video,
   onVideoChange,
 }: ProductMultimediaTabProps) {
+  const { showToast } = useToast();
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isDraggingImages, setIsDraggingImages] = useState(false);
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
@@ -108,11 +110,11 @@ export function ProductMultimediaTab({
   // File validation for images
   const handleImageFileValidation = (file: File): boolean => {
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      showToast("error", "Invalid File Type", "Please select an image file");
       return false;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size must be less than 5MB");
+      showToast("error", "File Too Large", "Image size must be less than 5MB");
       return false;
     }
     return true;
@@ -121,11 +123,11 @@ export function ProductMultimediaTab({
   // File validation for videos
   const handleVideoFileValidation = (file: File): boolean => {
     if (!file.type.startsWith("video/")) {
-      alert("Please select a video file");
+      showToast("error", "Invalid File Type", "Please select a video file");
       return false;
     }
     if (file.size > 50 * 1024 * 1024) {
-      alert("Video size must be less than 50MB");
+      showToast("error", "File Too Large", "Video size must be less than 50MB");
       return false;
     }
     return true;

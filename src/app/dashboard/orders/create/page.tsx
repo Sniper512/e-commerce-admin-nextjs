@@ -1,3 +1,6 @@
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from "react";
 import customerService from "@/services/customerService";
 import paymentMethodService from "@/services/paymentMethodService";
@@ -13,13 +16,26 @@ export default async function CreateOrderPage() {
     productService.getAll({ isActive: true }),
   ]);
 
-  // Get stock data for all products
-  const productIds = allProducts.map((p) => p.id);
-  const stockData = await batchService.getStockDataForProducts(productIds);
+  // Get stock data for all products (batch into chunks of 30 due to Firestore IN limit)
+  const productIds = allProducts.products.map((p) => p.id);
+  const BATCH_SIZE = 30;
+  const stockDataChunks: Record<string, any>[] = [];
+
+  for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
+    const chunk = productIds.slice(i, i + BATCH_SIZE);
+    const chunkStockData = await batchService.getStockDataForProducts(chunk);
+    stockDataChunks.push(chunkStockData);
+  }
+
+  // Merge all stock data chunks
+  const stockData: Record<string, any> = {};
+  stockDataChunks.forEach((chunk) => {
+    Object.assign(stockData, chunk);
+  });
 
   // Get first available batch for each product (for pricing and batch ID)
   const productsWithStock = await Promise.all(
-    allProducts.map(async (product) => {
+    allProducts.products.map(async (product) => {
       const batches = await batchService.getBatchesByProductId(product.id);
       const activeBatch = batches.find((b) => b.remainingQuantity > 0);
 

@@ -10,7 +10,7 @@ import {
   query,
   where,
   orderBy,
-  Timestamp,
+  limit,
   arrayUnion,
   arrayRemove,
 } from "firebase/firestore";
@@ -41,6 +41,7 @@ const firestoreToCategory = (id: string, data: any): Category => {
     showOnNavbar: data.showOnNavbar ?? false,
     discountIds: data.discountIds || [],
     manufacturerIds: data.manufacturerIds || [],
+    createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
   };
 };
 
@@ -50,16 +51,6 @@ const firestoreToSubCategory = (
   data: any,
   parentCategoryId: string
 ): SubCategory => {
-  const convertTimestamp = (timestamp: any): Date => {
-    if (timestamp instanceof Timestamp) return timestamp.toDate();
-    if (timestamp instanceof Date) return timestamp;
-    if (typeof timestamp === "string") {
-      const parsed = new Date(timestamp);
-      return isNaN(parsed.getTime()) ? new Date() : parsed;
-    }
-    return new Date();
-  };
-
   return {
     id,
     name: data.name || "",
@@ -71,7 +62,9 @@ const firestoreToSubCategory = (
     isActive: data.isActive ?? true,
     productIds: data.productIds || [],
     productCount: data.productCount || 0,
+    showOnNavbar: data.showOnNavbar ?? false,
     discountIds: data.discountIds || [],
+    createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
   };
 };
 
@@ -696,6 +689,21 @@ export const categoryService = {
     });
   },
 
+  // Toggle subcategory active status
+  async toggleSubCategoryActiveStatus(
+    parentCategoryId: string,
+    subCategoryId: string
+  ): Promise<void> {
+    const subCategory = await this.getSubCategoryById(parentCategoryId, subCategoryId);
+    if (!subCategory) {
+      throw new Error("Subcategory not found");
+    }
+
+    await this.updateSubCategory(parentCategoryId, subCategoryId, {
+      isActive: !subCategory.isActive,
+    });
+  },
+
   // Reorder categories
   async reorderCategories(
     categoryOrders: { id: string; displayOrder: number }[]
@@ -730,7 +738,7 @@ export const categoryService = {
   },
 
   // Search categories and subcategories (returns flattened results with composite IDs for subcategories)
-  async searchCategoriesAndSubCategories(query: string): Promise<
+  async searchCategoriesAndSubCategories(searchQuery: string): Promise<
     Array<{
       id: string; // For main categories: "categoryId", for subcategories: "categoryId/subCategoryId"
       name: string;
@@ -740,11 +748,11 @@ export const categoryService = {
     }>
   > {
     try {
-      if (!query || query.trim().length < 2) {
+      if (!searchQuery || searchQuery.trim().length < 2) {
         return [];
       }
 
-      const lowercaseQuery = query.toLowerCase().trim();
+      const lowercaseQuery = searchQuery.toLowerCase().trim();
       const results: Array<{
         id: string;
         name: string;
@@ -753,59 +761,95 @@ export const categoryService = {
         isSubCategory: boolean;
       }> = [];
 
-      // Get all categories with subcategories
+      const MAX_RESULTS = 20;
+
+      // Fetch all categories (efficient for small datasets like yours)
       const categoriesRef = collection(db, COLLECTION_NAME);
       const categoriesSnapshot = await getDocs(categoriesRef);
 
-      for (const categoryDoc of categoriesSnapshot.docs) {
-        const category = firestoreToCategory(
-          categoryDoc.id,
-          categoryDoc.data()
-        );
+      // Filter categories case-insensitively in memory
+      const matchedCategories = categoriesSnapshot.docs.filter((doc) => {
+        const name = (doc.data().name || "").toLowerCase();
+        return name.includes(lowercaseQuery);
+      });
 
-        // Check if main category matches
-        const categoryMatches =
-          category.name.toLowerCase().includes(lowercaseQuery) ||
-          category.description?.toLowerCase().includes(lowercaseQuery);
+      // Add matching categories and their subcategories
+      for (const categoryDoc of matchedCategories) {
+        if (results.length >= MAX_RESULTS) break;
 
-        if (categoryMatches) {
-          results.push({
-            id: category.id,
-            name: category.name,
-            description: category.description,
-            isSubCategory: false,
-          });
-        }
+        const data = categoryDoc.data();
+        results.push({
+          id: categoryDoc.id,
+          name: data.name || "",
+          description: data.description || "",
+          isSubCategory: false,
+        });
 
-        // Search subcategories
-        const subCategoriesRef = collection(
-          db,
-          COLLECTION_NAME,
-          categoryDoc.id,
-          SUBCATEGORIES_COLLECTION
-        );
-        const subCategoriesSnapshot = await getDocs(subCategoriesRef);
-
-        for (const subCategoryDoc of subCategoriesSnapshot.docs) {
-          const subCategory = firestoreToSubCategory(
-            subCategoryDoc.id,
-            subCategoryDoc.data(),
-            categoryDoc.id
+        // Get subcategories of matching categories
+        if (results.length < MAX_RESULTS) {
+          const subCategoriesRef = collection(
+            db,
+            COLLECTION_NAME,
+            categoryDoc.id,
+            SUBCATEGORIES_COLLECTION
           );
 
-          const subCategoryMatches =
-            subCategory.name.toLowerCase().includes(lowercaseQuery) ||
-            subCategory.description?.toLowerCase().includes(lowercaseQuery) ||
-            category.name.toLowerCase().includes(lowercaseQuery); // Also match if parent matches
+          const subSnapshot = await getDocs(subCategoriesRef);
 
-          if (subCategoryMatches) {
-            results.push({
-              id: `${category.id}/${subCategory.id}`, // Composite ID
-              name: subCategory.name,
-              description: subCategory.description,
-              parentName: category.name,
-              isSubCategory: true,
-            });
+          for (const subDoc of subSnapshot.docs) {
+            if (results.length >= MAX_RESULTS) break;
+
+            const subData = subDoc.data();
+            const subName = subData.name || "";
+
+            // Only add if subcategory name matches query (case-insensitive)
+            if (subName.toLowerCase().includes(lowercaseQuery)) {
+              results.push({
+                id: `${categoryDoc.id}/${subDoc.id}`,
+                name: subName,
+                description: subData.description || "",
+                parentName: data.name,
+                isSubCategory: true,
+              });
+            }
+          }
+        }
+      }
+
+      // Search for subcategories across non-matched categories
+      if (results.length < MAX_RESULTS) {
+        for (const categoryDoc of categoriesSnapshot.docs) {
+          if (results.length >= MAX_RESULTS) break;
+
+          // Skip if we already processed this category
+          if (matchedCategories.some((d) => d.id === categoryDoc.id)) continue;
+
+          const categoryData = categoryDoc.data();
+          const subCategoriesRef = collection(
+            db,
+            COLLECTION_NAME,
+            categoryDoc.id,
+            SUBCATEGORIES_COLLECTION
+          );
+
+          const subSnapshot = await getDocs(subCategoriesRef);
+
+          for (const subDoc of subSnapshot.docs) {
+            if (results.length >= MAX_RESULTS) break;
+
+            const subData = subDoc.data();
+            const subName = subData.name || "";
+
+            // Check if subcategory name matches query (case-insensitive)
+            if (subName.toLowerCase().includes(lowercaseQuery)) {
+              results.push({
+                id: `${categoryDoc.id}/${subDoc.id}`,
+                name: subName,
+                description: subData.description || "",
+                parentName: categoryData.name,
+                isSubCategory: true,
+              });
+            }
           }
         }
       }
