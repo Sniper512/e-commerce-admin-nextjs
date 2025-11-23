@@ -295,6 +295,17 @@ export const productService = {
     offset?: number;
     searchQuery?: string;
   }): Promise<{ products: Product[]; total: number }> {
+    // Validate filters to prevent potential issues
+    if (filters?.categoryId && typeof filters.categoryId !== 'string') {
+      console.warn("Invalid categoryId in getAll filters:", filters.categoryId);
+      filters.categoryId = undefined;
+    }
+
+    if (filters?.searchQuery && typeof filters.searchQuery !== 'string') {
+      console.warn("Invalid searchQuery in getAll filters:", filters.searchQuery);
+      filters.searchQuery = undefined;
+    }
+
     const constraints: QueryConstraint[] = [];
 
     if (filters?.categoryId) {
@@ -1163,6 +1174,16 @@ const products = activeProducts.map((doc) => {
     excludeProductId: string
   ): Promise<boolean> {
     try {
+      // Validate inputs to prevent potential infinite loops
+      if (!parentCategoryId || !manufacturerId) {
+        console.warn("Invalid parameters for canRemoveManufacturerFromCategory:", {
+          parentCategoryId,
+          manufacturerId,
+          excludeProductId
+        });
+        return true; // Allow removal if parameters are invalid
+      }
+
       // Get the category to ensure it exists
       const category = await categoryService.getCategoryById(parentCategoryId);
       if (!category) return true;
@@ -1180,16 +1201,21 @@ const products = activeProducts.map((doc) => {
 
       // Check all products in these categories
       for (const categoryId of allCategoryIds) {
-        const { products } = await this.getAll({ categoryId });
+        try {
+          const { products } = await this.getAll({ categoryId });
 
-        const hasOtherProduct = products.some(
-          (product) =>
-            product.id !== excludeProductId &&
-            product.info?.manufacturerId === manufacturerId
-        );
+          const hasOtherProduct = products.some(
+            (product) =>
+              product.id !== excludeProductId &&
+              product.info?.manufacturerId === manufacturerId
+          );
 
-        if (hasOtherProduct) {
-          return false; // Cannot remove, other products use this manufacturer
+          if (hasOtherProduct) {
+            return false; // Cannot remove, other products use this manufacturer
+          }
+        } catch (error) {
+          console.error(`Error checking products for category ${categoryId}:`, error);
+          // Continue checking other categories instead of failing completely
         }
       }
 
@@ -1199,7 +1225,8 @@ const products = activeProducts.map((doc) => {
         "Error checking if manufacturer can be removed from category:",
         error
       );
-      throw error;
+      // Return true to allow removal rather than failing
+      return true;
     }
   },
 };

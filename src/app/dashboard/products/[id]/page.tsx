@@ -7,6 +7,7 @@ import batchService from "@/services/batchService";
 import { notFound } from "next/navigation";
 import { ProductEditForm } from "@/components/features/products/product-edit-form";
 import { getBatchesByProductId } from "@/helpers/firestore_helper_functions/batches/get_methods/getBatchFromProductIdFromDB";
+import { safeSerializeForClient } from "@/lib/firestore-utils";
 
 interface ProductDetailPageProps {
   params: {
@@ -48,18 +49,14 @@ export default async function ProductDetailPage({
   ]);
 
   // Serialize data for client component
-  const serializedProduct = JSON.parse(JSON.stringify(product));
-  const serializedProductSearchList = JSON.parse(
-    JSON.stringify(productSearchList)
-  );
-  const serializedSimilarProducts = JSON.parse(JSON.stringify(similarProducts));
-  const serializedBoughtTogetherProducts = JSON.parse(
-    JSON.stringify(boughtTogetherProducts)
-  );
-  const serializedDiscounts = JSON.parse(JSON.stringify(discounts));
-  const serializedCategories = JSON.parse(JSON.stringify(categories));
-  const serializedManufacturers = JSON.parse(JSON.stringify(manufacturers));
-  const serializedBatches = JSON.parse(JSON.stringify(batches));
+  const serializedProduct = safeSerializeForClient(product);
+  const serializedProductSearchList = safeSerializeForClient(productSearchList);
+  const serializedSimilarProducts = safeSerializeForClient(similarProducts);
+  const serializedBoughtTogetherProducts = safeSerializeForClient(boughtTogetherProducts);
+  const serializedDiscounts = safeSerializeForClient(discounts);
+  const serializedCategories = safeSerializeForClient(categories);
+  const serializedManufacturers = safeSerializeForClient(manufacturers);
+  const serializedBatches = safeSerializeForClient(batches);
 
   // Filter out current product from available products
   const availableProducts = serializedProductSearchList.filter(

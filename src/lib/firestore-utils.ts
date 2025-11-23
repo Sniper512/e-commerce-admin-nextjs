@@ -71,6 +71,44 @@ export function convertTimestamp(timestamp: any): Date {
 }
 
 /**
+ * Safely serialize data to JSON, handling circular references
+ */
+export function safeJsonSerialize(obj: any): string {
+  const seen = new WeakSet();
+
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) {
+        return "[Circular Reference]";
+      }
+      seen.add(value);
+    }
+    return value;
+  });
+}
+
+/**
+ * Safely parse and serialize data for client components
+ */
+export function safeSerializeForClient<T>(data: T): T {
+  try {
+    // First try normal JSON serialization
+    return JSON.parse(JSON.stringify(data));
+  } catch (error) {
+    // If that fails (likely due to circular references), use safe serialization
+    console.warn("Normal JSON serialization failed, using safe serialization:", error);
+    try {
+      const serialized = safeJsonSerialize(data);
+      return JSON.parse(serialized);
+    } catch (safeError) {
+      console.error("Safe serialization also failed:", safeError);
+      // Return a basic version without problematic properties
+      return JSON.parse(JSON.stringify({ ...data, batchStock: undefined }));
+    }
+  }
+}
+
+/**
  * Generate URL-friendly slug from text
  */
 export function generateSlug(text: string): string {

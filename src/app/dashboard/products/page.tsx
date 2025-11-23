@@ -5,6 +5,7 @@ import { productService } from "@/services/productService";
 import categoryService from "@/services/categoryService";
 import { ProductsList } from "@/components/features/products/products-list";
 import { redirect } from "next/navigation";
+import { safeSerializeForClient } from "@/lib/firestore-utils";
 
 interface ProductsPageProps {
   searchParams?: Promise<{
@@ -68,8 +69,8 @@ export default async function ProductsPage({
   }
 
   // Serialize data for client component
-  const serializedProducts = JSON.parse(JSON.stringify(products));
-  const serializedCategories = JSON.parse(JSON.stringify(categories));
+  const serializedProducts = safeSerializeForClient(products);
+  const serializedCategories = safeSerializeForClient(categories);
 
   return (
     <div className="space-y-6">
