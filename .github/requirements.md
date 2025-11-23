@@ -3,7 +3,7 @@ This is the admin side and we are doing the admin side implementation. We'll do 
 Let me explain the business logic, then we'll do the necessary modifications.
 We have to update OrderStatus and PaymentStatus flow in this way.
 
-- On admin side, the admiin fills the create new order form, including:
+- On admin side, the admin fills the create new order form, including:
 
   - Selecting the customer
   - Selecting products and their quantities
@@ -43,19 +43,17 @@ We have to update OrderStatus and PaymentStatus flow in this way.
     - Admin will first confirm the payment by verifying the payment receipt uploaded by the customer/admin.
     - After confirming the payment, admin will set PaymentStatus to **confirmed**
     - When the payment is confirmed, the admin will set OrderStatus to **confirmed**
-  - If the customer wants to cancel the order before it is shipped (within 1 hour of order creation):
-    - He will do so from mobile app side and the OrderStatus will be set to **cancelled**
-    - If the payment method is an **online payment method**:
-      - If the PaymentStatus is **confirmed**, admin will set PaymentStatus to **refunded** and will manually refund the amount to the customer.
-      - If the payment is not received and PaymentStatus is not **confirmed** yet, admin will simply set PaymentStatus to **cancelled**.
-      - If the payment is received and PaymentStatus is not **confirmed** yet, admin will first set PaymentStatus to **confirmed**, then will set it to **refunded** and will manually refund the amount to the customer.
-    - If the payment method is **COD**, the PaymentStatus will automatically be set to **cancelled** when the OrderStatus is set to **cancelled**.
-  - If the customer wants to change the order before it is shipped (within 1 hour of order creation):
-    - The customer will update the order from mobile app side by changing products/quantities/delivery information.
+  - If the customer wants to cancel the order, they can do so under specific conditions:
+    - Before the OrderStatus is set to **confirmed** by the admin or within 1 hour of order creation, whichever is earlier.
+    - Only if the payment method is **COD**.
+  - The customer will cancel the order from the mobile app side and the OrderStatus will be set to **cancelled**
+  - If the customer wants to change the order, the can do so under specific conditions:
+    - Before the OrderStatus is set to **confirmed** by the admin or within 1 hour of order creation, whichever is earlier.
+    - Only if the payment method is **COD**.
+  - The customer will edit the order from mobile app side by changing products/quantities/delivery information.
     - The OrderStatus will be set to **pending** again.
     - The admin will confirm the order again as explained above.
-    - **_We need to discuss the PaymentStatus flow in this case._**
-  - After both the PaymentStatus and OrderStatus are set to **confirmed**, for each product in the order, the admin will provide the barcode on the admin side to update the inventory.
+  - After both the PaymentStatus and OrderStatus are set to **confirmed** (in case of online payment) or OrderStatus is **confirmed** (in case of COD), for each product in the order, the admin will provide the barcode on the admin side to update the inventory.
   - After all products' barcodes are provided, admin will select **Ship** button to set OrderStatus to **shipped**.
   - When the customer receives the products, the admin will set OrderStatus to **delivered**.
   - In case of **COD**, when the order is marked as **delivered**, PaymentStatus will be set to **confirmed** as well.
