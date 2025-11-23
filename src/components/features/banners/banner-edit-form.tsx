@@ -48,6 +48,7 @@ export default function BannerEditForm({
     displayOrder: banner.displayOrder,
   });
 
+
   const handleFileValidation = (file: File): boolean => {
     // Validate file type
     if (!file.type.startsWith("image/")) {

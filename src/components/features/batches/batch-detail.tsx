@@ -22,6 +22,7 @@ import {
   Box,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { deleteBatch } from "@/helpers/firestore_helper_functions/batches/delete_methods/deleteBatchFromDB";
 
 interface BatchDetailProps {
   batch: Batch;
@@ -54,7 +55,7 @@ export function BatchDetail({ batch, product }: BatchDetailProps) {
 
     try {
       setDeleting(true);
-      await batchService.deleteBatch(batch.id);
+      await deleteBatch(batch.id);
       showToast("success", "Batch deleted successfully");
       router.push("/dashboard/batches");
     } catch (error) {

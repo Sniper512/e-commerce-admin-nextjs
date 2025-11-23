@@ -24,6 +24,8 @@ import { useToast } from "@/components/ui/toast-context";
 import { Batch, Product } from "@/types";
 import { useSymbologyScanner } from "@use-symbology-scanner/react";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
+import { getBatchByBatchId } from "@/helpers/firestore_helper_functions/batches/get_methods/getBatchByBatchIdFromDB";
+import { createBatch } from "@/helpers/firestore_helper_functions/batches/add_methods/createBatchInDB";
 
 interface BatchFormProps {
   products: Product[];
@@ -121,7 +123,7 @@ export function BatchForm({ products }: BatchFormProps) {
 
     try {
       // Check if batch ID already exists (only for new batches)
-      const existingBatch = await batchService.getBatchByBatchId(
+      const existingBatch = await getBatchByBatchId(
         formData.batchId
       );
       if (existingBatch) {
@@ -146,7 +148,7 @@ export function BatchForm({ products }: BatchFormProps) {
         createdAt: new Date(),
       };
 
-      await batchService.createBatch(batchData);
+      await createBatch(batchData);
       showToast("success", "Batch created successfully!");
       router.push("/dashboard/batches");
     } catch (error) {

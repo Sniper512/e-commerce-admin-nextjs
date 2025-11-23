@@ -6,6 +6,7 @@ import manufacturerService from "@/services/manufacturerService";
 import batchService from "@/services/batchService";
 import { notFound } from "next/navigation";
 import { ProductEditForm } from "@/components/features/products/product-edit-form";
+import { getBatchesByProductId } from "@/helpers/firestore_helper_functions/batches/get_methods/getBatchFromProductIdFromDB";
 
 interface ProductDetailPageProps {
   params: {
@@ -32,7 +33,7 @@ export default async function ProductDetailPage({
     discountService.getByApplicableTo("products"), // Only get product-level discounts
     categoryService.getAllCategoriesWithSubCategories(),
     manufacturerService.getAllManufacturers(),
-    batchService.getBatchesByProductId(productId), // Fetch batches for this product
+    getBatchesByProductId(productId), // Fetch batches for this product
   ]);
 
   // If product not found, show 404

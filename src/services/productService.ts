@@ -26,6 +26,7 @@ import { sanitizeForFirestore } from "@/lib/firestore-utils";
 import batchService from "./batchService";
 import categoryService from "./categoryService";
 import discountService from "./discountService";
+import { getStockDataForProducts } from "@/helpers/firestore_helper_functions/stocks/getStockDataForPorducts";
 
 const PRODUCTS_COLLECTION = "PRODUCTS";
 const DISCOUNTS_COLLECTION = "DISCOUNTS";
@@ -384,7 +385,7 @@ export const productService = {
 
       for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
         const chunk = productIds.slice(i, i + BATCH_SIZE);
-        const chunkStockData = await batchService.getStockDataForProducts(
+        const chunkStockData = await getStockDataForProducts(
           chunk
         );
         Object.assign(allBatchStockData, chunkStockData);
@@ -898,7 +899,7 @@ const products = activeProducts.map((doc) => {
         const BATCH_SIZE = 30;
         for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
           const chunk = productIds.slice(i, i + BATCH_SIZE);
-          const chunkStockData = await batchService.getStockDataForProducts(chunk);
+          const chunkStockData = await getStockDataForProducts(chunk);
           Object.assign(allBatchStockData, chunkStockData);
         }
 

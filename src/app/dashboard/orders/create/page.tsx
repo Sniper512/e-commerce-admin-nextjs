@@ -7,6 +7,8 @@ import paymentMethodService from "@/services/paymentMethodService";
 import { productService } from "@/services/productService";
 import batchService from "@/services/batchService";
 import { OrderCreateForm } from "@/components/features/orders/order-create-form";
+import { getStockDataForProducts } from "@/helpers/firestore_helper_functions/stocks/getStockDataForPorducts";
+import { getBatchesByProductId } from "@/helpers/firestore_helper_functions/batches/get_methods/getBatchFromProductIdFromDB";
 
 export default async function CreateOrderPage() {
   // Fetch all necessary data on the server
@@ -23,7 +25,7 @@ export default async function CreateOrderPage() {
 
   for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
     const chunk = productIds.slice(i, i + BATCH_SIZE);
-    const chunkStockData = await batchService.getStockDataForProducts(chunk);
+    const chunkStockData = await getStockDataForProducts(chunk);
     stockDataChunks.push(chunkStockData);
   }
 
@@ -36,7 +38,7 @@ export default async function CreateOrderPage() {
   // Get first available batch for each product (for pricing and batch ID)
   const productsWithStock = await Promise.all(
     allProducts.products.map(async (product) => {
-      const batches = await batchService.getBatchesByProductId(product.id);
+      const batches = await getBatchesByProductId(product.id);
       const activeBatch = batches.find((b) => b.remainingQuantity > 0);
 
       // Use the new productService function to get highest applicable discount percentage

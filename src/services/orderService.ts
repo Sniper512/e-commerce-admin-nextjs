@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/../firebaseConfig";
 import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
+import { adjustBatchQuantity } from "@/helpers/firestore_helper_functions/batches/update_methods/adjustBatchQuantityInDB";
 
 const COLLECTION_NAME = "ORDERS";
 
@@ -118,7 +119,7 @@ const orderService = {
       for (const item of orderData.items) {
         if (item.batchId) {
           try {
-            await batchService.adjustBatchQuantity(
+            await adjustBatchQuantity(
               item.batchId,
               -item.quantity
             );
