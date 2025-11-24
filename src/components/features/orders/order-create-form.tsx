@@ -117,16 +117,47 @@ export function OrderCreateForm({
   const pricing = calculatePricing();
 
   const handleProductSelect = async (product: { id: string; name: string; image: string }) => {
-    // For now, assume products are available and use basic pricing
-    // TODO: Implement proper stock checking and pricing later
-    const isAvailable = true; // Simplified for now
-    const price = 100; // Default price - will be replaced with real pricing
-    const stock = 10; // Default stock - will be replaced with real stock
+    console.log('handleProductSelect called for product:', product);
 
-    if (!isAvailable) {
-      setTimeout(() => showToast("warning", "Product Unavailable", "This product is currently out of stock."), 0);
-      return;
-    }
+    // Fetch product details and batches
+    try {
+      const productData = await productService.getById(product.id);
+      console.log('Fetched productData:', productData);
+
+      if (!productData) {
+        setTimeout(() => showToast("error", "Product not found"), 0);
+        return;
+      }
+
+      // Calculate discount for the fetched product
+      const highestDiscountPercentage =
+        await productService.getHighestActiveDiscountPercentageByProductId(
+          product.id
+        );
+
+      // Get batch data for pricing
+      const batches = await getBatchesByProductId(product.id);
+      console.log('Fetched batches from DB:', batches);
+
+      const activeBatches = batches.filter((b: any) => b.remainingQuantity > 0);
+      console.log('Active batches:', activeBatches);
+
+      // Sum all remaining quantities for total stock
+      const totalStock = activeBatches.reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
+      console.log('Total stock calculated:', totalStock);
+
+      // Use the first active batch for pricing
+      const firstActiveBatch = activeBatches[0];
+
+      const price = firstActiveBatch?.price || 100; // Fallback to 100 if no batch
+      const discountAmount = (price * highestDiscountPercentage) / 100;
+
+      const isAvailable = totalStock > 0;
+
+      if (!isAvailable) {
+        setTimeout(() => showToast("warning", "Product Unavailable", "This product is currently out of stock."), 0);
+        return;
+      }
 
     // Check if product already added
     const existingItem = orderItems.find(
@@ -139,21 +170,25 @@ export function OrderCreateForm({
       return;
     }
 
-    // Create order item with basic data
-    const newItem: OrderItemWithDetails = {
-      productId: product.id,
-      productName: product.name,
-      quantity: 1,
-      unitPrice: price,
-      discount: 0, // No discount for now
-      subtotal: price,
-      batchId: "", // Will be set when proper batch logic is implemented
-      image: product.image,
-      availableStock: stock,
-    };
+      // Create order item with basic data
+      const newItem: OrderItemWithDetails = {
+        productId: product.id,
+        productName: product.name,
+        quantity: 1,
+        unitPrice: price - discountAmount,
+        discount: discountAmount,
+        subtotal: (price - discountAmount),
+        batchId: firstActiveBatch?.id || "",
+        image: product.image,
+        availableStock: totalStock,
+      };
 
-    setOrderItems([...orderItems, newItem]);
-    setQuantityInputValues(prev => ({ ...prev, [product.id]: "1" }));
+      setOrderItems([...orderItems, newItem]);
+      setQuantityInputValues(prev => ({ ...prev, [product.id]: "1" }));
+    } catch (error) {
+      console.error('Error fetching product data:', error);
+      setTimeout(() => showToast("error", "Failed to load product details"), 0);
+    }
   };
 
   const handleQuantityChange = (productId: string, newQuantity: number) => {

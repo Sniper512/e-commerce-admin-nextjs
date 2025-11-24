@@ -87,14 +87,31 @@ export function OrderEditForm({
         // Find product details
         const product = products.find(p => p.id === item.productId);
         if (product) {
-          // Calculate available stock (original stock + current order quantity)
-          const availableStock = product.stock + item.quantity;
+          // Fetch actual stock from batches
+          try {
+            const batches = await getBatchesByProductId(item.productId);
+            const totalStock = batches
+              .filter((b: any) => b.remainingQuantity > 0)
+              .reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
 
-          itemsWithDetails.push({
-            ...item,
-            image: product.image,
-            availableStock: availableStock,
-          });
+            // Calculate available stock (total stock + current order quantity since it's already deducted)
+            const availableStock = totalStock + item.quantity;
+
+            itemsWithDetails.push({
+              ...item,
+              image: product.image,
+              availableStock: availableStock,
+            });
+          } catch (error) {
+            console.error(`Error fetching stock for ${item.productId}:`, error);
+            // Fallback to product stock if batch fetch fails
+            const availableStock = (product.stock || 0) + item.quantity;
+            itemsWithDetails.push({
+              ...item,
+              image: product.image,
+              availableStock: availableStock,
+            });
+          }
         }
       }
 
@@ -164,45 +181,61 @@ export function OrderEditForm({
   const pricing = calculatePricing();
 
   const handleProductSelect = async (product: { id: string; name: string; image: string }) => {
-    // Find the full product data from the products prop
-    let fullProduct = products.find(p => p.id === product.id);
+    console.log('Edit form handleProductSelect called for product:', product);
 
-    // If product not found in pre-loaded data, fetch it from API
-    if (!fullProduct) {
-      try {
-        const productData = await productService.getById(product.id);
-        if (productData) {
-          // Calculate discount for the fetched product
-          const highestDiscountPercentage =
-            await productService.getHighestActiveDiscountPercentageByProductId(
-              product.id
-            );
+    // Always fetch fresh product data to get accurate stock
+    let fullProduct;
+    try {
+      console.log('Edit form - Fetching product data for:', product.id);
+      const productData = await productService.getById(product.id);
+      console.log('Edit form - Fetched productData:', productData);
+      if (productData) {
+        // Calculate discount for the fetched product
+        const highestDiscountPercentage =
+          await productService.getHighestActiveDiscountPercentageByProductId(
+            product.id
+          );
 
-          // Get batch data for pricing
-          const batches = await getBatchesByProductId(product.id);
-          const activeBatch = batches.find((b: any) => b.remainingQuantity > 0);
+        // Get batch data for pricing
+        const batches = await getBatchesByProductId(product.id);
+        console.log('Edit form - Fetched batches from DB:', batches);
+        const activeBatches = batches.filter((b: any) => b.remainingQuantity > 0);
+        console.log('Edit form - Active batches:', activeBatches);
+        let totalStock = activeBatches.reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
 
-          const price = activeBatch?.price || 0;
-          const discountAmount = (price * highestDiscountPercentage) / 100;
-
-          fullProduct = {
-            id: productData.id,
-            name: productData.info.name,
-            image: productData.multimedia?.images?.[0] || "",
-            price: price,
-            stock: activeBatch?.remainingQuantity || 0,
-            isAvailableForOrder: (activeBatch?.remainingQuantity || 0) > 0 && !!activeBatch,
-            // Store additional data for order item construction
-            batchId: activeBatch?.id || "",
-            discountAmount: discountAmount,
-            finalPrice: price - discountAmount,
-          };
+        // If this product was originally in the order, add back the original quantity
+        // since it was deducted when the order was created
+        const originalOrderItem = order.items.find(item => item.productId === product.id);
+        if (originalOrderItem) {
+          totalStock += originalOrderItem.quantity;
+          console.log('Edit form - Added back original order quantity:', originalOrderItem.quantity, 'New total stock:', totalStock);
         }
-      } catch (error) {
-        console.error("Error fetching product details:", error);
-        showToast("error", "Failed to load product details");
-        return;
+
+        console.log('Edit form - Total stock calculated:', totalStock);
+
+        // Use the first active batch for pricing
+        const firstActiveBatch = activeBatches[0];
+
+        const price = firstActiveBatch?.price || 0;
+        const discountAmount = (price * highestDiscountPercentage) / 100;
+
+        fullProduct = {
+          id: productData.id,
+          name: productData.info.name,
+          image: productData.multimedia?.images?.[0] || "",
+          price: price,
+          stock: totalStock,
+          isAvailableForOrder: totalStock > 0,
+          // Store additional data for order item construction
+          batchId: firstActiveBatch?.id || "",
+          discountAmount: discountAmount,
+          finalPrice: price - discountAmount,
+        };
       }
+    } catch (error) {
+      console.error("Error fetching product details:", error);
+      showToast("error", "Failed to load product details");
+      return;
     }
 
     if (!fullProduct) {

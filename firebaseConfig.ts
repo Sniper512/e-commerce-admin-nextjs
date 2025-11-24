@@ -79,7 +79,6 @@ if (USE_EMULATOR) {
 // Export Firebase services
 export const auth = authInstance;
 export const db = dbInstance;
-console.log('Firebase db initialized:', !!dbInstance);
 export const storage = storageInstance;
 
 // Initialize Analytics (only on client side and NOT in emulator mode)

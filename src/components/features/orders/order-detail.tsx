@@ -63,11 +63,13 @@ export function OrderDetail({ order, customer }: OrderDetailProps) {
     return order.status === 'pending' && order.paymentMethod.type === 'cash_on_delivery';
   };
 
-  const handleCancelOrder = async () => {
-    if (!confirm(`Are you sure you want to cancel order ${order.id}? This action cannot be undone.`)) {
-      return;
-    }
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
 
+  const handleCancelOrder = () => {
+    setShowCancelConfirmation(true);
+  };
+
+  const confirmCancelOrder = async () => {
     try {
       await orderService.cancelOrder(order.id);
       showToast("success", "Order cancelled successfully!");
@@ -76,7 +78,13 @@ export function OrderDetail({ order, customer }: OrderDetailProps) {
     } catch (error) {
       console.error("Error cancelling order:", error);
       showToast("error", "Failed to cancel order", error instanceof Error ? error.message : "Unknown error");
+    } finally {
+      setShowCancelConfirmation(false);
     }
+  };
+
+  const cancelCancelOrder = () => {
+    setShowCancelConfirmation(false);
   };
 
   return (
@@ -237,6 +245,31 @@ export function OrderDetail({ order, customer }: OrderDetailProps) {
           </Card>
         </div>
       </div>
+
+      {/* Custom Cancel Confirmation Dialog */}
+      {showCancelConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Cancel Order</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to cancel order <strong>{order.id}</strong>?
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={cancelCancelOrder}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmCancelOrder}>
+                Yes, Cancel Order
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -43,6 +43,10 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
   const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
+  const [cancelConfirmation, setCancelConfirmation] = React.useState<{
+    orderId: string;
+    order: SerializedOrder;
+  } | null>(null);
 
   const filteredOrders = orders.filter((order) => {
     const customerName = customers[order.customerId]?.name || "Unknown";
@@ -103,19 +107,27 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
     router.push(`/dashboard/orders/${orderId}/edit`);
   };
 
-  const handleCancelOrder = async (order: SerializedOrder) => {
-    if (!confirm(`Are you sure you want to cancel order ${order.id}? This action cannot be undone.`)) {
-      return;
-    }
+  const handleCancelOrder = (order: SerializedOrder) => {
+    setCancelConfirmation({ orderId: order.id, order });
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!cancelConfirmation) return;
 
     try {
-      await orderService.cancelOrder(order.id);
+      await orderService.cancelOrder(cancelConfirmation.orderId);
       showToast("success", "Order cancelled successfully!");
       router.refresh();
     } catch (error) {
       console.error("Error cancelling order:", error);
       showToast("error", "Failed to cancel order", error instanceof Error ? error.message : "Unknown error");
+    } finally {
+      setCancelConfirmation(null);
     }
+  };
+
+  const cancelCancelOrder = () => {
+    setCancelConfirmation(null);
   };
 
   return (
@@ -158,18 +170,18 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
       {/* Orders Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table className="text-xs">
             <TableHeader>
               <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Payment Method</TableHead>
-                <TableHead>Payment Status</TableHead>
-                <TableHead>Order Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="px-3 py-3">Order ID</TableHead>
+                <TableHead className="px-3 py-3">Customer</TableHead>
+                <TableHead className="px-3 py-3">Items</TableHead>
+                <TableHead className="px-3 py-3">Total</TableHead>
+                <TableHead className="px-3 py-3">Payment Method</TableHead>
+                <TableHead className="px-3 py-3">Payment Status</TableHead>
+                <TableHead className="px-3 py-3">Order Status</TableHead>
+                <TableHead className="px-3 py-3">Date</TableHead>
+                <TableHead className="px-3 py-3 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -190,64 +202,63 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                 </TableRow>
               ) : (
                 filteredOrders.map((order) => {
-                  const customerName =
-                    customers[order.customerId]?.name || "Unknown Customer";
-                  return (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{customerName}</TableCell>
-                      <TableCell>{order.items.length} items</TableCell>
-                      <TableCell className="font-semibold">
-                        Rs. {Math.floor(order.total).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm">
-                          {order.paymentMethod.type?.replace(/_/g, " ") || "N/A"}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(order.paymentStatus)}>
-                          {order.paymentStatus.replace(/_/g, " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(order.status)}>
-                          {order.status.replace(/_/g, " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {formatDateTime(order.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-right">
+                   const customerName =
+                     customers[order.customerId]?.name || "Unknown Customer";
+                   return (
+                     <TableRow key={order.id}>
+                       <TableCell className="px-3 py-3 font-medium text-xs">{order.id}</TableCell>
+                       <TableCell className="px-3 py-3 text-xs">{customerName}</TableCell>
+                       <TableCell className="px-3 py-3 text-xs">{order.items.length} items</TableCell>
+                       <TableCell className="px-3 py-3 font-semibold text-xs">
+                         Rs. {Math.floor(order.total).toLocaleString()}
+                       </TableCell>
+                       <TableCell className="px-3 py-3 text-xs">
+                         {order.paymentMethod.type?.replace(/_/g, " ") || "N/A"}
+                       </TableCell>
+                       <TableCell className="px-3 py-3">
+                         <Badge className={`${getStatusColor(order.paymentStatus)} text-xs px-2 py-1`}>
+                           {order.paymentStatus.replace(/_/g, " ")}
+                         </Badge>
+                       </TableCell>
+                       <TableCell className="px-3 py-3">
+                         <Badge className={`${getStatusColor(order.status)} text-xs px-2 py-1`}>
+                           {order.status.replace(/_/g, " ")}
+                         </Badge>
+                       </TableCell>
+                       <TableCell className="px-3 py-3 text-xs text-gray-600">
+                         {formatDateTime(order.createdAt)}
+                       </TableCell>
+                       <TableCell className="px-3 py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             variant="outline"
                             size="sm"
+                            className="h-8 w-12 p-1"
                             onClick={() =>
                               router.push(`/dashboard/orders/${order.id}`)
                             }>
-                            <Eye className="h-3 w-3" />
+                            <Eye className="h-4 w-4" />
                           </Button>
                           {canEditOrder(order) && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleEditOrder(order.id)}
-                              className="text-blue-600 hover:text-blue-700">
-                              <Edit className="h-3 w-3" />
+                              className="h-8 w-12 p-1 text-blue-600 hover:text-blue-700"
+                              onClick={() => handleEditOrder(order.id)}>
+                              <Edit className="h-4 w-4" />
                             </Button>
                           )}
                           {canCancelOrder(order) && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleCancelOrder(order)}
-                              className="text-red-600 hover:text-red-700">
-                              <X className="h-3 w-3" />
+                              className="h-8 w-12 p-1 text-red-600 hover:text-red-700"
+                              onClick={() => handleCancelOrder(order)}>
+                              <X className="h-4 w-4" />
                             </Button>
                           )}
                           <Select
-                            className="h-9 text-sm min-w-[120px]"
+                            className="h-9 text-xs text-center min-w-[100px] pr-6 mr-2"
                             onChange={(e) =>
                               handlePaymentStatusChange(order.id, e.target.value)
                             }
@@ -259,7 +270,7 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                             <option value="refunded">Refunded</option>
                           </Select>
                           <Select
-                            className="h-9 text-sm min-w-[120px]"
+                            className="h-9 text-xs text-center min-w-[100px] pr-6 mr-2"
                             onChange={(e) =>
                               handleStatusChange(order.id, e.target.value)
                             }
@@ -282,6 +293,33 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Custom Cancel Confirmation Dialog */}
+      {cancelConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Cancel Order</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to cancel order <strong>{cancelConfirmation.order.id}</strong>?
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={cancelCancelOrder}
+                disabled={false}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmCancelOrder}
+                disabled={false}>
+                Yes, Cancel Order
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

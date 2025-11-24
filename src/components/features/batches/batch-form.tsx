@@ -28,7 +28,7 @@ import { getBatchByBatchId } from "@/helpers/firestore_helper_functions/batches/
 import { createBatch } from "@/helpers/firestore_helper_functions/batches/add_methods/createBatchInDB";
 
 interface BatchFormProps {
-  products: Product[];
+  products?: Product[];
 }
 
 export function BatchForm({ products }: BatchFormProps) {

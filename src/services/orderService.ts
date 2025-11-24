@@ -154,9 +154,55 @@ const orderService = {
         throw new Error("Only COD orders can be edited");
       }
 
+      // Calculate old quantities per batch
+      const oldQuantities = new Map<string, number>();
+      for (const item of order.items) {
+        if (item.batchId) {
+          oldQuantities.set(item.batchId, (oldQuantities.get(item.batchId) || 0) + item.quantity);
+        }
+      }
+
       const docRef = doc(db, COLLECTION_NAME, id);
       const sanitizedData = sanitizeForFirestore(updates);
       await updateDoc(docRef, sanitizedData);
+
+      // Get updated order
+      const updatedOrder = await this.getOrderById(id);
+      if (!updatedOrder) {
+        throw new Error("Order not found");
+      }
+
+      // Calculate new quantities per batch
+      const newQuantities = new Map<string, number>();
+      for (const item of updatedOrder.items) {
+        if (item.batchId) {
+          newQuantities.set(item.batchId, (newQuantities.get(item.batchId) || 0) + item.quantity);
+        }
+      }
+
+      // Adjust batches for quantity changes
+      for (const [batchId, oldQty] of oldQuantities) {
+        const newQty = newQuantities.get(batchId) || 0;
+        const diff = newQty - oldQty;
+        if (diff !== 0) {
+          try {
+            await adjustBatchQuantity(batchId, -diff);
+          } catch (error) {
+            console.error(`Error adjusting batch ${batchId}:`, error);
+          }
+        }
+      }
+
+      // Adjust for new batches not in old
+      for (const [batchId, newQty] of newQuantities) {
+        if (!oldQuantities.has(batchId)) {
+          try {
+            await adjustBatchQuantity(batchId, -newQty);
+          } catch (error) {
+            console.error(`Error adjusting batch ${batchId}:`, error);
+          }
+        }
+      }
     } catch (error) {
       console.error("Error updating order:", error);
       throw error;
@@ -271,9 +317,16 @@ const orderService = {
         });
       }
 
-      // Restock inventory (no inventory was reduced for pending COD orders)
-      // Note: For confirmed orders, we would need to restock, but COD orders
-      // are only cancellable when pending, so no inventory adjustment needed
+      // Restock inventory
+      for (const item of order.items) {
+        if (item.batchId) {
+          try {
+            await adjustBatchQuantity(item.batchId, item.quantity);
+          } catch (error) {
+            console.error(`Error restocking batch ${item.batchId}:`, error);
+          }
+        }
+      }
 
     } catch (error) {
       console.error("Error cancelling order:", error);

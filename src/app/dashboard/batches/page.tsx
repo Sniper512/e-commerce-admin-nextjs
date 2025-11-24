@@ -1,42 +1,71 @@
-// Force dynamic rendering to avoid build-time Firestore calls
-export const dynamic = 'force-dynamic';
+'use client';
 
-﻿import Link from "next/link";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import batchService from "@/services/batchService";
 import { productService } from "@/services/productService";
 import { BatchesList } from "@/components/features/batches/batches-list";
 import { getAllBatches } from "@/helpers/firestore_helper_functions/batches/get_methods/getAllBatchesFromDB";
-import { stripFirestoreProps } from "@/lib/firestore-utils";
 
+export default function BatchesPage() {
+  const [batches, setBatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchBatches = async () => {
+      try {
+        // Fetch batches
+        const batchesData = await getAllBatches();
 
-export default async function BatchesPage() {
-  // Fetch batches on the server
-  const batches = await getAllBatches();
+        // Get unique product IDs from batches
+        const productIds = [...new Set(batchesData.map((b) => b.productId))];
 
-  // Get unique product IDs from batches
-  const productIds = [...new Set(batches.map((b) => b.productId))];
+        // Fetch product data (name and image) for all products
+        const products = await productService.getProductsByIds(productIds);
 
-  // Fetch product data (name and image) for all products
-  const products = await productService.getProductsByIds(productIds);
+        // Create a map for quick lookup
+        const productMap = new Map(
+          products.map((p) => [p.id, { name: p.name, image: p.image }])
+        );
 
-  // Create a map for quick lookup
-  const productMap = new Map(
-    products.map((p) => [p.id, { name: p.name, image: p.image }])
-  );
+        // Enrich batches with product info
+        const enrichedBatches = batchesData.map((batch) => ({
+          ...batch,
+          productName: productMap.get(batch.productId)?.name || "Unknown Product",
+          productImage:
+            productMap.get(batch.productId)?.image || "/images/default-image.svg",
+        }));
 
-  // Enrich batches with product info
-  const enrichedBatches = batches.map((batch) => ({
-    ...batch,
-    productName: productMap.get(batch.productId)?.name || "Unknown Product",
-    productImage:
-      productMap.get(batch.productId)?.image || "/images/default-image.svg",
-  }));
+        setBatches(enrichedBatches);
+      } catch (err) {
+        console.error("Error fetching batches:", err);
+        setError("Failed to load batches");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Serialize data for client component
-  const serializedBatches = stripFirestoreProps(enrichedBatches);
+    fetchBatches();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -57,7 +86,7 @@ export default async function BatchesPage() {
       </div>
 
       {/* Batches List - Client Component */}
-      <BatchesList batches={serializedBatches} />
+      <BatchesList batches={batches} />
     </div>
   );
 }

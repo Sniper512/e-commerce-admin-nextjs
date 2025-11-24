@@ -7,6 +7,16 @@ import customerService from "@/services/customerService";
 import OrderDetail from "@/components/features/orders/order-detail";
 import { Order } from "@/types";
 import { Loader2 } from "lucide-react";
+import { safeSerializeForClient } from "@/lib/firestore-utils";
+
+// Type for serialized order (dates as strings for client component)
+type SerializedOrder = Omit<Order, "createdAt" | "deliveredAt"> & {
+  createdAt: string;
+  deliveredAt?: string;
+  paymentMethod: Omit<Order["paymentMethod"], "createdAt"> & {
+    createdAt: string;
+  };
+};
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -67,17 +77,7 @@ export default function OrderDetailPage() {
   }
 
   // Serialize data for client component
-  const serializedOrder = {
-    ...order,
-    createdAt: order.createdAt.toISOString(),
-    deliveredAt: order.deliveredAt?.toISOString(),
-    paymentMethod: {
-      ...order.paymentMethod,
-      createdAt: typeof order.paymentMethod.createdAt === 'string'
-        ? order.paymentMethod.createdAt
-        : order.paymentMethod.createdAt?.toISOString?.() || new Date().toISOString(),
-    },
-  };
+  const serializedOrder = safeSerializeForClient(order) as any;
 
   return (
     <OrderDetail
