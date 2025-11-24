@@ -31,9 +31,10 @@ interface OrderDetailProps {
   customer: Customer | null;
 }
 
-export function OrderDetail({ order, customer }: OrderDetailProps) {
+export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps) {
   const router = useRouter();
   const { showToast } = useToast();
+  const [order, setOrder] = useState<SerializedOrder>(initialOrder);
   const [productImages, setProductImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -98,7 +99,8 @@ export function OrderDetail({ order, customer }: OrderDetailProps) {
     try {
       await orderService.updateOrderStatus(order.id, newStatus as any);
       showToast("success", "Order status updated successfully!");
-      router.refresh();
+      // Update local state to reflect changes immediately
+      setOrder(prev => prev ? { ...prev, status: newStatus as any } : prev);
     } catch (error) {
       console.error("Error updating order status:", error);
       showToast("error", "Failed to update order status", error instanceof Error ? error.message : "Unknown error");
@@ -114,7 +116,8 @@ export function OrderDetail({ order, customer }: OrderDetailProps) {
     try {
       await orderService.updatePaymentStatus(order.id, newStatus as any);
       showToast("success", "Payment status updated successfully!");
-      router.refresh();
+      // Update local state to reflect changes immediately
+      setOrder(prev => prev ? { ...prev, paymentStatus: newStatus as any } : prev);
     } catch (error) {
       console.error("Error updating payment status:", error);
       showToast("error", "Failed to update payment status", error instanceof Error ? error.message : "Unknown error");
