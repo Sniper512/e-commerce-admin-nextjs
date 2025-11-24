@@ -7,7 +7,7 @@ import batchService from "@/services/batchService";
 import { notFound } from "next/navigation";
 import { ProductEditForm } from "@/components/features/products/product-edit-form";
 import { getBatchesByProductId } from "@/helpers/firestore_helper_functions/batches/get_methods/getBatchFromProductIdFromDB";
-import { safeSerializeForClient } from "@/lib/firestore-utils";
+import { stripFirestoreProps } from "@/lib/firestore-utils";
 
 interface ProductDetailPageProps {
   params: {
@@ -48,15 +48,27 @@ export default async function ProductDetailPage({
     productService.getProductsByIds(product.boughtTogetherProductIds || []),
   ]);
 
-  // Serialize data for client component
-  const serializedProduct = safeSerializeForClient(product);
-  const serializedProductSearchList = safeSerializeForClient(productSearchList);
-  const serializedSimilarProducts = safeSerializeForClient(similarProducts);
-  const serializedBoughtTogetherProducts = safeSerializeForClient(boughtTogetherProducts);
-  const serializedDiscounts = safeSerializeForClient(discounts);
-  const serializedCategories = safeSerializeForClient(categories);
-  const serializedManufacturers = safeSerializeForClient(manufacturers);
-  const serializedBatches = safeSerializeForClient(batches);
+  // Serialize data for client component - strip all Firestore properties
+  const serializedProduct = stripFirestoreProps(product);
+  const serializedProductSearchList = productSearchList.map(p => ({
+    id: p.id,
+    name: p.name,
+    image: p.image
+  }));
+  const serializedSimilarProducts = similarProducts.map(p => ({
+    id: p.id,
+    name: p.name,
+    image: p.image
+  }));
+  const serializedBoughtTogetherProducts = boughtTogetherProducts.map(p => ({
+    id: p.id,
+    name: p.name,
+    image: p.image
+  }));
+  const serializedDiscounts = stripFirestoreProps(discounts);
+  const serializedCategories = stripFirestoreProps(categories);
+  const serializedManufacturers = stripFirestoreProps(manufacturers);
+  const serializedBatches = stripFirestoreProps(batches);
 
   // Filter out current product from available products
   const availableProducts = serializedProductSearchList.filter(

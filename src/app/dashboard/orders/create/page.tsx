@@ -5,83 +5,53 @@ import { Suspense } from "react";
 import customerService from "@/services/customerService";
 import paymentMethodService from "@/services/paymentMethodService";
 import { productService } from "@/services/productService";
-import batchService from "@/services/batchService";
 import { OrderCreateForm } from "@/components/features/orders/order-create-form";
-import { getStockDataForProducts } from "@/helpers/firestore_helper_functions/stocks/getStockDataForPorducts";
-import { getBatchesByProductId } from "@/helpers/firestore_helper_functions/batches/get_methods/getBatchFromProductIdFromDB";
 
 export default async function CreateOrderPage() {
-  // Fetch all necessary data on the server
-  const [customers, paymentMethods, allProducts] = await Promise.all([
-    customerService.getAllCustomersForSearch({ isActive: true }),
-    paymentMethodService.getActivePaymentMethods(),
-    productService.getAll({ isActive: true }),
-  ]);
+  try {
+    // Fetch basic data on the server - avoid product fetching to prevent stack overflow
+    const customers = await customerService.getAllCustomersForSearch({ isActive: true });
 
-  // Get stock data for all products (batch into chunks of 30 due to Firestore IN limit)
-  const productIds = allProducts.products.map((p) => p.id);
-  const BATCH_SIZE = 30;
-  const stockDataChunks: Record<string, any>[] = [];
+    // Use hardcoded payment methods as per admin order flow spec
+    const paymentMethods = [
+      { id: "cod", type: "cash_on_delivery", isActive: true },
+      { id: "easypaisa", type: "easypaisa", isActive: true },
+      { id: "jazzcash", type: "jazzcash", isActive: true },
+      { id: "bank_transfer", type: "bank_transfer", isActive: true },
+    ];
 
-  for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
-    const chunk = productIds.slice(i, i + BATCH_SIZE);
-    const chunkStockData = await getStockDataForProducts(chunk);
-    stockDataChunks.push(chunkStockData);
+    // Create safe, minimal payloads for the client component to avoid
+    // deep serialization or circular references that can cause stack overflows.
+    const serializedCustomers = customers.map((c: any) => ({
+      id: c.id,
+      name: c.name || "",
+      phone: c.phone || "",
+      address: c.address || "",
+    }));
+
+    const serializedPaymentMethods = paymentMethods.map((pm: any) => ({
+      id: pm.id,
+      type: pm.type,
+      isActive: !!pm.isActive,
+    }));
+
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        <OrderCreateForm
+          customers={serializedCustomers}
+          paymentMethods={serializedPaymentMethods as any}
+        />
+      </Suspense>
+    );
+  } catch (error) {
+    console.error("Error loading order create page:", error);
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <h3 className="font-bold">Error Loading Page</h3>
+          <p>There was an error loading the order creation page. Please try refreshing.</p>
+        </div>
+      </div>
+    );
   }
-
-  // Merge all stock data chunks
-  const stockData: Record<string, any> = {};
-  stockDataChunks.forEach((chunk) => {
-    Object.assign(stockData, chunk);
-  });
-
-  // Get first available batch for each product (for pricing and batch ID)
-  const productsWithStock = await Promise.all(
-    allProducts.products.map(async (product) => {
-      const batches = await getBatchesByProductId(product.id);
-      const activeBatch = batches.find((b) => b.remainingQuantity > 0);
-
-      // Use the new productService function to get highest applicable discount percentage
-      const highestDiscountPercentage =
-        await productService.getHighestActiveDiscountPercentageByProductId(
-          product.id
-        );
-
-      // Calculate the discount amount based on the batch price
-      const price = activeBatch?.price || 0;
-      const discountAmount = (price * highestDiscountPercentage) / 100;
-
-      return {
-        id: product.id,
-        name: product.info.name,
-        image: product.multimedia?.images?.[0] || "",
-        price: price,
-        stock: stockData[product.id]?.usableStock || 0,
-        batchId: activeBatch?.id || "",
-        discountPercentage: highestDiscountPercentage,
-        discountAmount: discountAmount,
-        finalPrice: price - discountAmount,
-      };
-    })
-  );
-
-  // Filter out products with no stock or no active batch
-  const availableProducts = productsWithStock.filter(
-    (p) => p.stock > 0 && p.batchId
-  );
-
-  // Serialize data for client component
-  const serializedCustomers = JSON.parse(JSON.stringify(customers));
-  const serializedProducts = JSON.parse(JSON.stringify(availableProducts));
-  const serializedPaymentMethods = JSON.parse(JSON.stringify(paymentMethods));
-
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <OrderCreateForm
-        customers={serializedCustomers}
-        products={serializedProducts}
-        paymentMethods={serializedPaymentMethods}
-      />
-    </Suspense>
-  );
 }

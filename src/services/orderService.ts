@@ -62,6 +62,7 @@ const orderService = {
 
   // Get order by ID
   async getOrderById(id: string): Promise<Order | null> {
+    console.log('getOrderById called, db:', db);
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
       const docSnap = await getDoc(docRef);
@@ -136,16 +137,24 @@ const orderService = {
     }
   },
 
-  // Update order
+  // Update order (only for COD orders in pending status)
   async updateOrder(id: string, updates: Partial<Order>): Promise<void> {
     try {
-      const docRef = doc(db, COLLECTION_NAME, id);
-      const docSnap = await getDoc(docRef);
-
-      if (!docSnap.exists()) {
+      const order = await this.getOrderById(id);
+      if (!order) {
         throw new Error("Order not found");
       }
 
+      // Business rule validation
+      if (order.status !== 'pending') {
+        throw new Error("Only pending orders can be edited");
+      }
+
+      if (order.paymentMethod.type !== 'cash_on_delivery') {
+        throw new Error("Only COD orders can be edited");
+      }
+
+      const docRef = doc(db, COLLECTION_NAME, id);
       const sanitizedData = sanitizeForFirestore(updates);
       await updateDoc(docRef, sanitizedData);
     } catch (error) {
@@ -170,9 +179,9 @@ const orderService = {
         },
       ];
 
-      const updates: Partial<Order> = {
+      const updates: any = {
         status: newStatus,
-        statusHistory,
+        statusHistory: sanitizeForFirestore(statusHistory),
       };
 
       // If delivered, set deliveredAt
@@ -180,7 +189,8 @@ const orderService = {
         updates.deliveredAt = new Date();
       }
 
-      await this.updateOrder(id, updates);
+      const docRef = doc(db, COLLECTION_NAME, id);
+      await updateDoc(docRef, updates);
     } catch (error) {
       console.error("Error updating order status:", error);
       throw error;
@@ -206,10 +216,12 @@ const orderService = {
         },
       ];
 
-      await this.updateOrder(id, {
+      const docRef = doc(db, COLLECTION_NAME, id);
+      const sanitizedData = sanitizeForFirestore({
         paymentStatus: newStatus,
         paymentStatusHistory,
       });
+      await updateDoc(docRef, sanitizedData);
     } catch (error) {
       console.error("Error updating payment status:", error);
       throw error;
@@ -223,6 +235,48 @@ const orderService = {
       return orders.filter((order) => order.customerId === customerId);
     } catch (error) {
       console.error("Error fetching orders by customer:", error);
+      throw error;
+    }
+  },
+
+  // Cancel order (only for COD orders in pending status)
+  async cancelOrder(orderId: string): Promise<void> {
+    try {
+      const order = await this.getOrderById(orderId);
+      if (!order) {
+        throw new Error("Order not found");
+      }
+
+      // Business rule validation
+      if (order.status !== 'pending') {
+        throw new Error("Only pending orders can be cancelled");
+      }
+
+      if (order.paymentMethod.type !== 'cash_on_delivery') {
+        throw new Error("Only COD orders can be cancelled");
+      }
+
+      // Update order status to cancelled
+      await this.updateOrderStatus(orderId, 'cancelled');
+
+      // Reverse customer statistics
+      const customerRef = doc(db, "CUSTOMERS", order.customerId);
+      const customerSnap = await getDoc(customerRef);
+
+      if (customerSnap.exists()) {
+        const customerData = customerSnap.data();
+        await updateDoc(customerRef, {
+          totalOrders: (customerData.totalOrders || 0) - 1,
+          totalSpent: (customerData.totalSpent || 0) - order.total,
+        });
+      }
+
+      // Restock inventory (no inventory was reduced for pending COD orders)
+      // Note: For confirmed orders, we would need to restock, but COD orders
+      // are only cancellable when pending, so no inventory adjustment needed
+
+    } catch (error) {
+      console.error("Error cancelling order:", error);
       throw error;
     }
   },

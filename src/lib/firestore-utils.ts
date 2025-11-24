@@ -70,42 +70,47 @@ export function convertTimestamp(timestamp: any): Date {
   return new Date();
 }
 
-/**
- * Safely serialize data to JSON, handling circular references
- */
-export function safeJsonSerialize(obj: any): string {
-  const seen = new WeakSet();
 
-  return JSON.stringify(obj, (key, value) => {
-    if (typeof value === "object" && value !== null) {
-      if (seen.has(value)) {
-        return "[Circular Reference]";
-      }
-      seen.add(value);
+/**
+ * Strip Firestore-specific properties and convert Timestamps to ISO strings
+ * This prevents circular reference issues when serializing for client components
+ */
+export function stripFirestoreProps(obj: any): any {
+  return JSON.parse(JSON.stringify(obj, (key, value) => {
+    // Skip Firestore-specific properties that cause circular references
+    if (key === '_firestore' || key === 'firestore' || key === '__proto__' ||
+        key === 'constructor' || key === '_key' || key === '_document' ||
+        key === '_firestoreImpl' || key === '_databaseId') {
+      return undefined;
     }
+
+    // Handle Firestore Timestamps
+    if (typeof value === 'object' && value !== null) {
+      if (value.constructor && value.constructor.name === 'Timestamp') {
+        return value.toDate().toISOString();
+      }
+
+      // Skip other custom objects that might cause issues
+      if (value.constructor && value.constructor.name !== 'Object' && value.constructor.name !== 'Array') {
+        return undefined;
+      }
+
+      // Limit array sizes to prevent huge data transfer
+      if (Array.isArray(value) && value.length > 100) {
+        return value.slice(0, 100);
+      }
+    }
+
     return value;
-  });
+  }));
 }
 
 /**
  * Safely parse and serialize data for client components
+ * Simplified version to avoid circular reference issues
  */
 export function safeSerializeForClient<T>(data: T): T {
-  try {
-    // First try normal JSON serialization
-    return JSON.parse(JSON.stringify(data));
-  } catch (error) {
-    // If that fails (likely due to circular references), use safe serialization
-    console.warn("Normal JSON serialization failed, using safe serialization:", error);
-    try {
-      const serialized = safeJsonSerialize(data);
-      return JSON.parse(serialized);
-    } catch (safeError) {
-      console.error("Safe serialization also failed:", safeError);
-      // Return a basic version without problematic properties
-      return JSON.parse(JSON.stringify({ ...data, batchStock: undefined }));
-    }
-  }
+  return stripFirestoreProps(data);
 }
 
 /**

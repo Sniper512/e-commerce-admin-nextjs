@@ -28,6 +28,12 @@ export default async function OrdersPage() {
     ...order,
     createdAt: order.createdAt.toISOString(),
     deliveredAt: order.deliveredAt?.toISOString(),
+    paymentMethod: {
+      ...order.paymentMethod,
+      createdAt: typeof order.paymentMethod.createdAt === 'string'
+        ? order.paymentMethod.createdAt
+        : order.paymentMethod.createdAt?.toISOString?.() || new Date().toISOString(),
+    },
   }));
 
   return (

@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import customerService from "@/services/customerService";
 import { CustomersList } from "@/components/features/customers/customers-list";
+import { stripFirestoreProps } from "@/lib/firestore-utils";
 
 export default async function CustomersPage() {
   // Fetch customers on the server
   const customers = await customerService.getAllCustomers();
 
   // Serialize data for client component
-  const serializedCustomers = JSON.parse(JSON.stringify(customers));
+  const serializedCustomers = stripFirestoreProps(customers);
 
   return (
     <div className="space-y-6">

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { productService } from "@/services/productService";
 import { notFound } from "next/navigation";
 import { BatchDetail } from "@/components/features/batches/batch-detail";
+import { stripFirestoreProps } from "@/lib/firestore-utils";
 import { getBatchById } from "@/helpers/firestore_helper_functions/batches/get_methods/getBatchByIdFromDB";
 
 interface BatchDetailPageProps {
@@ -33,10 +34,8 @@ export default async function BatchDetailPage({
   }
 
   // Serialize data for client component
-  const serializedBatch = JSON.parse(JSON.stringify(batch));
-  const serializedProduct = product
-    ? JSON.parse(JSON.stringify(product))
-    : null;
+  const serializedBatch = stripFirestoreProps(batch);
+  const serializedProduct = product ? stripFirestoreProps(product) : null;
 
   return <BatchDetail batch={serializedBatch} product={serializedProduct} />;
 }

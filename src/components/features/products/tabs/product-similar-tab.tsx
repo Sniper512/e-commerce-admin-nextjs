@@ -27,11 +27,11 @@ export function ProductSimilarTab({
 
   // Note: ProductSearchDropdown now uses API search instead of pre-filtered products
 
-  const addSimilarProduct = (productId: string) => {
-    if (similarProductIds?.includes(productId)) {
+  const addSimilarProduct = (product: { id: string; name: string; image: string }) => {
+    if (similarProductIds?.includes(product.id)) {
       return; // Already added
     }
-    onSimilarProductIdsChange([...(similarProductIds || []), productId]);
+    onSimilarProductIdsChange([...(similarProductIds || []), product.id]);
     setSearchValue("");
   };
 

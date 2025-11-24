@@ -74,8 +74,8 @@ export function BatchForm({ products }: BatchFormProps) {
     }));
   };
 
-  const handleProductSelect = (productId: string) => {
-    handleInputChange("productId", productId);
+  const handleProductSelect = (product: { id: string; name: string; image: string }) => {
+    handleInputChange("productId", product.id);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

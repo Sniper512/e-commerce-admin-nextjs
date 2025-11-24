@@ -8,6 +8,7 @@ import batchService from "@/services/batchService";
 import { productService } from "@/services/productService";
 import { BatchesList } from "@/components/features/batches/batches-list";
 import { getAllBatches } from "@/helpers/firestore_helper_functions/batches/get_methods/getAllBatchesFromDB";
+import { stripFirestoreProps } from "@/lib/firestore-utils";
 
 
 
@@ -35,7 +36,7 @@ export default async function BatchesPage() {
   }));
 
   // Serialize data for client component
-  const serializedBatches = JSON.parse(JSON.stringify(enrichedBatches));
+  const serializedBatches = stripFirestoreProps(enrichedBatches);
 
   return (
     <div className="space-y-6">

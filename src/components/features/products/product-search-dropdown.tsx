@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 
 interface ProductSearchDropdownProps {
   selectedProductId: string;
-  onSelect: (productId: string) => void;
+  onSelect: (product: { id: string; name: string; image: string }) => void;
   placeholder?: string;
   searchValue: string;
   onSearchChange: (value: string) => void;
@@ -109,10 +109,10 @@ export function ProductSearchDropdown({
     const selected = searchResults.find((item) => item.id === productId);
     if (selected) {
       setSelectedProductState(selected);
+      onSelect(selected);
+      onSearchChange(""); // Clear search after selection
+      setIsOpen(false);
     }
-    onSelect(productId);
-    onSearchChange(""); // Clear search after selection
-    setIsOpen(false);
   };
 
   const shouldShowDropdown = isOpen && searchValue.length >= MIN_SEARCH_LENGTH && searchResults.length > 0;

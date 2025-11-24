@@ -6,6 +6,7 @@ import { productService } from "@/services/productService";
 import { notFound } from "next/navigation";
 import { CategoryEditForm } from "@/components/features/categories/category-edit-form";
 import type { Product } from "@/types";
+import { stripFirestoreProps } from "@/lib/firestore-utils";
 
 interface CategoryDetailPageProps {
   params: {
@@ -70,12 +71,12 @@ export default async function CategoryDetailPage({
       : [];
 
   // Serialize data for client component
-  const serializedCategory = JSON.parse(JSON.stringify(category));
+  const serializedCategory = stripFirestoreProps(category);
   const serializedSubCategory = subCategory
-    ? JSON.parse(JSON.stringify(subCategory))
+    ? stripFirestoreProps(subCategory)
     : null;
-  const serializedSubCategories = JSON.parse(JSON.stringify(subCategories));
-  const serializedProducts = JSON.parse(JSON.stringify(categoryProducts));
+  const serializedSubCategories = stripFirestoreProps(subCategories);
+  const serializedProducts = stripFirestoreProps(categoryProducts);
 
   return (
     <CategoryEditForm

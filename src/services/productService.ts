@@ -13,6 +13,7 @@ import {
   arrayRemove,
   increment,
   setDoc,
+  writeBatch,
 } from "firebase/firestore";
 import {
   ref,
@@ -1199,18 +1200,18 @@ const products = activeProducts.map((doc) => {
         ...subcategories.map((sub) => `${parentCategoryId}/${sub.id}`),
       ];
 
-      // Check all products in these categories
+      // Use direct Firestore query instead of this.getAll to avoid circular references
       for (const categoryId of allCategoryIds) {
         try {
-          const { products } = await this.getAll({ categoryId });
-
-          const hasOtherProduct = products.some(
-            (product) =>
-              product.id !== excludeProductId &&
-              product.info?.manufacturerId === manufacturerId
+          const q = query(
+            collection(db, PRODUCTS_COLLECTION),
+            where("info.categoryIds", "array-contains", categoryId),
+            where("info.manufacturerId", "==", manufacturerId),
+            where("__name__", "!=", excludeProductId)
           );
 
-          if (hasOtherProduct) {
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
             return false; // Cannot remove, other products use this manufacturer
           }
         } catch (error) {
@@ -1227,6 +1228,71 @@ const products = activeProducts.map((doc) => {
       );
       // Return true to allow removal rather than failing
       return true;
+    }
+  },
+
+  // Migration: Add nameLower field to all existing products
+  async migrateAddNameLower(): Promise<void> {
+    try {
+      console.log("🔄 Starting migration: Adding nameLower field to all products...");
+
+      const productsRef = collection(db, PRODUCTS_COLLECTION);
+      const snapshot = await getDocs(productsRef);
+
+      console.log(`📊 Found ${snapshot.size} products to migrate`);
+
+      const batch = [];
+      let migratedCount = 0;
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const productRef = doc.ref;
+
+        // Check if nameLower field exists
+        if (!data.info?.nameLower && data.info?.name) {
+          // Add nameLower field
+          const nameLower = data.info.name.toLowerCase();
+
+          batch.push({
+            ref: productRef,
+            data: {
+              info: {
+                ...data.info,
+                nameLower: nameLower
+              }
+            }
+          });
+
+          migratedCount++;
+
+          // Firestore batch size limit is 500, so commit in chunks
+          if (batch.length >= 400) {
+            console.log(`💾 Committing batch of ${batch.length} products...`);
+            const firestoreBatch = writeBatch(db);
+            batch.forEach(({ ref, data }) => {
+              firestoreBatch.update(ref, data);
+            });
+            await firestoreBatch.commit();
+            batch.length = 0; // Clear batch
+          }
+        }
+      }
+
+      // Commit remaining batch
+      if (batch.length > 0) {
+        console.log(`💾 Committing final batch of ${batch.length} products...`);
+        const firestoreBatch = writeBatch(db);
+        batch.forEach(({ ref, data }) => {
+          firestoreBatch.update(ref, data);
+        });
+        await firestoreBatch.commit();
+      }
+
+      console.log(`✅ Migration completed! Updated ${migratedCount} products with nameLower field`);
+
+    } catch (error) {
+      console.error("❌ Migration failed:", error);
+      throw error;
     }
   },
 };

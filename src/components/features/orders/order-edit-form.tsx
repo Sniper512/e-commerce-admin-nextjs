@@ -22,40 +22,87 @@ import type {
   OrderItem,
   Discount,
   CustomerSearchResult,
+  Order,
 } from "@/types";
 import Image from "next/image";
+
+interface ProductWithStock {
+  id: string;
+  name: string;
+  image: string;
+  price: number;
+  stock: number;
+  isAvailableForOrder: boolean;
+  // Additional fields for fetched products
+  batchId?: string;
+  discountAmount?: number;
+  finalPrice?: number;
+}
 
 interface OrderItemWithDetails extends OrderItem {
   image: string;
   availableStock: number;
 }
 
-interface OrderCreateFormProps {
+interface OrderEditFormProps {
+  order: Order;
   customers: CustomerSearchResult[];
+  products: ProductWithStock[];
   paymentMethods: PaymentMethod[];
 }
 
-export function OrderCreateForm({
+export function OrderEditForm({
+  order,
   customers,
+  products,
   paymentMethods,
-}: OrderCreateFormProps) {
+}: OrderEditFormProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-    null
+    order.customerId
   );
   const [orderItems, setOrderItems] = useState<OrderItemWithDetails[]>([]);
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState(order.deliveryAddress);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] =
-    useState<string>("");
+    useState<string>(order.paymentMethod.id);
+
+  console.log('OrderEditForm - order.paymentMethod:', order.paymentMethod);
+  console.log('OrderEditForm - selectedPaymentMethodId:', selectedPaymentMethodId);
+  console.log('OrderEditForm - paymentMethods:', paymentMethods);
   const [productSearchValue, setProductSearchValue] = useState("");
   const [bestOrderDiscount, setBestOrderDiscount] = useState<Discount | null>(
     null
   );
-  const [quantityInputValues, setQuantityInputValues] = useState<Record<string, string>>({});
+
+  // Initialize order items from existing order
+  useEffect(() => {
+    const initializeOrderItems = async () => {
+      const itemsWithDetails: OrderItemWithDetails[] = [];
+
+      for (const item of order.items) {
+        // Find product details
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+          // Calculate available stock (original stock + current order quantity)
+          const availableStock = product.stock + item.quantity;
+
+          itemsWithDetails.push({
+            ...item,
+            image: product.image,
+            availableStock: availableStock,
+          });
+        }
+      }
+
+      setOrderItems(itemsWithDetails);
+    };
+
+    initializeOrderItems();
+  }, [order, products]);
 
   // Effect to calculate best order-level discount when order items or subtotal changes
   useEffect(() => {
@@ -117,43 +164,86 @@ export function OrderCreateForm({
   const pricing = calculatePricing();
 
   const handleProductSelect = async (product: { id: string; name: string; image: string }) => {
-    // For now, assume products are available and use basic pricing
-    // TODO: Implement proper stock checking and pricing later
-    const isAvailable = true; // Simplified for now
-    const price = 100; // Default price - will be replaced with real pricing
-    const stock = 10; // Default stock - will be replaced with real stock
+    // Find the full product data from the products prop
+    let fullProduct = products.find(p => p.id === product.id);
 
-    if (!isAvailable) {
-      setTimeout(() => showToast("warning", "Product Unavailable", "This product is currently out of stock."), 0);
+    // If product not found in pre-loaded data, fetch it from API
+    if (!fullProduct) {
+      try {
+        const productData = await productService.getById(product.id);
+        if (productData) {
+          // Calculate discount for the fetched product
+          const highestDiscountPercentage =
+            await productService.getHighestActiveDiscountPercentageByProductId(
+              product.id
+            );
+
+          // Get batch data for pricing
+          const batches = await getBatchesByProductId(product.id);
+          const activeBatch = batches.find((b: any) => b.remainingQuantity > 0);
+
+          const price = activeBatch?.price || 0;
+          const discountAmount = (price * highestDiscountPercentage) / 100;
+
+          fullProduct = {
+            id: productData.id,
+            name: productData.info.name,
+            image: productData.multimedia?.images?.[0] || "",
+            price: price,
+            stock: activeBatch?.remainingQuantity || 0,
+            isAvailableForOrder: (activeBatch?.remainingQuantity || 0) > 0 && !!activeBatch,
+            // Store additional data for order item construction
+            batchId: activeBatch?.id || "",
+            discountAmount: discountAmount,
+            finalPrice: price - discountAmount,
+          };
+        }
+      } catch (error) {
+        console.error("Error fetching product details:", error);
+        showToast("error", "Failed to load product details");
+        return;
+      }
+    }
+
+    if (!fullProduct) {
+      setTimeout(() => showToast("error", "Product not found"), 0);
+      return;
+    }
+
+    // Check if product is available for ordering
+    if (!fullProduct.isAvailableForOrder) {
+      setTimeout(() => showToast("warning", "Product Unavailable", "This product is currently out of stock or unavailable for ordering."), 0);
       return;
     }
 
     // Check if product already added
     const existingItem = orderItems.find(
-      (item) => item.productId === product.id
+      (item) => item.productId === fullProduct.id
     );
 
     if (existingItem) {
       // Increase quantity if already added
-      setTimeout(() => handleQuantityChange(product.id, existingItem.quantity + 1), 0);
+      handleQuantityChange(fullProduct.id, existingItem.quantity + 1);
       return;
     }
 
-    // Create order item with basic data
+    // Use pricing data from product (either pre-loaded or fetched)
+    const discount = fullProduct.discountAmount || 0;
+    const finalPrice = fullProduct.finalPrice || fullProduct.price;
+
     const newItem: OrderItemWithDetails = {
-      productId: product.id,
-      productName: product.name,
+      productId: fullProduct.id,
+      productName: fullProduct.name,
       quantity: 1,
-      unitPrice: price,
-      discount: 0, // No discount for now
-      subtotal: price,
-      batchId: "", // Will be set when proper batch logic is implemented
-      image: product.image,
-      availableStock: stock,
+      unitPrice: fullProduct.price,
+      discount: discount,
+      subtotal: finalPrice,
+      batchId: fullProduct.batchId || "",
+      image: fullProduct.image,
+      availableStock: fullProduct.stock,
     };
 
     setOrderItems([...orderItems, newItem]);
-    setQuantityInputValues(prev => ({ ...prev, [product.id]: "1" }));
   };
 
   const handleQuantityChange = (productId: string, newQuantity: number) => {
@@ -169,14 +259,11 @@ export function OrderCreateForm({
           }
 
           const finalPrice = item.unitPrice - item.discount;
-          const updatedItem = {
+          return {
             ...item,
             quantity: newQuantity,
             subtotal: finalPrice * newQuantity,
           };
-          // Update input value
-          setQuantityInputValues(prev => ({ ...prev, [productId]: newQuantity.toString() }));
-          return updatedItem;
         }
         return item;
       })
@@ -187,11 +274,6 @@ export function OrderCreateForm({
     setOrderItems((items) =>
       items.filter((item) => item.productId !== productId)
     );
-    setQuantityInputValues(prev => {
-      const newValues = { ...prev };
-      delete newValues[productId];
-      return newValues;
-    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -222,57 +304,16 @@ export function OrderCreateForm({
     setLoading(true);
 
     try {
-      // Create payment method object based on selected ID
-      let selectedPaymentMethod: any;
-      if (selectedPaymentMethodId === "cod") {
-        selectedPaymentMethod = {
-          id: "cod",
-          type: "cash_on_delivery" as const,
-          isActive: true,
-          displayOrder: 1,
-          createdAt: new Date(),
-        };
-      } else if (selectedPaymentMethodId === "easypaisa") {
-        selectedPaymentMethod = {
-          id: "easypaisa",
-          type: "easypaisa" as const,
-          isActive: true,
-          displayOrder: 2,
-          createdAt: new Date(),
-        };
-      } else if (selectedPaymentMethodId === "jazzcash") {
-        selectedPaymentMethod = {
-          id: "jazzcash",
-          type: "jazzcash" as const,
-          isActive: true,
-          displayOrder: 3,
-          createdAt: new Date(),
-        };
-      } else if (selectedPaymentMethodId === "bank_transfer") {
-        selectedPaymentMethod = {
-          id: "bank_transfer",
-          type: "bank_transfer" as const,
-          isActive: true,
-          displayOrder: 4,
-          createdAt: new Date(),
-        };
-      } else {
+      const selectedPaymentMethod = paymentMethods.find(
+        (pm) => pm.id === selectedPaymentMethodId
+      );
+
+      if (!selectedPaymentMethod) {
         throw new Error("Invalid payment method");
       }
 
-      // Determine payment status based on payment method type
-      let paymentStatus: "pending" | "awaiting_confirmation" = "pending";
-      if (
-        ["easypaisa", "jazzcash", "bank_transfer"].includes(
-          selectedPaymentMethod.type
-        )
-      ) {
-        paymentStatus = "awaiting_confirmation";
-      }
-
-      const now = new Date();
-
-      const orderData = {
+      // Prepare updated order data
+      const updatedOrderData = {
         customerId: selectedCustomerId,
         items: orderItems.map((item) => ({
           productId: item.productId,
@@ -288,31 +329,17 @@ export function OrderCreateForm({
         deliveryFee: pricing.deliveryFee,
         total: pricing.total,
         paymentMethod: selectedPaymentMethod,
-        paymentStatus,
-        paymentStatusHistory: [
-          {
-            status: paymentStatus,
-            updatedAt: now,
-          },
-        ],
         deliveryAddress: deliveryAddress.trim(),
-        status: "pending" as const,
-        statusHistory: [
-          {
-            status: "pending" as const,
-            updatedAt: now,
-          },
-        ],
-        createdAt: now,
       };
 
-      await orderService.createOrder(orderData);
-      setTimeout(() => showToast("success", "Order created successfully!"), 0);
+      await orderService.updateOrder(order.id, updatedOrderData);
+
+      setTimeout(() => showToast("success", "Order updated successfully!"), 0);
       router.push("/dashboard/orders");
       router.refresh();
     } catch (error: any) {
-      console.error("Error creating order:", error);
-      setError(error.message || "Failed to create order. Please try again.");
+      console.error("Error updating order:", error);
+      setError(error.message || "Failed to update order. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -332,20 +359,22 @@ export function OrderCreateForm({
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Create New Order</h1>
-            <p className="text-gray-500 mt-1">Add a new order for a customer</p>
+            <h1 className="text-3xl font-bold">Edit Order</h1>
+            <p className="text-gray-500 mt-1">
+              Update order details for {order.id}
+            </p>
           </div>
         </div>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Creating...
+              Updating...
             </>
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Create Order
+              Update Order
             </>
           )}
         </Button>
@@ -473,23 +502,15 @@ export function OrderCreateForm({
                           </Button>
                           <Input
                             type="number"
-                            value={quantityInputValues[item.productId] ?? item.quantity.toString()}
+                            value={item.quantity}
                             onChange={(e) => {
-                              const value = e.target.value;
-                              setQuantityInputValues(prev => ({ ...prev, [item.productId]: value }));
-                              const numValue = parseInt(value);
-                              if (!isNaN(numValue)) {
-                                handleQuantityChange(item.productId, numValue);
-                              }
-                            }}
-                            onBlur={() => {
-                              // Reset to actual quantity if invalid
-                              const currentValue = quantityInputValues[item.productId];
-                              if (currentValue && isNaN(parseInt(currentValue))) {
-                                setQuantityInputValues(prev => ({ ...prev, [item.productId]: item.quantity.toString() }));
+                              const value = parseInt(e.target.value);
+                              if (!isNaN(value)) {
+                                handleQuantityChange(item.productId, value);
                               }
                             }}
                             min="1"
+                            max={item.availableStock}
                             className="w-20 text-center"
                           />
                           <Button
@@ -651,11 +672,13 @@ export function OrderCreateForm({
                     disabled={loading}
                     className="capitalize">
                     <option value="">Choose payment method</option>
-                    {paymentMethods.map((pm) => (
-                      <option key={pm.id} value={pm.id}>
-                        {pm.type.replaceAll("_", " ")}
-                      </option>
-                    ))}
+                    {paymentMethods
+                      .filter((pm) => pm.isActive)
+                      .map((pm) => (
+                        <option key={pm.id} value={pm.id}>
+                          {pm.type?.replace(/_/g, " ") || "Unknown"}
+                        </option>
+                      ))}
                   </Select>
                 </div>
               </CardContent>
@@ -680,7 +703,7 @@ export function OrderCreateForm({
                         (pm) => pm.id === selectedPaymentMethodId
                       )?.type || ""
                     )
-                      ? "Pending Confirmation"
+                      ? "Awaiting Confirmation"
                       : "Pending"}
                   </span>
                 </div>

@@ -331,8 +331,8 @@ export default function BannerAddForm({ products }: BannerAddFormProps) {
                   ) : (
                     <ProductSearchDropdown
                       selectedProductId={formData.link}
-                      onSelect={(productId) =>
-                        setFormData({ ...formData, link: productId })
+                      onSelect={(product) =>
+                        setFormData({ ...formData, link: product.id })
                       }
                       searchValue={productSearch}
                       onSearchChange={setProductSearch}

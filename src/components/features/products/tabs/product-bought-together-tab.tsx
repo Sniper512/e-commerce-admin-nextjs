@@ -27,13 +27,13 @@ export function ProductBoughtTogetherTab({
 
   // Note: ProductSearchDropdown now uses API search instead of pre-filtered products
 
-  const addBoughtTogetherProduct = (productId: string) => {
-    if (boughtTogetherProductIds?.includes(productId)) {
+  const addBoughtTogetherProduct = (product: { id: string; name: string; image: string }) => {
+    if (boughtTogetherProductIds?.includes(product.id)) {
       return; // Already added
     }
     onBoughtTogetherProductIdsChange([
       ...(boughtTogetherProductIds || []),
-      productId,
+      product.id,
     ]);
     setSearchValue("");
   };

@@ -5,7 +5,7 @@ import { productService } from "@/services/productService";
 import categoryService from "@/services/categoryService";
 import { ProductsList } from "@/components/features/products/products-list";
 import { redirect } from "next/navigation";
-import { safeSerializeForClient } from "@/lib/firestore-utils";
+import { stripFirestoreProps } from "@/lib/firestore-utils";
 
 interface ProductsPageProps {
   searchParams?: Promise<{
@@ -68,9 +68,9 @@ export default async function ProductsPage({
     redirect(`/dashboard/products?page=${page}&limit=${limit}`);
   }
 
-  // Serialize data for client component
-  const serializedProducts = safeSerializeForClient(products);
-  const serializedCategories = safeSerializeForClient(categories);
+  // Serialize data for client component - strip all Firestore properties
+  const serializedProducts = stripFirestoreProps(products);
+  const serializedCategories = stripFirestoreProps(categories);
 
   return (
     <div className="space-y-6">

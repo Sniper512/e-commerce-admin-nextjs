@@ -14,17 +14,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Select } from "@/components/ui/select";
-import { Search, Eye, Filter } from "lucide-react";
+import { Search, Eye, Filter, Edit, X } from "lucide-react";
 import { formatCurrency, formatDateTime, getStatusColor } from "@/lib/utils";
 import { Order } from "@/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast-context";
 import orderService from "@/services/orderService";
 
+// Type for serialized payment method
+type SerializedPaymentMethod = Omit<Order["paymentMethod"], "createdAt"> & {
+  createdAt: string;
+};
+
 // Type for serialized orders (dates as strings for client component)
-type SerializedOrder = Omit<Order, "createdAt" | "deliveredAt"> & {
+type SerializedOrder = Omit<Order, "createdAt" | "deliveredAt" | "paymentMethod"> & {
   createdAt: string;
   deliveredAt?: string;
+  paymentMethod: SerializedPaymentMethod;
 };
 
 interface OrdersListProps {
@@ -68,6 +74,47 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
     } catch (error) {
       console.error("Error updating order status:", error);
       showToast("error", "Failed to update order status", error instanceof Error ? error.message : "Unknown error");
+    }
+  };
+
+  const handlePaymentStatusChange = async (orderId: string, newStatus: string) => {
+    if (!newStatus) return;
+
+    try {
+      await orderService.updatePaymentStatus(orderId, newStatus as any);
+      showToast("success", "Payment status updated successfully!");
+      router.refresh();
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      showToast("error", "Failed to update payment status", error instanceof Error ? error.message : "Unknown error");
+    }
+  };
+
+  // Business logic for order edit/cancel eligibility
+  const canEditOrder = (order: SerializedOrder): boolean => {
+    return order.status === 'pending' && order.paymentMethod.type === 'cash_on_delivery';
+  };
+
+  const canCancelOrder = (order: SerializedOrder): boolean => {
+    return order.status === 'pending' && order.paymentMethod.type === 'cash_on_delivery';
+  };
+
+  const handleEditOrder = (orderId: string) => {
+    router.push(`/dashboard/orders/${orderId}/edit`);
+  };
+
+  const handleCancelOrder = async (order: SerializedOrder) => {
+    if (!confirm(`Are you sure you want to cancel order ${order.id}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await orderService.cancelOrder(order.id);
+      showToast("success", "Order cancelled successfully!");
+      router.refresh();
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      showToast("error", "Failed to cancel order", error instanceof Error ? error.message : "Unknown error");
     }
   };
 
@@ -118,8 +165,9 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                 <TableHead>Customer</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Total</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Payment Method</TableHead>
+                <TableHead>Payment Status</TableHead>
+                <TableHead>Order Status</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -127,7 +175,7 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
             <TableBody>
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={9} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center">
                       <h3 className="text-lg font-semibold mb-2">
                         No orders found
@@ -153,20 +201,18 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                         Rs. {Math.floor(order.total).toLocaleString()}
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <Badge
-                            className={getStatusColor(order.paymentStatus)}>
-                            {order.paymentStatus.replace("_", " ")}
-                          </Badge>
-                          <p className="text-xs text-gray-600">
-                            {order.paymentMethod.type?.replace("_", " ") ||
-                              "N/A"}
-                          </p>
-                        </div>
+                        <p className="text-sm">
+                          {order.paymentMethod.type?.replace(/_/g, " ") || "N/A"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(order.paymentStatus)}>
+                          {order.paymentStatus.replace(/_/g, " ")}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(order.status)}>
-                          {order.status.replace("_", " ")}
+                          {order.status.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
@@ -182,8 +228,38 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                             }>
                             <Eye className="h-3 w-3" />
                           </Button>
+                          {canEditOrder(order) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditOrder(order.id)}
+                              className="text-blue-600 hover:text-blue-700">
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {canCancelOrder(order) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCancelOrder(order)}
+                              className="text-red-600 hover:text-red-700">
+                              <X className="h-3 w-3" />
+                            </Button>
+                          )}
                           <Select
-                            className="h-8 text-sm"
+                            className="h-9 text-sm min-w-[120px]"
+                            onChange={(e) =>
+                              handlePaymentStatusChange(order.id, e.target.value)
+                            }
+                            defaultValue="">
+                            <option value="">Change Payment</option>
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                            <option value="failed">Failed</option>
+                            <option value="refunded">Refunded</option>
+                          </Select>
+                          <Select
+                            className="h-9 text-sm min-w-[120px]"
                             onChange={(e) =>
                               handleStatusChange(order.id, e.target.value)
                             }

@@ -317,12 +317,17 @@ export function DiscountForm({
 
   // Note: ProductSearchDropdown now uses API search instead of pre-filtered products
 
-  const handleAddProduct = (productId: string) => {
-    if (!formData.applicableProductIds.includes(productId)) {
+  const handleAddProduct = (product: { id: string; name: string; image: string }) => {
+    if (!formData.applicableProductIds.includes(product.id)) {
       handleInputChange("applicableProductIds", [
         ...formData.applicableProductIds,
-        productId,
+        product.id,
       ]);
+      // Also store the product details for display
+      setSelectedProductDetails(prev => ({
+        ...prev,
+        [product.id]: product
+      }));
     }
   };
 
