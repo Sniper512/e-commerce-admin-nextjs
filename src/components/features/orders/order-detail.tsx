@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { ArrowLeft, Edit, X } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, formatDateTime, getStatusColor } from "@/lib/utils";
@@ -21,6 +23,7 @@ type SerializedOrder = Omit<Order, "createdAt" | "deliveredAt"> & {
   paymentMethod: Omit<Order["paymentMethod"], "createdAt"> & {
     createdAt: string;
   };
+  proofOfPaymentUrl?: string;
 };
 
 interface OrderDetailProps {
@@ -64,6 +67,7 @@ export function OrderDetail({ order, customer }: OrderDetailProps) {
   };
 
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const handleCancelOrder = () => {
     setShowCancelConfirmation(true);
@@ -85,6 +89,38 @@ export function OrderDetail({ order, customer }: OrderDetailProps) {
 
   const cancelCancelOrder = () => {
     setShowCancelConfirmation(false);
+  };
+
+  const handleOrderStatusChange = async (newStatus: string) => {
+    if (!newStatus || newStatus === order.status) return;
+
+    setUpdatingStatus(true);
+    try {
+      await orderService.updateOrderStatus(order.id, newStatus as any);
+      showToast("success", "Order status updated successfully!");
+      router.refresh();
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      showToast("error", "Failed to update order status", error instanceof Error ? error.message : "Unknown error");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handlePaymentStatusChange = async (newStatus: string) => {
+    if (!newStatus || newStatus === order.paymentStatus) return;
+
+    setUpdatingStatus(true);
+    try {
+      await orderService.updatePaymentStatus(order.id, newStatus as any);
+      showToast("success", "Payment status updated successfully!");
+      router.refresh();
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      showToast("error", "Failed to update payment status", error instanceof Error ? error.message : "Unknown error");
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   return (
@@ -243,6 +279,81 @@ export function OrderDetail({ order, customer }: OrderDetailProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Status Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Update Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="orderStatus">Order Status</Label>
+                  <Select
+                    id="orderStatus"
+                    value={order.status}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleOrderStatusChange(e.target.value)}
+                    disabled={updatingStatus}
+                    className="w-full">
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="refunded">Refunded</option>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentStatus">Payment Status</Label>
+                  <Select
+                    id="paymentStatus"
+                    value={order.paymentStatus}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handlePaymentStatusChange(e.target.value)}
+                    disabled={updatingStatus}
+                    className="w-full">
+                    <option value="pending">Pending</option>
+                    <option value="awaiting_confirmation">Awaiting Confirmation</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="refunded">Refunded</option>
+                    <option value="cancelled">Cancelled</option>
+                  </Select>
+                </div>
+              </div>
+              {updatingStatus && (
+                <div className="mt-4 text-center text-sm text-gray-600">
+                  Updating status...
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Proof of Payment - Only show for online payments */}
+          {order.proofOfPaymentUrl && ["easypaisa", "jazzcash", "bank_transfer"].includes(order.paymentMethod.type || "") && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Proof of Payment</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-center">
+                    <Image
+                      src={order.proofOfPaymentUrl}
+                      alt="Proof of Payment"
+                      width={400}
+                      height={300}
+                      className="max-w-full h-auto rounded-lg border border-gray-200"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/images/default-image.svg";
+                      }}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-600 text-center">
+                    Payment receipt uploaded by customer
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

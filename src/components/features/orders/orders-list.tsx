@@ -68,31 +68,6 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
     refunded: orders.filter((o) => o.status === "refunded").length,
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    if (!newStatus) return;
-
-    try {
-      await orderService.updateOrderStatus(orderId, newStatus as any);
-      showToast("success", "Order status updated successfully!");
-      router.refresh();
-    } catch (error) {
-      console.error("Error updating order status:", error);
-      showToast("error", "Failed to update order status", error instanceof Error ? error.message : "Unknown error");
-    }
-  };
-
-  const handlePaymentStatusChange = async (orderId: string, newStatus: string) => {
-    if (!newStatus) return;
-
-    try {
-      await orderService.updatePaymentStatus(orderId, newStatus as any);
-      showToast("success", "Payment status updated successfully!");
-      router.refresh();
-    } catch (error) {
-      console.error("Error updating payment status:", error);
-      showToast("error", "Failed to update payment status", error instanceof Error ? error.message : "Unknown error");
-    }
-  };
 
   // Business logic for order edit/cancel eligibility
   const canEditOrder = (order: SerializedOrder): boolean => {
@@ -257,32 +232,6 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                               <X className="h-4 w-4" />
                             </Button>
                           )}
-                          <Select
-                            className="h-9 text-xs text-center min-w-[100px] pr-6 mr-2"
-                            onChange={(e) =>
-                              handlePaymentStatusChange(order.id, e.target.value)
-                            }
-                            defaultValue="">
-                            <option value="">Change Payment</option>
-                            <option value="pending">Pending</option>
-                            <option value="paid">Paid</option>
-                            <option value="failed">Failed</option>
-                            <option value="refunded">Refunded</option>
-                          </Select>
-                          <Select
-                            className="h-9 text-xs text-center min-w-[100px] pr-6 mr-2"
-                            onChange={(e) =>
-                              handleStatusChange(order.id, e.target.value)
-                            }
-                            defaultValue="">
-                            <option value="">Change Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="confirmed">Confirmed</option>
-                            <option value="shipped">Shipped</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
-                            <option value="refunded">Refunded</option>
-                          </Select>
                         </div>
                       </TableCell>
                     </TableRow>

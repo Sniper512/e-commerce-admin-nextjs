@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerSearchDropdown } from "@/components/features/customers/customer-search-dropdown";
 import { ProductSearchDropdown } from "@/components/features/products/product-search-dropdown";
-import { ArrowLeft, Save, Loader2, Trash2, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Trash2, ShoppingCart, Upload } from "lucide-react";
 import Link from "next/link";
 import orderService from "@/services/orderService";
 import discountService from "@/services/discountService";
@@ -24,6 +24,8 @@ import type {
   CustomerSearchResult,
 } from "@/types";
 import Image from "next/image";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/../firebaseConfig";
 
 interface OrderItemWithDetails extends OrderItem {
   image: string;
@@ -56,6 +58,7 @@ export function OrderCreateForm({
     null
   );
   const [quantityInputValues, setQuantityInputValues] = useState<Record<string, string>>({});
+  const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null);
 
   // Effect to calculate best order-level discount when order items or subtotal changes
   useEffect(() => {
@@ -254,9 +257,28 @@ export function OrderCreateForm({
       return;
     }
 
+    // Check if proof of payment is required for non-COD payments
+    const isNonCod = selectedPaymentMethodId && ["easypaisa", "jazzcash", "bank_transfer"].includes(
+      paymentMethods.find(pm => pm.id === selectedPaymentMethodId)?.type || ""
+    );
+    if (isNonCod && !proofOfPaymentFile) {
+      setError("Please upload proof of payment for online payments");
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Upload proof of payment if provided
+      let proofOfPaymentUrl: string | undefined;
+      if (proofOfPaymentFile) {
+        const timestamp = Date.now();
+        const storagePath = `ORDERS/proof-of-payment/${timestamp}-${proofOfPaymentFile.name}`;
+        const storageRef = ref(storage, storagePath);
+        await uploadBytes(storageRef, proofOfPaymentFile);
+        proofOfPaymentUrl = await getDownloadURL(storageRef);
+      }
+
       // Create payment method object based on selected ID
       let selectedPaymentMethod: any;
       if (selectedPaymentMethodId === "cod") {
@@ -338,6 +360,7 @@ export function OrderCreateForm({
             updatedAt: now,
           },
         ],
+        proofOfPaymentUrl,
         createdAt: now,
       };
 
@@ -695,6 +718,43 @@ export function OrderCreateForm({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Proof of Payment - Only show for non-COD payments */}
+            {selectedPaymentMethodId && ["easypaisa", "jazzcash", "bank_transfer"].includes(
+              paymentMethods.find(pm => pm.id === selectedPaymentMethodId)?.type || ""
+            ) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Proof of Payment</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="proofOfPayment">
+                      Upload Proof of Payment <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id="proofOfPayment"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setProofOfPaymentFile(e.target.files?.[0] || null)}
+                        disabled={loading}
+                        className="flex-1"
+                      />
+                      <Upload className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Upload an image of your payment receipt or transaction confirmation
+                    </p>
+                    {proofOfPaymentFile && (
+                      <p className="text-sm text-green-600">
+                        Selected: {proofOfPaymentFile.name}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Order Info */}
             <Card>

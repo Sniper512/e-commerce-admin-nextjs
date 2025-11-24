@@ -38,6 +38,7 @@ const firestoreToOrder = (id: string, data: any): Order => {
       updatedAt: convertTimestamp(h.updatedAt),
     })),
     riderId: data.riderId,
+    proofOfPaymentUrl: data.proofOfPaymentUrl,
     createdAt: convertTimestamp(data.createdAt),
     deliveredAt: data.deliveredAt
       ? convertTimestamp(data.deliveredAt)
@@ -78,7 +79,7 @@ const orderService = {
   },
 
   // Create new order
-  async createOrder(orderData: Omit<Order, "id">): Promise<string> {
+  async createOrder(orderData: Omit<Order, "id" | "proofOfPaymentUrl"> & { proofOfPaymentUrl?: string }): Promise<string> {
     try {
       const ordersRef = collection(db, COLLECTION_NAME);
 
@@ -96,6 +97,7 @@ const orderService = {
         status: orderData.status,
         statusHistory: orderData.statusHistory,
         riderId: orderData.riderId,
+        proofOfPaymentUrl: orderData.proofOfPaymentUrl,
         createdAt: orderData.createdAt || new Date(),
         deliveredAt: orderData.deliveredAt,
       };

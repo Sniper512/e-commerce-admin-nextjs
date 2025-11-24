@@ -36,6 +36,7 @@ export interface Order {
     status: PaymentStatus;
     updatedAt: Date;
   }[];
+  proofOfPaymentUrl?: string;
 
   // Delivery
   deliveryAddress: string;
