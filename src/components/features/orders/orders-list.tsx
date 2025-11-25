@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,7 +76,7 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
   };
 
   const canCancelOrder = (order: SerializedOrder): boolean => {
-    return order.status === 'pending' && order.paymentMethod.type === 'cash_on_delivery';
+    return order.status === 'pending';
   };
 
   const handleEditOrder = (orderId: string) => {
@@ -248,8 +249,8 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
       </Card>
 
       {/* Custom Cancel Confirmation Dialog */}
-      {cancelConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      {cancelConfirmation && createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Cancel Order</h3>
             <p className="text-gray-600 mb-6">
@@ -271,7 +272,8 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

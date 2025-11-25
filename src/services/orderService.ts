@@ -283,7 +283,7 @@ const orderService = {
     }
   },
 
-  // Cancel order (only for COD orders in pending status)
+  // Cancel order (only for pending orders)
   async cancelOrder(orderId: string): Promise<void> {
     try {
       const order = await this.getOrderById(orderId);
@@ -294,10 +294,6 @@ const orderService = {
       // Business rule validation
       if (order.status !== 'pending') {
         throw new Error("Only pending orders can be cancelled");
-      }
-
-      if (order.paymentMethod.type !== 'cash_on_delivery') {
-        throw new Error("Only COD orders can be cancelled");
       }
 
       // Update order status to cancelled
