@@ -60,7 +60,7 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
 
   // Business logic for order edit/cancel eligibility
   const canEditOrder = (): boolean => {
-    return order.status === 'pending' && order.paymentMethod.type === 'cash_on_delivery';
+    return order.status === 'pending';
   };
 
   const canCancelOrder = (): boolean => {

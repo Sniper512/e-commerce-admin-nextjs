@@ -43,19 +43,16 @@ export default function EditOrderPage() {
           return;
         }
 
-        // Business rule validation
-        if (orderData.status !== 'pending' || orderData.paymentMethod.type !== 'cash_on_delivery') {
-          setError("This order cannot be edited");
+        // Business rule validation - only pending orders can be edited
+        if (orderData.status !== 'pending') {
+          setError("Only pending orders can be edited");
           return;
         }
 
         setOrder(orderData);
 
         // Fetch basic data
-        const [customersData, paymentMethodsData] = await Promise.all([
-          customerService.getAllCustomersForSearch({ isActive: true }),
-          paymentMethodService.getAllPaymentMethods(),
-        ]);
+        const customersData = await customerService.getAllCustomersForSearch({ isActive: true });
 
         // Ensure the order's customer is included (even if inactive)
         let customers = customersData;
@@ -75,12 +72,37 @@ export default function EditOrderPage() {
         }
         setCustomers(customers);
 
-        // Ensure the order's payment method is included (even if inactive)
-        let paymentMethods = [...paymentMethodsData];
-        if (orderData.paymentMethod.id && !paymentMethods.find(pm => pm.id === orderData.paymentMethod.id)) {
-          // Always include the order's payment method
-          paymentMethods.push(orderData.paymentMethod);
-        }
+        // Use hardcoded payment methods (same as create form)
+        const paymentMethods = [
+          {
+            id: "cod",
+            type: "cash_on_delivery" as const,
+            isActive: true,
+            displayOrder: 1,
+            createdAt: new Date(),
+          },
+          {
+            id: "easypaisa",
+            type: "easypaisa" as const,
+            isActive: true,
+            displayOrder: 2,
+            createdAt: new Date(),
+          },
+          {
+            id: "jazzcash",
+            type: "jazzcash" as const,
+            isActive: true,
+            displayOrder: 3,
+            createdAt: new Date(),
+          },
+          {
+            id: "bank_transfer",
+            type: "bank_transfer" as const,
+            isActive: true,
+            displayOrder: 4,
+            createdAt: new Date(),
+          },
+        ];
         setPaymentMethods(paymentMethods);
 
         // Get products with basic info only

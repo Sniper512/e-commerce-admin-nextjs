@@ -139,7 +139,7 @@ const orderService = {
     }
   },
 
-  // Update order (only for COD orders in pending status)
+  // Update order (only for pending orders)
   async updateOrder(id: string, updates: Partial<Order>): Promise<void> {
     try {
       const order = await this.getOrderById(id);
@@ -150,10 +150,6 @@ const orderService = {
       // Business rule validation
       if (order.status !== 'pending') {
         throw new Error("Only pending orders can be edited");
-      }
-
-      if (order.paymentMethod.type !== 'cash_on_delivery') {
-        throw new Error("Only COD orders can be edited");
       }
 
       // Calculate old quantities per batch

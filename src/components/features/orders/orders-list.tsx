@@ -35,7 +35,7 @@ type SerializedOrder = Omit<Order, "createdAt" | "deliveredAt" | "paymentMethod"
 
 interface OrdersListProps {
   orders: SerializedOrder[];
-  customers: Record<string, { id: string; name: string }>;
+  customers: Record<string, { id: string; name: string; phone: string }>;
 }
 
 export function OrdersList({ orders, customers }: OrdersListProps) {
@@ -71,7 +71,7 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
 
   // Business logic for order edit/cancel eligibility
   const canEditOrder = (order: SerializedOrder): boolean => {
-    return order.status === 'pending' && order.paymentMethod.type === 'cash_on_delivery';
+    return order.status === 'pending';
   };
 
   const canCancelOrder = (order: SerializedOrder): boolean => {
@@ -148,21 +148,22 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
           <Table className="text-xs">
             <TableHeader>
               <TableRow>
-                <TableHead className="px-3 py-3">Order ID</TableHead>
-                <TableHead className="px-3 py-3">Customer</TableHead>
-                <TableHead className="px-3 py-3">Items</TableHead>
-                <TableHead className="px-3 py-3">Total</TableHead>
-                <TableHead className="px-3 py-3">Payment Method</TableHead>
-                <TableHead className="px-3 py-3">Payment Status</TableHead>
-                <TableHead className="px-3 py-3">Order Status</TableHead>
-                <TableHead className="px-3 py-3">Date</TableHead>
-                <TableHead className="px-3 py-3 text-right">Actions</TableHead>
+                <TableHead className="p-0 px-2 py-3">Order ID</TableHead>
+                <TableHead className="p-0 px-2 py-3">Customer</TableHead>
+                <TableHead className="p-0 px-2 py-3">Phone</TableHead>
+                <TableHead className="p-0 px-2 py-3">Items</TableHead>
+                <TableHead className="p-0 px-2 py-3">Total</TableHead>
+                <TableHead className="p-0 px-2 py-3">Payment Method</TableHead>
+                <TableHead className="p-0 px-2 py-3 text-center">Payment Status</TableHead>
+                <TableHead className="p-0 px-2 py-3 text-center">Order Status</TableHead>
+                <TableHead className="p-0 px-2 py-3">Date</TableHead>
+                <TableHead className="p-0 px-2 py-3 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
+                  <TableCell colSpan={10} className="p-0 px-2 py-3 text-center py-8">
                     <div className="flex flex-col items-center justify-center">
                       <h3 className="text-lg font-semibold mb-2">
                         No orders found
@@ -179,31 +180,34 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                 filteredOrders.map((order) => {
                    const customerName =
                      customers[order.customerId]?.name || "Unknown Customer";
+                   const customerPhone =
+                     customers[order.customerId]?.phone || "N/A";
                    return (
                      <TableRow key={order.id}>
-                       <TableCell className="px-3 py-3 font-medium text-xs">{order.id}</TableCell>
-                       <TableCell className="px-3 py-3 text-xs">{customerName}</TableCell>
-                       <TableCell className="px-3 py-3 text-xs">{order.items.length} items</TableCell>
-                       <TableCell className="px-3 py-3 font-semibold text-xs">
-                         Rs. {Math.floor(order.total).toLocaleString()}
-                       </TableCell>
-                       <TableCell className="px-3 py-3 text-xs">
-                         {order.paymentMethod.type?.replace(/_/g, " ") || "N/A"}
-                       </TableCell>
-                       <TableCell className="px-3 py-3">
-                         <Badge className={`${getStatusColor(order.paymentStatus)} text-xs px-2 py-1`}>
-                           {order.paymentStatus.replace(/_/g, " ")}
-                         </Badge>
-                       </TableCell>
-                       <TableCell className="px-3 py-3">
-                         <Badge className={`${getStatusColor(order.status)} text-xs px-2 py-1`}>
-                           {order.status.replace(/_/g, " ")}
-                         </Badge>
-                       </TableCell>
-                       <TableCell className="px-3 py-3 text-xs text-gray-600">
-                         {formatDateTime(order.createdAt)}
-                       </TableCell>
-                       <TableCell className="px-3 py-3 text-right">
+                      <TableCell className="p-0 px-2 py-3 font-medium text-xs">{order.id}</TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-xs">{customerName}</TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-xs">{customerPhone}</TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-xs">{order.items.length} items</TableCell>
+                      <TableCell className="p-0 px-2 py-3 font-semibold text-xs">
+                        Rs. {Math.floor(order.total).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-xs">
+                        {order.paymentMethod.type?.replace(/_/g, " ") || "N/A"}
+                      </TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-center">
+                        <Badge className={`${getStatusColor(order.paymentStatus)} text-xs px-2 py-1`}>
+                          {order.paymentStatus.replace(/_/g, " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-center">
+                        <Badge className={`${getStatusColor(order.status)} text-xs px-2 py-1`}>
+                          {order.status.replace(/_/g, " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-xs text-gray-600">
+                        {formatDateTime(order.createdAt)}
+                      </TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             variant="outline"

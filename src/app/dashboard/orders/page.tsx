@@ -13,14 +13,18 @@ export default async function OrdersPage() {
   // Fetch orders from Firestore
   const orders = await orderService.getAllOrders();
 
-  // Fetch all customers to map customer IDs to names
+  // Fetch all customers to map customer IDs to names and phones
   const customers = await customerService.getAllCustomers();
   const customerMap = customers.reduce(
     (acc, customer) => {
-      acc[customer.id] = customer;
+      acc[customer.id] = {
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone
+      };
       return acc;
     },
-    {} as Record<string, any>
+    {} as Record<string, { id: string; name: string; phone: string }>
   );
 
   // Serialize data for client component
