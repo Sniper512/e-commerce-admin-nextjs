@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -44,6 +45,12 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
   const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
+  const [sortBy, setSortBy] = React.useState("createdAt");
+  const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
+  const [paymentMethodFilter, setPaymentMethodFilter] = React.useState("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = React.useState("all");
   const [cancelConfirmation, setCancelConfirmation] = React.useState<{
     orderId: string;
     order: SerializedOrder;
@@ -56,7 +63,40 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
       customerName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesDate =
+      (!dateFrom || new Date(order.createdAt) >= new Date(dateFrom)) &&
+      (!dateTo || new Date(order.createdAt) <= new Date(dateTo));
+    const matchesPaymentMethod =
+      paymentMethodFilter === "all" || order.paymentMethod.type === paymentMethodFilter;
+    const matchesPaymentStatus =
+      paymentStatusFilter === "all" || order.paymentStatus === paymentStatusFilter;
+    return matchesSearch && matchesStatus && matchesDate && matchesPaymentMethod && matchesPaymentStatus;
+  });
+
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    let aVal: any, bVal: any;
+    switch (sortBy) {
+      case "createdAt":
+        aVal = new Date(a.createdAt);
+        bVal = new Date(b.createdAt);
+        break;
+      case "total":
+        aVal = a.total;
+        bVal = b.total;
+        break;
+      case "customerName":
+        aVal = customers[a.customerId]?.name || "";
+        bVal = customers[b.customerId]?.name || "";
+        break;
+      default:
+        aVal = new Date(a.createdAt);
+        bVal = new Date(b.createdAt);
+    }
+    if (sortOrder === "asc") {
+      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    } else {
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    }
   });
 
   const statusCounts = {
@@ -143,6 +183,90 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
         </CardContent>
       </Card>
 
+      {/* Filters and Sorting */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-4 items-end">
+            {/* Date From */}
+            <div className="flex flex-col">
+              <Label htmlFor="dateFrom" className="mb-2">Date From</Label>
+              <Input
+                id="dateFrom"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            {/* Date To */}
+            <div className="flex flex-col">
+              <Label htmlFor="dateTo" className="mb-2">Date To</Label>
+              <Input
+                id="dateTo"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+            {/* Payment Method Filter */}
+            <div className="flex flex-col">
+              <Label htmlFor="paymentMethodFilter" className="mb-2">Payment Method</Label>
+              <Select
+                id="paymentMethodFilter"
+                value={paymentMethodFilter}
+                onChange={(e) => setPaymentMethodFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="cash_on_delivery">Cash on Delivery</option>
+                <option value="easypaisa">Easypaisa</option>
+                <option value="jazzcash">JazzCash</option>
+                <option value="bank_transfer">Bank Transfer</option>
+              </Select>
+            </div>
+            {/* Payment Status Filter */}
+            <div className="flex flex-col">
+              <Label htmlFor="paymentStatusFilter" className="mb-2">Payment Status</Label>
+              <Select
+                id="paymentStatusFilter"
+                value={paymentStatusFilter}
+                onChange={(e) => setPaymentStatusFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="awaiting_confirmation">Awaiting Confirmation</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="refunded">Refunded</option>
+                <option value="cancelled">Cancelled</option>
+              </Select>
+            </div>
+            {/* Sort By */}
+            <div className="flex flex-col">
+              <Label htmlFor="sortBy" className="mb-2">Sort By</Label>
+              <Select
+                id="sortBy"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="createdAt">Date</option>
+                <option value="total">Total</option>
+                <option value="customerName">Customer Name</option>
+              </Select>
+            </div>
+            {/* Sort Order */}
+            <div className="flex flex-col">
+              <Label htmlFor="sortOrder" className="mb-2">Order</Label>
+              <Select
+                id="sortOrder"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Orders Table */}
       <Card>
         <CardContent className="p-0">
@@ -162,7 +286,7 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredOrders.length === 0 ? (
+              {sortedOrders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="p-0 px-2 py-3 text-center py-8">
                     <div className="flex flex-col items-center justify-center">
@@ -178,7 +302,7 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredOrders.map((order) => {
+                sortedOrders.map((order) => {
                    const customerName =
                      customers[order.customerId]?.name || "Unknown Customer";
                    const customerPhone =
