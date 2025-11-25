@@ -72,6 +72,7 @@ export function OrderEditForm({
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] =
     useState<string>(order.paymentMethod.id);
   const [proofOfPaymentFile, setProofOfPaymentFile] = useState<File | null>(null);
+  const [existingProofOfPaymentUrl, setExistingProofOfPaymentUrl] = useState<string | undefined>(order.proofOfPaymentUrl);
 
   console.log('OrderEditForm - order.paymentMethod:', order.paymentMethod);
   console.log('OrderEditForm - selectedPaymentMethodId:', selectedPaymentMethodId);
@@ -342,7 +343,7 @@ export function OrderEditForm({
     const requiresProofOfPayment = selectedPaymentMethod &&
       ["easypaisa", "jazzcash", "bank_transfer"].includes(selectedPaymentMethod.type || "");
 
-    if (requiresProofOfPayment && !proofOfPaymentFile) {
+    if (requiresProofOfPayment && !proofOfPaymentFile && !existingProofOfPaymentUrl) {
       setError("Please upload proof of payment for online payment methods");
       return;
     }
@@ -350,8 +351,8 @@ export function OrderEditForm({
     setLoading(true);
 
     try {
-      // Upload proof of payment if provided
-      let proofOfPaymentUrl: string | undefined;
+      // Upload proof of payment if provided, otherwise keep existing
+      let proofOfPaymentUrl: string | undefined = existingProofOfPaymentUrl;
       if (proofOfPaymentFile) {
         const timestamp = Date.now();
         const storagePath = `ORDERS/proof-of-payment/${timestamp}-${proofOfPaymentFile.name}`;
@@ -749,29 +750,53 @@ export function OrderEditForm({
                   <CardTitle>Proof of Payment</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <Label htmlFor="proofOfPayment">
-                      Upload Proof of Payment <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="flex items-center gap-4">
-                      <Input
-                        id="proofOfPayment"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setProofOfPaymentFile(e.target.files?.[0] || null)}
-                        disabled={loading}
-                        className="flex-1"
-                      />
-                      <Upload className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Upload an image of your payment receipt or transaction confirmation
-                    </p>
-                    {proofOfPaymentFile && (
-                      <p className="text-sm text-green-600">
-                        Selected: {proofOfPaymentFile.name}
-                      </p>
+                  <div className="space-y-4">
+                    {/* Existing Proof of Payment */}
+                    {existingProofOfPaymentUrl && (
+                      <div className="space-y-2">
+                        <Label>Current Proof of Payment</Label>
+                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <Image
+                            src={existingProofOfPaymentUrl}
+                            alt="Proof of Payment"
+                            width={200}
+                            height={200}
+                            className="rounded-lg object-cover max-w-full h-auto"
+                          />
+                          <p className="text-xs text-gray-500 mt-2">
+                            This is the proof of payment uploaded during order creation.
+                          </p>
+                        </div>
+                      </div>
                     )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="proofOfPayment">
+                        {existingProofOfPaymentUrl ? "Update Proof of Payment" : "Upload Proof of Payment"} <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex items-center gap-4">
+                        <Input
+                          id="proofOfPayment"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setProofOfPaymentFile(e.target.files?.[0] || null)}
+                          disabled={loading}
+                          className="flex-1"
+                        />
+                        <Upload className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {existingProofOfPaymentUrl
+                          ? "Upload a new image to replace the current proof of payment"
+                          : "Upload an image of your payment receipt or transaction confirmation"
+                        }
+                      </p>
+                      {proofOfPaymentFile && (
+                        <p className="text-sm text-green-600">
+                          Selected: {proofOfPaymentFile.name}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
