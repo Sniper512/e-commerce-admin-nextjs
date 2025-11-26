@@ -6,14 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import paymentMethodService from "@/services/paymentMethodService";
 import { PaymentMethodsList } from "@/components/features/payments/payment-methods-list";
-import { stripFirestoreProps } from "@/lib/firestore-utils";
 
 export default async function PaymentMethodsPage() {
   // Fetch payment methods on the server
   const paymentMethods = await paymentMethodService.getAllPaymentMethods();
 
-  // Serialize data for client component
-  const serializedData = stripFirestoreProps(paymentMethods);
+  // Serialize data for client component - manually serialize to avoid circular references
+  const serializedData = paymentMethods.map((method: any) => ({
+    ...method,
+    createdAt: method.createdAt instanceof Date
+      ? method.createdAt.toISOString()
+      : method.createdAt,
+  }));
 
   return (
     <div className="space-y-6">

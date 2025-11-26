@@ -135,7 +135,7 @@ export function ProductInfoTab({
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Auto-synced from highest batch price. Managed in batches.
+                Product price is set directly on the product.
               </p>
             </div>
           )}

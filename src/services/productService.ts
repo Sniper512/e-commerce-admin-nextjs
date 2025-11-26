@@ -480,7 +480,7 @@ export const productService = {
         ...data.info,
         nameLower: data.info.name.toLowerCase(), // Add lowercase name for case-insensitive search
       },
-      price: 0, // Initialize price to 0, will be updated when first batch is added
+      price: data.price, // Price is set directly on the product
       featuredDiscountIds: [], // Initialize empty array for featured discounts
       multimedia: {
         images: uploadedImages,

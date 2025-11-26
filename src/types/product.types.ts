@@ -39,7 +39,7 @@ export interface Product {
   info: ProductInfo;
 
   // Pricing
-  price: number; // Current selling price (highest of all the batches, synced from batches)
+  price: number; // Current selling price set directly on the product
 
   // Discounts Section
   discountIds: string[]; // Array of associated discount IDs

@@ -190,7 +190,6 @@ export function BatchesList({ batches }: BatchesListProps) {
                   Manufacturing Date
                 </TableHead>
                 <TableHead className="text-center">Expiry Date</TableHead>
-                <TableHead className="text-center">Price</TableHead>
                 <TableHead className="text-center">Expiry Status</TableHead>
                 <TableHead className="text-center">Active Status</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
@@ -276,11 +275,6 @@ export function BatchesList({ batches }: BatchesListProps) {
                             Expired {Math.abs(daysUntilExpiry)} days ago
                           </div>
                         )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="font-medium text-gray-900">
-                          {batch.price}
-                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge

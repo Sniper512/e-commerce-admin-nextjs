@@ -44,7 +44,6 @@ export function BatchForm({ products }: BatchFormProps) {
     manufacturingDate: "",
     expiryDate: "",
     quantity: "",
-    price: "",
     supplier: "",
     location: "",
     notes: "",
@@ -107,15 +106,9 @@ export function BatchForm({ products }: BatchFormProps) {
 
     // Parse numeric fields here (allowing empty input while typing)
     const quantityNum = Number(formData.quantity);
-    const priceNum = Number(formData.price);
 
     if (!quantityNum || quantityNum <= 0) {
       showToast("error", "Please enter a valid quantity");
-      return;
-    }
-
-    if (!priceNum || priceNum <= 0) {
-      showToast("error", "Please enter a valid price");
       return;
     }
 
@@ -140,7 +133,6 @@ export function BatchForm({ products }: BatchFormProps) {
         expiryDate: expDate,
         quantity: quantityNum,
         remainingQuantity: quantityNum,
-        price: priceNum,
         supplier: formData.supplier.trim() || undefined,
         location: formData.location.trim() || undefined,
         notes: formData.notes.trim() || undefined,
@@ -315,55 +307,25 @@ export function BatchForm({ products }: BatchFormProps) {
                   </div>
                 </div>
 
-                {/* Quantity and Price */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">
-                      Total Quantity <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      value={formData.quantity}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "quantity",
-                          e.target.value === "" ? "" : parseInt(e.target.value)
-                        )
-                      }
-                      placeholder="Enter total quantity"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="price">
-                      Price per Unit <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        PKR
-                      </span>
-                      <Input
-                        id="price"
-                        type="number"
-                        min="0"
-                        value={formData.price}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "price",
-                            e.target.value === ""
-                              ? ""
-                              : parseInt(e.target.value)
-                          )
-                        }
-                        placeholder="0"
-                        required
-                        className="pl-12"
-                      />
-                    </div>
-                  </div>
+                {/* Quantity */}
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">
+                    Total Quantity <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={formData.quantity}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "quantity",
+                        e.target.value === "" ? "" : parseInt(e.target.value)
+                      )
+                    }
+                    placeholder="Enter total quantity"
+                    required
+                  />
                 </div>
 
                 {/* Supplier */}
@@ -445,7 +407,7 @@ export function BatchForm({ products }: BatchFormProps) {
                 </div>
                 <div className="flex gap-2">
                   <span className="font-semibold text-blue-600">4.</span>
-                  <p>Fill in quantity and additional information.</p>
+                  <p>Fill in quantity, supplier, location and additional information.</p>
                 </div>
               </CardContent>
             </Card>

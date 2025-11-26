@@ -46,7 +46,7 @@ This document outlines the complete flow for creating orders through the admin d
 ```typescript
 // For each product, calculate:
 - Current stock from batch data
-- Active batch pricing
+- Product pricing (set directly on product)
 - Applicable discounts (product + category level)
 - Final price after discounts
 - Batch ID for inventory tracking
@@ -56,7 +56,7 @@ This document outlines the complete flow for creating orders through the admin d
 - **Quantity Control**: Increment/decrement with stock validation
 - **Stock Validation**: Cannot exceed available stock
 - **Pricing Calculation**:
-  - Unit price from active batch
+  - Unit price from product (set directly on product)
   - Product-level discount application
   - Subtotal = (unit_price - discount) × quantity
 - **Remove Items**: Delete products from order

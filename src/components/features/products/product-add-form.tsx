@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -34,12 +34,23 @@ export function ProductAddForm({
 }: ProductAddFormProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
 
   // Get active tab from URL search params, default to "info"
-  const activeTab = searchParams.get("tab") || "info";
+  const [activeTab, setActiveTab] = useState("info");
+
+  // Update active tab when component mounts or URL changes
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabFromUrl = urlParams.get("tab") || "info";
+      setActiveTab(tabFromUrl);
+    } catch (error) {
+      console.error("Error parsing URL params:", error);
+      setActiveTab("info");
+    }
+  }, []);
 
   // Form state - using useMemo to prevent hydration mismatch
   const initialFormData = {
@@ -73,9 +84,16 @@ export function ProductAddForm({
 
   // Function to change tab and update URL
   const handleTabChange = (tab: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", tab);
-    router.push(`${pathname}?${params.toString()}`);
+    try {
+      setActiveTab(tab);
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set("tab", tab);
+      router.push(currentUrl.pathname + currentUrl.search);
+    } catch (error) {
+      console.error("Error changing tab:", error);
+      // Fallback: try to navigate without search params
+      router.push(`${pathname}?tab=${tab}`);
+    }
   };
 
   const handleSave = async () => {

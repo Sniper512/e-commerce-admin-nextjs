@@ -5,7 +5,9 @@ import { productService } from "@/services/productService";
 import categoryService from "@/services/categoryService";
 import { ProductsList } from "@/components/features/products/products-list";
 import { redirect } from "next/navigation";
-import { stripFirestoreProps } from "@/lib/firestore-utils";
+
+// Force dynamic rendering to avoid build-time Firestore calls
+export const dynamic = 'force-dynamic';
 
 interface ProductsPageProps {
   searchParams?: Promise<{
@@ -68,9 +70,29 @@ export default async function ProductsPage({
     redirect(`/dashboard/products?page=${page}&limit=${limit}`);
   }
 
-  // Serialize data for client component - strip all Firestore properties
-  const serializedProducts = stripFirestoreProps(products);
-  const serializedCategories = stripFirestoreProps(categories);
+  // Serialize data for client component - manually serialize to avoid circular references
+  const serializedProducts = products.map((product: any) => ({
+    ...product,
+    createdAt: product.createdAt?.toISOString?.() || product.createdAt,
+    info: {
+      ...product.info,
+      markAsNewStartDate: product.info?.markAsNewStartDate?.toISOString?.() || product.info?.markAsNewStartDate,
+      markAsNewEndDate: product.info?.markAsNewEndDate?.toISOString?.() || product.info?.markAsNewEndDate,
+    },
+    purchaseHistory: product.purchaseHistory?.map((entry: any) => ({
+      ...entry,
+      orderDate: entry.orderDate?.toISOString?.() || entry.orderDate,
+    })) || [],
+  }));
+
+  const serializedCategories = categories.map((category: any) => ({
+    ...category,
+    createdAt: category.createdAt?.toISOString?.() || category.createdAt,
+    subcategories: category.subcategories?.map((sub: any) => ({
+      ...sub,
+      createdAt: sub.createdAt?.toISOString?.() || sub.createdAt,
+    })) || [],
+  }));
 
   return (
     <div className="space-y-6">

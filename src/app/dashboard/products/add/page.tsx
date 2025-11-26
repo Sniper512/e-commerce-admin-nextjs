@@ -18,13 +18,33 @@ export default async function AddProductPage() {
       manufacturerService.getAllManufacturers(),
     ]);
 
-  // Serialize data for client component
-  const serializedProductSearchList = JSON.parse(
-    JSON.stringify(productSearchList)
-  );
-  const serializedDiscounts = JSON.parse(JSON.stringify(discounts));
-  const serializedCategories = JSON.parse(JSON.stringify(categories));
-  const serializedManufacturers = JSON.parse(JSON.stringify(manufacturers));
+  // Serialize data for client component - manually serialize to avoid circular references
+  const serializedProductSearchList = productSearchList.map((product: any) => ({
+    id: product.id,
+    name: product.name || "",
+    image: product.image || "",
+  }));
+
+  const serializedDiscounts = discounts.map((discount: any) => ({
+    ...discount,
+    createdAt: discount.createdAt?.toISOString?.() || discount.createdAt,
+    startDate: discount.startDate?.toISOString?.() || discount.startDate,
+    endDate: discount.endDate?.toISOString?.() || discount.endDate,
+  }));
+
+  const serializedCategories = categories.map((category: any) => ({
+    ...category,
+    createdAt: category.createdAt?.toISOString?.() || category.createdAt,
+    subcategories: category.subcategories?.map((sub: any) => ({
+      ...sub,
+      createdAt: sub.createdAt?.toISOString?.() || sub.createdAt,
+    })) || [],
+  }));
+
+  const serializedManufacturers = manufacturers.map((manufacturer: any) => ({
+    ...manufacturer,
+    createdAt: manufacturer.createdAt?.toISOString?.() || manufacturer.createdAt,
+  }));
 
   return (
     <Suspense fallback={<div>Loading...</div>}>

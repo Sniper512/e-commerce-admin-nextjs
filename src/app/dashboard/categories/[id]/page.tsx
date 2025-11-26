@@ -6,7 +6,6 @@ import { productService } from "@/services/productService";
 import { notFound } from "next/navigation";
 import { CategoryEditForm } from "@/components/features/categories/category-edit-form";
 import type { Product } from "@/types";
-import { stripFirestoreProps } from "@/lib/firestore-utils";
 
 interface CategoryDetailPageProps {
   params: {
@@ -70,20 +69,49 @@ export default async function CategoryDetailPage({
       ? await categoryService.getSubCategories(categoryId)
       : [];
 
-  // Serialize data for client component
-  const serializedCategory = stripFirestoreProps(category);
+  // Serialize data for client component - manually serialize to avoid circular references
+  const serializedCategory = {
+    ...category,
+    createdAt: category.createdAt?.toISOString?.() || category.createdAt,
+  };
+
   const serializedSubCategory = subCategory
-    ? stripFirestoreProps(subCategory)
+    ? {
+        ...subCategory,
+        createdAt: subCategory.createdAt?.toISOString?.() || subCategory.createdAt,
+      }
     : null;
-  const serializedSubCategories = stripFirestoreProps(subCategories);
-  const serializedProducts = stripFirestoreProps(categoryProducts);
+
+  const serializedSubCategories = subCategories.map((sub: any) => ({
+    ...sub,
+    createdAt: sub.createdAt?.toISOString?.() || sub.createdAt,
+  }));
+
+  const serializedProducts = categoryProducts.map((product: any) => ({
+    ...product,
+    info: {
+      ...product.info,
+      markAsNewStartDate: product.info?.markAsNewStartDate instanceof Date
+        ? product.info.markAsNewStartDate.toISOString()
+        : product.info?.markAsNewStartDate,
+      markAsNewEndDate: product.info?.markAsNewEndDate instanceof Date
+        ? product.info.markAsNewEndDate.toISOString()
+        : product.info?.markAsNewEndDate,
+    },
+    purchaseHistory: product.purchaseHistory?.map((entry: any) => ({
+      ...entry,
+      orderDate: entry.orderDate instanceof Date
+        ? entry.orderDate.toISOString()
+        : entry.orderDate,
+    })) || [],
+  }));
 
   return (
     <CategoryEditForm
-      category={serializedCategory}
-      subCategory={serializedSubCategory}
-      subCategories={serializedSubCategories}
-      products={serializedProducts}
+      category={serializedCategory as any}
+      subCategory={serializedSubCategory as any}
+      subCategories={serializedSubCategories as any}
+      products={serializedProducts as any}
       isSubCategory={isSubCategory}
     />
   );

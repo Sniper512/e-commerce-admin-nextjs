@@ -7,7 +7,6 @@ import customerService from "@/services/customerService";
 import OrderDetail from "@/components/features/orders/order-detail";
 import { Order } from "@/types";
 import { Loader2 } from "lucide-react";
-import { safeSerializeForClient } from "@/lib/firestore-utils";
 
 // Type for serialized order (dates as strings for client component)
 type SerializedOrder = Omit<Order, "createdAt" | "deliveredAt"> & {
@@ -35,7 +34,37 @@ export default function OrderDetailPage() {
           setError("Order not found");
           return;
         }
-        setOrder(orderData);
+
+        // Serialize order data immediately to avoid circular references
+        const serializedOrderData = {
+          ...orderData,
+          createdAt: orderData.createdAt instanceof Date
+            ? orderData.createdAt.toISOString()
+            : orderData.createdAt,
+          deliveredAt: orderData.deliveredAt instanceof Date
+            ? orderData.deliveredAt.toISOString()
+            : orderData.deliveredAt,
+          paymentMethod: {
+            ...orderData.paymentMethod,
+            createdAt: orderData.paymentMethod.createdAt instanceof Date
+              ? orderData.paymentMethod.createdAt.toISOString()
+              : orderData.paymentMethod.createdAt,
+          },
+          paymentStatusHistory: orderData.paymentStatusHistory?.map((h: any) => ({
+            ...h,
+            updatedAt: h.updatedAt instanceof Date
+              ? h.updatedAt.toISOString()
+              : h.updatedAt,
+          })) || [],
+          statusHistory: orderData.statusHistory?.map((h: any) => ({
+            ...h,
+            updatedAt: h.updatedAt instanceof Date
+              ? h.updatedAt.toISOString()
+              : h.updatedAt,
+          })) || [],
+        };
+
+        setOrder(serializedOrderData as any);
 
         const customerData = await customerService.getCustomerById(orderData.customerId);
         setCustomer(customerData);
@@ -76,12 +105,9 @@ export default function OrderDetailPage() {
     );
   }
 
-  // Serialize data for client component
-  const serializedOrder = safeSerializeForClient(order) as any;
-
   return (
     <OrderDetail
-      order={serializedOrder}
+      order={order as any}
       customer={customer}
     />
   );

@@ -12,7 +12,6 @@ import {
 	addDoc,
 } from "firebase/firestore";
 import { Batch } from "@/types";
-import { updateProductPrice } from "../../products/updateProductPrice";
 import { sanitizeForFirestore } from "@/lib/firestore-utils";
 
 
@@ -31,7 +30,6 @@ async function createBatch(batchData: Omit<Batch, "id">): Promise<void> {
 			expiryDate: batchData.expiryDate, // Will be converted to Timestamp
 			quantity: batchData.quantity,
 			remainingQuantity: batchData.remainingQuantity,
-			price: batchData.price, // Include price
 			supplier: batchData.supplier,
 			location: batchData.location,
 			notes: batchData.notes,
@@ -40,9 +38,6 @@ async function createBatch(batchData: Omit<Batch, "id">): Promise<void> {
 		});
 
 		await addDoc(batchesRef, sanitizedData);
-
-		// Update product price (sets to highest batch price or first batch price)
-		await updateProductPrice(batchData.productId);
 
 		return;
 	} catch (error) {

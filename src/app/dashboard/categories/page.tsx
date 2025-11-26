@@ -7,7 +7,6 @@ import { Plus } from "lucide-react";
 import categoryService from "@/services/categoryService";
 import { CategoriesList } from "@/components/features/categories/categories-list";
 import type { Category, SubCategory } from "@/types";
-import { stripFirestoreProps } from "@/lib/firestore-utils";
 
 export default async function CategoriesPage() {
   // Fetch categories on the server
@@ -26,8 +25,17 @@ export default async function CategoriesPage() {
     }))
   );
 
-  // Serialize data for client component
-  const serializedData = stripFirestoreProps(categoriesWithSubCategories);
+  // Serialize data for client component - manually serialize to avoid circular references
+  const serializedData = categoriesWithSubCategories.map((item: any) => ({
+    category: {
+      ...item.category,
+      createdAt: item.category.createdAt?.toISOString?.() || item.category.createdAt,
+    },
+    subCategories: item.subCategories.map((sub: any) => ({
+      ...sub,
+      createdAt: sub.createdAt?.toISOString?.() || sub.createdAt,
+    })),
+  }));
 
   return (
     <div className="space-y-6">

@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic';
 import { productService } from "@/services/productService";
 import { notFound } from "next/navigation";
 import { BatchDetail } from "@/components/features/batches/batch-detail";
-import { stripFirestoreProps } from "@/lib/firestore-utils";
 import { getBatchById } from "@/helpers/firestore_helper_functions/batches/get_methods/getBatchByIdFromDB";
 
 interface BatchDetailPageProps {
@@ -33,9 +32,38 @@ export default async function BatchDetailPage({
     product = await productService.getById(batch.productId);
   }
 
-  // Serialize data for client component
-  const serializedBatch = stripFirestoreProps(batch);
-  const serializedProduct = product ? stripFirestoreProps(product) : null;
+  // Serialize data for client component - manually serialize to avoid circular references
+  const serializedBatch = {
+    ...batch,
+    manufacturingDate: batch.manufacturingDate instanceof Date
+      ? batch.manufacturingDate.toISOString()
+      : batch.manufacturingDate,
+    expiryDate: batch.expiryDate instanceof Date
+      ? batch.expiryDate.toISOString()
+      : batch.expiryDate,
+    createdAt: batch.createdAt instanceof Date
+      ? batch.createdAt.toISOString()
+      : batch.createdAt,
+  };
 
-  return <BatchDetail batch={serializedBatch} product={serializedProduct} />;
+  const serializedProduct = product ? {
+    ...product,
+    info: {
+      ...product.info,
+      markAsNewStartDate: product.info?.markAsNewStartDate instanceof Date
+        ? product.info.markAsNewStartDate.toISOString()
+        : product.info?.markAsNewStartDate,
+      markAsNewEndDate: product.info?.markAsNewEndDate instanceof Date
+        ? product.info.markAsNewEndDate.toISOString()
+        : product.info?.markAsNewEndDate,
+    },
+    purchaseHistory: product.purchaseHistory?.map((entry: any) => ({
+      ...entry,
+      orderDate: entry.orderDate instanceof Date
+        ? entry.orderDate.toISOString()
+        : entry.orderDate,
+    })) || [],
+  } : null;
+
+  return <BatchDetail batch={serializedBatch as any} product={serializedProduct as any} />;
 }

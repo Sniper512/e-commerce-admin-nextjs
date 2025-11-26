@@ -232,7 +232,6 @@ export function BatchTable({ batches, productId }: BatchTableProps) {
               <TableHead>Quantity</TableHead>
               <TableHead>Manufacturing</TableHead>
               <TableHead>Expiry</TableHead>
-              <TableHead>Price</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -289,11 +288,6 @@ export function BatchTable({ batches, productId }: BatchTableProps) {
                     </div>
                   </TableCell>
 
-                  <TableCell>
-                    <div className="text-sm font-semibold text-gray-900">
-                      {batch.price}
-                    </div>
-                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={

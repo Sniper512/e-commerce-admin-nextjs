@@ -149,10 +149,8 @@ export function OrderCreateForm({
       const totalStock = activeBatches.reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
       console.log('Total stock calculated:', totalStock);
 
-      // Use the first active batch for pricing
-      const firstActiveBatch = activeBatches[0];
-
-      const price = firstActiveBatch?.price || 100; // Fallback to 100 if no batch
+      // Use the product price for pricing
+      const price = productData.price;
       const discountAmount = (price * highestDiscountPercentage) / 100;
 
       const isAvailable = totalStock > 0;
@@ -172,6 +170,9 @@ export function OrderCreateForm({
       setTimeout(() => handleQuantityChange(product.id, existingItem.quantity + 1), 0);
       return;
     }
+
+      // Select the first active batch for the order item
+      const firstActiveBatch = activeBatches[0];
 
       // Create order item with basic data
       const newItem: OrderItemWithDetails = {

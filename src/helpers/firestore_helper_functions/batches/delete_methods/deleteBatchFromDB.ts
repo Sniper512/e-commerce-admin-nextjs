@@ -13,7 +13,6 @@ import {
 } from "firebase/firestore";
 import { Batch } from "@/types";
 import { getBatchById } from "../get_methods/getBatchByIdFromDB";
-import { updateProductPrice } from "../../products/updateProductPrice";
 
 const BATCHES_COLLECTION = "BATCHES";
 
@@ -28,9 +27,6 @@ async function deleteBatch(id: string): Promise<void> {
 
 		const batchRef = doc(db, BATCHES_COLLECTION, id);
 		await deleteDoc(batchRef);
-
-		// Recalculate product price after deletion
-		await updateProductPrice(batch.productId);
 	} catch (error) {
 		console.error("Error deleting batch:", error);
 		throw error;
