@@ -83,6 +83,10 @@ export default async function ProductsPage({
       ...entry,
       orderDate: entry.orderDate?.toISOString?.() || entry.orderDate,
     })) || [],
+    // Ensure batchStock is properly serialized
+    batchStock: product.batchStock ? {
+      ...product.batchStock,
+    } : undefined,
   }));
 
   const serializedCategories = categories.map((category: any) => ({

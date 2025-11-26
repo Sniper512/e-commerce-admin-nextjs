@@ -82,7 +82,7 @@ async function getStockDataForProducts(productIds: string[]): Promise<
 			}
 		});
 
-		// Convert Map to Record
+		// Convert Map to plain Record object for React serialization
 		const result: Record<
 			string,
 			{
@@ -93,7 +93,10 @@ async function getStockDataForProducts(productIds: string[]): Promise<
 			}
 		> = {};
 
-		stockMap.forEach((value, key) => {
+		// Use Object.fromEntries to ensure plain object
+		const plainObject = Object.fromEntries(stockMap);
+		Object.keys(plainObject).forEach((key) => {
+			const value = plainObject[key];
 			result[key] = {
 				usableStock: value.usableStock,
 				expiredStock: value.expiredStock,
