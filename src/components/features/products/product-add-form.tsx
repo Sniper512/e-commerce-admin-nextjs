@@ -66,6 +66,7 @@ export function ProductAddForm({
     markAsNewEndDate: undefined as Date | undefined,
     stockQuantity: 0,
     minimumStockQuantity: 10,
+    price: 0,
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -104,6 +105,11 @@ export function ProductAddForm({
         return;
       }
 
+      if (formData.price <= 0) {
+        showToast("error", "Validation Error", "Product Price must be greater than 0!");
+        return;
+      }
+
       if (formData.categoryIds.length === 0) {
         showToast("error", "Validation Error", "Please select at least one category!");
         return;
@@ -134,6 +140,7 @@ export function ProductAddForm({
           markAsNewStartDate: formData.markAsNewStartDate,
           markAsNewEndDate: formData.markAsNewEndDate,
         },
+        price: formData.price,
         discountIds: selectedDiscountIds,
         minimumStockQuantity: formData.minimumStockQuantity,
         multimedia: {
@@ -240,6 +247,10 @@ export function ProductAddForm({
           markAsNewEndDate={formData.markAsNewEndDate}
           onMarkAsNewEndDateChange={(value: Date | undefined) =>
             setFormData({ ...formData, markAsNewEndDate: value })
+          }
+          price={formData.price}
+          onPriceChange={(value: number) =>
+            setFormData({ ...formData, price: value })
           }
         />
       )}

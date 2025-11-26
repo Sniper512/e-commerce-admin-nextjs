@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Category, Manufacturer, SubCategory } from "@/types";
 import { parseCategoryId, createCategoryIdString } from "@/types";
 
@@ -33,7 +33,8 @@ interface ProductInfoTabProps {
   onMarkAsNewStartDateChange: (value: Date | undefined) => void;
   markAsNewEndDate?: Date;
   onMarkAsNewEndDateChange: (value: Date | undefined) => void;
-  price?: number; // Optional price display
+  price?: number;
+  onPriceChange: (value: number) => void;
 }
 
 export function ProductInfoTab({
@@ -60,7 +61,16 @@ export function ProductInfoTab({
   markAsNewEndDate,
   onMarkAsNewEndDateChange,
   price,
+  onPriceChange,
 }: ProductInfoTabProps) {
+  // Local state for price input (string) to avoid conversion issues
+  const [priceInput, setPriceInput] = useState((price ?? 0).toString());
+
+  // Update local state when prop changes
+  useEffect(() => {
+    setPriceInput((price ?? 0).toString());
+  }, [price]);
+
   // Helper function to get category/subcategory name by ID string
   const getCategoryName = (categoryIdString: string): string => {
     const parsed = parseCategoryId(categoryIdString);
@@ -90,6 +100,14 @@ export function ProductInfoTab({
   const handleRemoveCategory = (categoryIdString: string) => {
     onCategoryIdsChange(categoryIds.filter((id) => id !== categoryIdString));
   };
+
+  // Handle price input change
+  const handlePriceChange = (value: string) => {
+    setPriceInput(value);
+    const numericValue = parseFloat(value) || 0;
+    onPriceChange(numericValue);
+  };
+
   // Local input for creating tags via Enter
   const [tagInput, setTagInput] = useState("");
   const commitTag = (raw: string) => {
@@ -119,26 +137,31 @@ export function ProductInfoTab({
             />
           </div>
 
-          {/* Price Display - Auto-synced from batches */}
-          {price !== undefined && (
-            <div className="form-group">
-              <Label className="form-label">Current Price</Label>
-              <div className="relative">
-                <span className="absolute left-3 text-sm top-1/2 transform -translate-y-1/2 text-gray-600 font-semibold font-mono">
-                  PKR
-                </span>
-                <Input
-                  type="text"
-                  value={price.toFixed(2)}
-                  disabled
-                  className="pl-10 bg-gray-50 font-semibold text-lg"
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Product price is set directly on the product.
-              </p>
+          {/* Price Input */}
+          <div className="form-group">
+            <Label htmlFor="price" className="form-label">
+              Price *
+            </Label>
+            <div className="flex items-center border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+              <span className="px-3 text-sm text-gray-600 font-semibold font-mono">
+                PKR
+              </span>
+              <Input
+                id="price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={priceInput}
+                onChange={(e) => handlePriceChange(e.target.value)}
+                className="border-0 focus:ring-0 font-semibold text-lg flex-1"
+                placeholder="0.00"
+                required
+              />
             </div>
-          )}
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the selling price for this product.
+            </p>
+          </div>
 
           <div className="form-group">
             <Label htmlFor="description" className="form-label">

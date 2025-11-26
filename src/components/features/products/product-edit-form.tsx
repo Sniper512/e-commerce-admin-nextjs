@@ -62,6 +62,7 @@ export function ProductEditForm({
     markAsNewStartDate: product.info.markAsNewStartDate,
     markAsNewEndDate: product.info.markAsNewEndDate,
     minimumStockQuantity: product.minimumStockQuantity,
+    price: product.price ?? 0,
   });
 
   const [images, setImages] = useState<ProductImageWithFile[]>(
@@ -98,6 +99,30 @@ export function ProductEditForm({
 
   const handleSave = async () => {
     try {
+      // Validation for required fields
+      if (!formData.name.trim()) {
+        showToast("error", "Validation Error", "Product Name is required!");
+        return;
+      }
+
+      if (formData.price <= 0) {
+        showToast("error", "Validation Error", "Product Price must be greater than 0!");
+        return;
+      }
+
+      if (formData.categoryIds.length === 0) {
+        showToast("error", "Validation Error", "Please select at least one category!");
+        return;
+      }
+
+      if (
+        formData.minimumStockQuantity === undefined ||
+        formData.minimumStockQuantity < 0
+      ) {
+        showToast("error", "Validation Error", "Minimum Stock Quantity is required and must be 0 or greater!");
+        return;
+      }
+
       setSaving(true);
 
       const updatedProduct: Partial<Product> = {
@@ -115,6 +140,7 @@ export function ProductEditForm({
           markAsNewStartDate: formData.markAsNewStartDate,
           markAsNewEndDate: formData.markAsNewEndDate,
         },
+        price: formData.price,
         discountIds: selectedDiscountIds,
         minimumStockQuantity: formData.minimumStockQuantity,
         multimedia: {
@@ -219,7 +245,10 @@ export function ProductEditForm({
           onMarkAsNewEndDateChange={(value: Date | undefined) =>
             setFormData({ ...formData, markAsNewEndDate: value })
           }
-          price={product.price}
+          price={formData.price}
+          onPriceChange={(value: number) =>
+            setFormData({ ...formData, price: value })
+          }
         />
       )}
       {activeTab === "discounts" && (

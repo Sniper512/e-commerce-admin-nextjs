@@ -7,6 +7,7 @@ export interface Batch {
   expiryDate: Date;
   quantity: number;
   remainingQuantity: number;
+  price: number;
   supplier?: string;
   location?: string; // Storage location
   notes?: string;

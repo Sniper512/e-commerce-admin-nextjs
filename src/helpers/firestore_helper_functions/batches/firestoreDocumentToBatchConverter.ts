@@ -10,6 +10,7 @@ export const firestoreToBatch = (id: string, data: any): Batch => {
 		expiryDate: convertTimestamp(data.expiryDate),
 		quantity: data.quantity || 0,
 		remainingQuantity: data.remainingQuantity ?? data.quantity ?? 0,
+		price: data.price || 0,
 		supplier: data.supplier,
 		location: data.location,
 		notes: data.notes,
