@@ -44,7 +44,6 @@ export function BatchForm({ products }: BatchFormProps) {
     manufacturingDate: "",
     expiryDate: "",
     quantity: "",
-    price: "",
     supplier: "",
     location: "",
     notes: "",
@@ -113,13 +112,6 @@ export function BatchForm({ products }: BatchFormProps) {
       return;
     }
 
-    // Parse price
-    const priceNum = Number(formData.price);
-
-    if (!priceNum || priceNum <= 0) {
-      showToast("error", "Please enter a valid price");
-      return;
-    }
 
     setLoading(true);
 
@@ -142,7 +134,6 @@ export function BatchForm({ products }: BatchFormProps) {
         expiryDate: expDate,
         quantity: quantityNum,
         remainingQuantity: quantityNum,
-        price: priceNum,
         supplier: formData.supplier.trim() || undefined,
         location: formData.location.trim() || undefined,
         notes: formData.notes.trim() || undefined,
@@ -338,30 +329,6 @@ export function BatchForm({ products }: BatchFormProps) {
                   />
                 </div>
 
-                {/* Price */}
-                <div className="space-y-2">
-                  <Label htmlFor="price">
-                    Price per Unit <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="flex items-center border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
-                    <span className="px-3 text-sm text-gray-600 font-semibold font-mono">
-                      PKR
-                    </span>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) =>
-                        handleInputChange("price", e.target.value)
-                      }
-                      placeholder="0.00"
-                      className="border-0 focus:ring-0 flex-1"
-                      required
-                    />
-                  </div>
-                </div>
 
                 {/* Supplier */}
                 <div className="space-y-2">

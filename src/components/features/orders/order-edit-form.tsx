@@ -217,11 +217,12 @@ export function OrderEditForm({
 
         console.log('Edit form - Total stock calculated:', totalStock);
 
-        // Use the first active batch for pricing
-        const firstActiveBatch = activeBatches[0];
-
-        const price = firstActiveBatch?.price || 0;
+        // Get price from the product (price is now stored directly on product)
+        const price = productData.price || 0;
         const discountAmount = (price * highestDiscountPercentage) / 100;
+
+        // Use the first active batch for batchId (needed for order items)
+        const firstActiveBatch = activeBatches[0];
 
         fullProduct = {
           id: productData.id,
