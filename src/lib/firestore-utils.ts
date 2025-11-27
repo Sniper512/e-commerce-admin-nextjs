@@ -76,33 +76,76 @@ export function convertTimestamp(timestamp: any): Date {
  * This prevents circular reference issues when serializing for client components
  */
 export function stripFirestoreProps(obj: any): any {
-  return JSON.parse(JSON.stringify(obj, (key, value) => {
-    // Skip Firestore-specific properties that cause circular references
-    if (key === '_firestore' || key === 'firestore' || key === '__proto__' ||
-        key === 'constructor' || key === '_key' || key === '_document' ||
-        key === '_firestoreImpl' || key === '_databaseId') {
+  const visited = new WeakMap();
+
+  function deepCloneAndStrip(value: any, path: string[] = []): any {
+    // Handle null and undefined
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    // Handle primitives
+    if (typeof value !== 'object') {
+      return value;
+    }
+
+    // Prevent circular references
+    if (visited.has(value)) {
+      return undefined;
+    }
+    visited.set(value, true);
+
+    // Handle Firestore Timestamps
+    if (value.constructor && value.constructor.name === 'Timestamp') {
+      return value.toDate().toISOString();
+    }
+
+    // Handle Dates
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    // Convert Maps to plain objects
+    if (value.constructor && value.constructor.name === 'Map') {
+      const plainObject: any = {};
+      for (const [mapKey, mapValue] of value) {
+        plainObject[mapKey] = deepCloneAndStrip(mapValue, [...path, String(mapKey)]);
+      }
+      return plainObject;
+    }
+
+    // Skip other custom objects that might cause issues
+    if (value.constructor && value.constructor.name !== 'Object' && value.constructor.name !== 'Array') {
       return undefined;
     }
 
-    // Handle Firestore Timestamps
-    if (typeof value === 'object' && value !== null) {
-      if (value.constructor && value.constructor.name === 'Timestamp') {
-        return value.toDate().toISOString();
-      }
-
-      // Skip other custom objects that might cause issues
-      if (value.constructor && value.constructor.name !== 'Object' && value.constructor.name !== 'Array') {
-        return undefined;
-      }
-
+    // Handle arrays
+    if (Array.isArray(value)) {
       // Limit array sizes to prevent huge data transfer
-      if (Array.isArray(value) && value.length > 100) {
-        return value.slice(0, 100);
+      const limitedArray = value.length > 100 ? value.slice(0, 100) : value;
+      return limitedArray.map((item, index) => deepCloneAndStrip(item, [...path, String(index)]));
+    }
+
+    // Handle plain objects
+    const result: any = {};
+    for (const key of Object.keys(value)) {
+      // Skip Firestore-specific properties that cause circular references
+      if (key === '_firestore' || key === 'firestore' || key === '__proto__' ||
+          key === 'constructor' || key === '_key' || key === '_document' ||
+          key === '_firestoreImpl' || key === '_databaseId') {
+        continue;
+      }
+
+      const clonedValue = deepCloneAndStrip(value[key], [...path, key]);
+      if (clonedValue !== undefined) {
+        result[key] = clonedValue;
       }
     }
 
-    return value;
-  }));
+    return result;
+  }
+
+  return deepCloneAndStrip(obj);
 }
 
 /**

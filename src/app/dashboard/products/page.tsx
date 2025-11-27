@@ -5,6 +5,7 @@ import { productService } from "@/services/productService";
 import categoryService from "@/services/categoryService";
 import { ProductsList } from "@/components/features/products/products-list";
 import { redirect } from "next/navigation";
+import { safeSerializeForClient } from "@/lib/firestore-utils";
 
 // Force dynamic rendering to avoid build-time Firestore calls
 export const dynamic = 'force-dynamic';
@@ -70,24 +71,8 @@ export default async function ProductsPage({
     redirect(`/dashboard/products?page=${page}&limit=${limit}`);
   }
 
-  // Serialize data for client component - manually serialize to avoid circular references
-  const serializedProducts = products.map((product: any) => ({
-    ...product,
-    createdAt: product.createdAt?.toISOString?.() || product.createdAt,
-    info: {
-      ...product.info,
-      markAsNewStartDate: product.info?.markAsNewStartDate?.toISOString?.() || product.info?.markAsNewStartDate,
-      markAsNewEndDate: product.info?.markAsNewEndDate?.toISOString?.() || product.info?.markAsNewEndDate,
-    },
-    purchaseHistory: product.purchaseHistory?.map((entry: any) => ({
-      ...entry,
-      orderDate: entry.orderDate?.toISOString?.() || entry.orderDate,
-    })) || [],
-    // Ensure batchStock is properly serialized
-    batchStock: product.batchStock ? {
-      ...product.batchStock,
-    } : undefined,
-  }));
+  // Serialize data for client component - use safe serialization to avoid circular references
+  const serializedProducts = safeSerializeForClient(products);
 
   const serializedCategories = categories.map((category: any) => ({
     ...category,
