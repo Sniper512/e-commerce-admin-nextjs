@@ -128,17 +128,19 @@ export function OrderEditForm({
   // Effect to calculate best order-level discount when order items or subtotal changes
   useEffect(() => {
     const calculateBestDiscount = async () => {
-      // Calculate subtotal from order items
-      const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
+      // Calculate subtotal after product discounts for order-level discount eligibility
+      const originalSubtotal = orderItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+      const productDiscounts = orderItems.reduce((sum, item) => sum + (item.discount * item.quantity), 0);
+      const subtotalAfterProductDiscounts = originalSubtotal - productDiscounts;
 
-      if (subtotal === 0) {
+      if (subtotalAfterProductDiscounts === 0) {
         setBestOrderDiscount(null);
         return;
       }
 
       try {
         const bestDiscount =
-          await discountService.getBestActiveOrderLevelDiscount(subtotal);
+          await discountService.getBestActiveOrderLevelDiscount(subtotalAfterProductDiscounts);
         setBestOrderDiscount(bestDiscount);
       } catch (error) {
         console.error("Error fetching best order discount:", error);
@@ -151,25 +153,27 @@ export function OrderEditForm({
 
   // Calculate pricing
   const calculatePricing = () => {
-    // Calculate subtotal
-    const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
+    // Calculate subtotal (original price without any discounts)
+    const subtotal = orderItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
 
-    // Calculate discounts
-    let totalDiscount = 0;
-
-    // Apply product-level discounts (already calculated in item.discount)
+    // Calculate product-level discounts
+    let productDiscounts = 0;
     orderItems.forEach((item) => {
       if (item.discount > 0) {
-        totalDiscount += item.discount * item.quantity;
+        productDiscounts += item.discount * item.quantity;
       }
     });
 
-    // Apply best order-level discount (if available)
+    // Calculate subtotal after product discounts
+    const subtotalAfterProductDiscounts = subtotal - productDiscounts;
+
+    // Apply best order-level discount on the post-product-discount amount (if available)
+    let orderLevelDiscountAmount = 0;
     if (bestOrderDiscount) {
-      const orderDiscount = (subtotal * bestOrderDiscount.value) / 100;
-      totalDiscount += orderDiscount;
+      orderLevelDiscountAmount = (subtotalAfterProductDiscounts * bestOrderDiscount.value) / 100;
     }
 
+    const totalDiscount = productDiscounts + orderLevelDiscountAmount;
     const deliveryFee = 0; // Will be handled later
     const total = subtotal - totalDiscount + deliveryFee;
 

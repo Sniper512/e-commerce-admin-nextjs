@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import discountService from "@/services/discountService";
 import { productService } from "@/services/productService";
 import { DiscountsList } from "@/components/features/discounts/discounts-list";
+import { safeSerializeForClient } from "@/lib/firestore-utils";
 import type { Discount } from "@/types";
 
 export default async function DiscountsPage() {
@@ -46,9 +47,12 @@ export default async function DiscountsPage() {
     }
   }
 
-  // Serialize data for client component
-  const serializedDiscounts = JSON.parse(JSON.stringify(mainTableDiscounts));
-  const serializedFeaturedItems = JSON.parse(JSON.stringify(featuredItems));
+  // Serialize data for client component to prevent circular reference errors
+  const serializedDiscounts = safeSerializeForClient(mainTableDiscounts);
+  const serializedFeaturedItems = featuredItems.map(item => ({
+    discount: safeSerializeForClient(item.discount),
+    product: safeSerializeForClient(item.product)
+  }));
 
   return (
     <div className="space-y-6">

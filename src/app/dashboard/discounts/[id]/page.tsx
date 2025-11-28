@@ -1,11 +1,12 @@
 // Force dynamic rendering to avoid build-time Firestore calls
 export const dynamic = 'force-dynamic';
 
-﻿import categoryService from "@/services/categoryService";
+import categoryService from "@/services/categoryService";
 import { productService } from "@/services/productService";
 import discountService from "@/services/discountService";
 import { notFound } from "next/navigation";
 import { DiscountForm } from "@/components/features/discounts/discount-form";
+import { safeSerializeForClient } from "@/lib/firestore-utils";
 
 interface DiscountDetailPageProps {
   params: {
@@ -37,10 +38,10 @@ export default async function DiscountDetailPage({
     categories = await categoryService.getAllCategoriesWithSubCategories();
   }
 
-  // Serialize data for client component
-  const serializedDiscount = JSON.parse(JSON.stringify(discount));
-  const serializedCategories = JSON.parse(JSON.stringify(categories));
-  const serializedProducts = JSON.parse(JSON.stringify(products));
+  // Serialize data for client component to prevent circular reference errors
+  const serializedDiscount = safeSerializeForClient(discount);
+  const serializedCategories = safeSerializeForClient(categories);
+  const serializedProducts = safeSerializeForClient(products);
 
   return (
     <DiscountForm

@@ -73,15 +73,7 @@ export default async function ProductsPage({
 
   // Serialize data for client component - use safe serialization to avoid circular references
   const serializedProducts = safeSerializeForClient(products);
-
-  const serializedCategories = categories.map((category: any) => ({
-    ...category,
-    createdAt: category.createdAt?.toISOString?.() || category.createdAt,
-    subcategories: category.subcategories?.map((sub: any) => ({
-      ...sub,
-      createdAt: sub.createdAt?.toISOString?.() || sub.createdAt,
-    })) || [],
-  }));
+  const serializedCategories = safeSerializeForClient(categories);
 
   return (
     <div className="space-y-6">
