@@ -8,10 +8,12 @@ import {
   getDoc,
   query,
   orderBy,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "@/../firebaseConfig";
 import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
 import { adjustBatchQuantity } from "@/helpers/firestore_helper_functions/batches/update_methods/adjustBatchQuantityInDB";
+import { generateOrderId } from "@/lib/orderUtils";
 
 const COLLECTION_NAME = "ORDERS";
 
@@ -81,7 +83,8 @@ const orderService = {
   // Create new order
   async createOrder(orderData: Omit<Order, "id" | "proofOfPaymentUrl"> & { proofOfPaymentUrl?: string }): Promise<string> {
     try {
-      const ordersRef = collection(db, COLLECTION_NAME);
+      // Generate readable order ID
+      const orderId = generateOrderId();
 
       const newOrderData = {
         customerId: orderData.customerId,
@@ -103,7 +106,8 @@ const orderService = {
       };
 
       const sanitizedData = sanitizeForFirestore(newOrderData);
-      const docRef = await addDoc(ordersRef, sanitizedData);
+      const docRef = doc(db, COLLECTION_NAME, orderId);
+      await setDoc(docRef, sanitizedData);
 
       // Update customer's totalOrders and totalSpent
       const customerRef = doc(db, "CUSTOMERS", orderData.customerId);
@@ -132,7 +136,7 @@ const orderService = {
         }
       }
 
-      return docRef.id;
+      return orderId;
     } catch (error) {
       console.error("Error creating order:", error);
       throw error;
