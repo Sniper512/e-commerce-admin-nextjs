@@ -568,13 +568,26 @@ export const discountService = {
   // Toggle discount active status
   async toggleActiveStatus(id: string): Promise<void> {
     try {
+      console.log("Toggling discount status for ID:", id);
       const discount = await this.getById(id);
       if (!discount) {
+        console.error("Discount not found for ID:", id);
         throw new Error("Discount not found");
       }
 
       const newActiveStatus = !discount.isActive;
+      console.log("Current isActive:", discount.isActive, "New isActive:", newActiveStatus);
+
       await this.update(id, { isActive: newActiveStatus });
+
+      // Verify the update
+      const updatedDiscount = await this.getById(id);
+      console.log("Updated discount isActive:", updatedDiscount?.isActive);
+
+      if (updatedDiscount?.isActive !== newActiveStatus) {
+        console.error("Discount update failed - status not changed");
+        throw new Error("Failed to update discount status");
+      }
     } catch (error) {
       console.error("Error toggling discount active status:", error);
       throw error;

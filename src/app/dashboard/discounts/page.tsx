@@ -12,6 +12,7 @@ import type { Discount } from "@/types";
 export default async function DiscountsPage() {
   // Fetch all discounts on the server
   const allDiscounts = await discountService.getAll();
+  console.log("Fetched discounts from DB:", allDiscounts.map(d => ({ id: d.id, name: d.name, isActive: d.isActive })));
 
   // For now, limit to first 10 for main table (pagination can be added later)
   const mainTableDiscounts = allDiscounts.slice(0, 10);

@@ -54,7 +54,8 @@ export function DiscountsList({ discounts, featuredItems = [] }: DiscountsListPr
     try {
       await discountService.toggleActiveStatus(discountId);
       showToast("success", "Discount status updated successfully!");
-      router.refresh();
+      // Force a full page reload to refresh server-rendered data
+      window.location.reload();
     } catch (error) {
       console.error("Error toggling discount status:", error);
       showToast("error", "Failed to update discount status", error instanceof Error ? error.message : "Unknown error");
@@ -217,12 +218,16 @@ export function DiscountsList({ discounts, featuredItems = [] }: DiscountsListPr
                         variant={
                           discountService.isDiscountActive(discount)
                             ? "success"
+                            : discount.isActive
+                            ? "warning"
                             : "secondary"
                         }
                         className="cursor-pointer"
                         title="Click to toggle status">
                         {discountService.isDiscountActive(discount)
                           ? "Active"
+                          : discount.isActive
+                          ? "Expired"
                           : "Inactive"}
                       </Badge>
                     </TableCell>
@@ -333,10 +338,14 @@ export function DiscountsList({ discounts, featuredItems = [] }: DiscountsListPr
                         variant={
                           discountService.isDiscountActive(item.discount)
                             ? "success"
+                            : item.discount.isActive
+                            ? "warning"
                             : "secondary"
                         }>
                         {discountService.isDiscountActive(item.discount)
                           ? "Active"
+                          : item.discount.isActive
+                          ? "Expired"
                           : "Inactive"}
                       </Badge>
                     </TableCell>
