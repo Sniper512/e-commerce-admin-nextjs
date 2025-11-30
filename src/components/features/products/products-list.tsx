@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Trash2, Eye, ChevronLeft, ChevronRight, ToggleLeft, ToggleRight } from "lucide-react";
+import { Search, Trash2, Eye, ChevronLeft, ChevronRight, ToggleLeft, ToggleRight, Loader2 } from "lucide-react";
 import type { Product, SubCategory } from "@/types";
 import { parseCategoryId } from "@/types";
 import { productService } from "@/services/productService";
@@ -47,9 +47,11 @@ export function ProductsList({
   // Get search query from URL params
   const urlSearchQuery = searchParams.get("search") || "";
   const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Update URL when search query changes (debounced)
   useEffect(() => {
+    setIsSearching(true);
     const timeoutId = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
 
@@ -69,6 +71,13 @@ export function ProductsList({
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery, pathname, router, searchParams]);
+
+  // Update isSearching when URL search query changes
+  useEffect(() => {
+    if (urlSearchQuery === searchQuery.trim()) {
+      setIsSearching(false);
+    }
+  }, [urlSearchQuery, searchQuery]);
 
   // Helper function to get category name from categoryId string
   const getCategoryName = (categoryIdString: string): string => {
@@ -151,17 +160,28 @@ export function ProductsList({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-8 text-gray-500">
-                    {searchQuery
-                      ? "No products found matching your search"
-                      : "No products yet. Create your first product!"}
-                  </TableCell>
-                </TableRow>
-              ) : (
+               {isSearching ? (
+                 <TableRow>
+                   <TableCell
+                     colSpan={7}
+                     className="text-center py-8 text-gray-500">
+                     <div className="flex items-center justify-center gap-2">
+                       <Loader2 className="h-4 w-4 animate-spin" />
+                       Searching products...
+                     </div>
+                   </TableCell>
+                 </TableRow>
+               ) : filteredProducts.length === 0 ? (
+                 <TableRow>
+                   <TableCell
+                     colSpan={7}
+                     className="text-center py-8 text-gray-500">
+                     {searchQuery
+                       ? "No products found matching your search"
+                       : "No products yet. Create your first product!"}
+                   </TableCell>
+                 </TableRow>
+               ) : (
                 filteredProducts.map((product) => {
                   // Handle new categoryIds format
                   const categoryIdStrings = product.info.categoryIds || [];
