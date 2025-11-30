@@ -4,6 +4,7 @@ import discountService from "@/services/discountService";
 import categoryService from "@/services/categoryService";
 import manufacturerService from "@/services/manufacturerService";
 import { ProductAddForm } from "@/components/features/products/product-add-form";
+import { safeSerializeForClient } from "@/lib/firestore-utils";
 
 // Force dynamic rendering to avoid build-time Firestore calls
 export const dynamic = 'force-dynamic';
@@ -18,33 +19,11 @@ export default async function AddProductPage() {
       manufacturerService.getAllManufacturers(),
     ]);
 
-  // Serialize data for client component - manually serialize to avoid circular references
-  const serializedProductSearchList = productSearchList.map((product: any) => ({
-    id: product.id,
-    name: product.name || "",
-    image: product.image || "",
-  }));
-
-  const serializedDiscounts = discounts.map((discount: any) => ({
-    ...discount,
-    createdAt: discount.createdAt?.toISOString?.() || discount.createdAt,
-    startDate: discount.startDate?.toISOString?.() || discount.startDate,
-    endDate: discount.endDate?.toISOString?.() || discount.endDate,
-  }));
-
-  const serializedCategories = categories.map((category: any) => ({
-    ...category,
-    createdAt: category.createdAt?.toISOString?.() || category.createdAt,
-    subcategories: category.subcategories?.map((sub: any) => ({
-      ...sub,
-      createdAt: sub.createdAt?.toISOString?.() || sub.createdAt,
-    })) || [],
-  }));
-
-  const serializedManufacturers = manufacturers.map((manufacturer: any) => ({
-    ...manufacturer,
-    createdAt: manufacturer.createdAt?.toISOString?.() || manufacturer.createdAt,
-  }));
+  // Serialize data for client component - use safe serialization to avoid circular references
+  const serializedProductSearchList = safeSerializeForClient(productSearchList);
+  const serializedDiscounts = safeSerializeForClient(discounts);
+  const serializedCategories = safeSerializeForClient(categories);
+  const serializedManufacturers = safeSerializeForClient(manufacturers);
 
   return (
     <Suspense fallback={<div>Loading...</div>}>

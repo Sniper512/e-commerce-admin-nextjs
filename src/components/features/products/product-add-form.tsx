@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { productService } from "@/services/productService";
 import { useToast } from "@/components/ui/toast-context";
+import { generateWordsArray } from "@/lib/firestore-utils";
 import type { Product } from "@/types";
 import type {
   ProductImageWithFile,
@@ -130,6 +131,7 @@ export function ProductAddForm({
         info: {
           name: formData.name,
           nameLower: formData.name.toLowerCase(),
+          words: generateWordsArray(formData.name),
           description: formData.description,
           categoryIds: formData.categoryIds,
           manufacturerId: formData.manufacturerId,

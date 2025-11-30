@@ -167,3 +167,20 @@ export function generateSlug(text: string): string {
     .replace(/-+/g, "-")
     .trim();
 }
+
+/**
+ * Generate words array from product name for enhanced search
+ * Splits the name into individual words, removes duplicates, and filters out short words
+ */
+export function generateWordsArray(productName: string): string[] {
+  if (!productName || typeof productName !== 'string') {
+    return [];
+  }
+
+  return productName
+    .toLowerCase()
+    .split(/\s+/) // Split on whitespace
+    .map(word => word.replace(/[^a-z0-9]/g, '')) // Remove non-alphanumeric characters
+    .filter(word => word.length >= 2) // Keep words with 2+ characters
+    .filter((word, index, arr) => arr.indexOf(word) === index); // Remove duplicates
+}

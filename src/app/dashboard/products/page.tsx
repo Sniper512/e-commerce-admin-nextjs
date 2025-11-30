@@ -49,31 +49,52 @@ export default async function ProductsPage({
   const offset = (page - 1) * limit;
 
   // Fetch data on the server with pagination and search
-  const [productsData, categories] = await Promise.all([
-    productService.getAll({
+  let products: any[] = [];
+  let total = 0;
+  let totalPages = 1;
+
+  if (searchQuery) {
+    // Use enhanced search for search queries
+    products = await productService.searchProducts(searchQuery, 500); // Higher limit for search
+    total = products.length;
+    totalPages = Math.ceil(total / limit) || 1;
+
+    // Apply manual pagination to search results
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    products = products.slice(startIndex, endIndex);
+  } else {
+    // Use regular pagination for non-search requests
+    const productsData = await productService.getAll({
       limit,
       offset,
-      searchQuery: searchQuery || undefined
-    }),
-    categoryService.getAllCategoriesWithSubCategories(),
-  ]);
+    });
+    products = productsData.products;
+    total = productsData.total;
+    totalPages = Math.ceil(total / limit) || 1;
+  }
 
-  const { products, total } = productsData;
-  const totalPages = Math.ceil(total / limit) || 1;
+  const categories = await categoryService.getAllCategoriesWithSubCategories();
 
-  // Redirect if page exceeds total pages (e.g., ?page=200 when only 10 pages exist)
+  // Handle redirects
   if (page > totalPages && totalPages > 0) {
-    redirect(`/dashboard/products?page=${totalPages}&limit=${limit}`);
+    const redirectUrl = searchQuery
+      ? `/dashboard/products?page=${totalPages}&limit=${limit}&search=${encodeURIComponent(searchQuery)}`
+      : `/dashboard/products?page=${totalPages}&limit=${limit}`;
+    redirect(redirectUrl);
   }
 
   // Redirect if parameters were adjusted (to clean up URL)
   if (rawPage !== page || rawLimit !== limit) {
-    redirect(`/dashboard/products?page=${page}&limit=${limit}`);
+    const redirectUrl = searchQuery
+      ? `/dashboard/products?page=${page}&limit=${limit}&search=${encodeURIComponent(searchQuery)}`
+      : `/dashboard/products?page=${page}&limit=${limit}`;
+    redirect(redirectUrl);
   }
 
-  // Serialize data for client component - use safe serialization to avoid circular references
-  const serializedProducts = safeSerializeForClient(products);
-  const serializedCategories = safeSerializeForClient(categories);
+  // Serialize data for client component - deep clone first to remove circular references, then safe serialize
+  const serializedProducts = safeSerializeForClient(JSON.parse(JSON.stringify(products)));
+  const serializedCategories = safeSerializeForClient(JSON.parse(JSON.stringify(categories)));
 
   return (
     <div className="space-y-6">
