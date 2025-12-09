@@ -35,25 +35,25 @@ const menuItems = [
       { title: "Categories", href: "/dashboard/categories" },
       { title: "Manufacturers", href: "/dashboard/manufacturers" },
       { title: "Batches", href: "/dashboard/batches" },
-      { title: "Discounts", href: "/dashboard/discounts" },
+      { title: "Discounts", href: "/dashboard/discounts" }, // redundant with Promotions > Discounts
     ],
   },
-  {
-    title: "Inventory",
-    icon: Warehouse,
-    items: [
-      { title: "Stock Management", href: "/dashboard/inventory" },
-      { title: "Low Stock Alerts", href: "/dashboard/inventory/alerts" },
-      { title: "Expiry Tracking", href: "/dashboard/inventory/expiry" },
-    ],
-  },
+  // {
+  //   title: "Inventory",
+  //   icon: Warehouse,
+  //   items: [
+  //     { title: "Stock Management", href: "/dashboard/inventory" },
+  //     { title: "Low Stock Alerts", href: "/dashboard/inventory/alerts" },
+  //     { title: "Expiry Tracking", href: "/dashboard/inventory/expiry" },
+  //   ],
+  // },
   {
     title: "Orders",
     icon: ShoppingCart,
     items: [
       { title: "All Orders", href: "/dashboard/orders" },
       { title: "Create Order", href: "/dashboard/orders/create" },
-      { title: "Refunds", href: "/dashboard/orders/refunds" },
+      // { title: "Refunds", href: "/dashboard/orders/refunds" },
     ],
   },
   {
@@ -61,52 +61,52 @@ const menuItems = [
     icon: Users,
     items: [
       { title: "All Customers", href: "/dashboard/customers" },
-      { title: "Reviews", href: "/dashboard/customers/reviews" },
+      // { title: "Reviews", href: "/dashboard/customers/reviews" },
     ],
   },
   {
     title: "Payments",
     icon: CreditCard,
     items: [
-      { title: "All Payments", href: "/dashboard/payments" },
+      // { title: "All Payments", href: "/dashboard/payments" },
       { title: "Payment Methods", href: "/dashboard/payments/methods" },
-      { title: "Ledger", href: "/dashboard/payments/ledger" },
-      { title: "Expenses", href: "/dashboard/payments/expenses" },
+      // { title: "Ledger", href: "/dashboard/payments/ledger" },
+      // { title: "Expenses", href: "/dashboard/payments/expenses" },
     ],
   },
-  {
-    title: "Promotions",
-    icon: Tag,
-    items: [
-      { title: "Discounts", href: "/dashboard/promotions/discounts" },
-      { title: "Promo Codes", href: "/dashboard/promotions/codes" },
-    ],
-  },
+  // {
+  //   title: "Promotions",
+  //   icon: Tag,
+  //   items: [
+  //     { title: "Discounts", href: "/dashboard/promotions/discounts" }, // redundant with Catalog > Discounts
+  //     { title: "Promo Codes", href: "/dashboard/promotions/codes" },
+  //   ],
+  // },
   {
     title: "Banners",
     href: "/dashboard/banners",
     icon: ImageIcon,
   },
-  {
-    title: "Notifications",
-    href: "/dashboard/notifications",
-    icon: Bell,
-  },
-  {
-    title: "Analytics",
-    icon: BarChart3,
-    items: [
-      { title: "Overview", href: "/dashboard/analytics" },
-      { title: "Sales Report", href: "/dashboard/analytics/sales" },
-      { title: "Product Performance", href: "/dashboard/analytics/products" },
-      { title: "Customer Insights", href: "/dashboard/analytics/customers" },
-    ],
-  },
-  {
-    title: "Settings",
-    href: "/dashboard/settings",
-    icon: Settings,
-  },
+  // {
+  //   title: "Notifications",
+  //   href: "/dashboard/notifications",
+  //   icon: Bell,
+  // },
+  // {
+  //   title: "Analytics",
+  //   icon: BarChart3,
+  //   items: [
+  //     { title: "Overview", href: "/dashboard/analytics" },
+  //     { title: "Sales Report", href: "/dashboard/analytics/sales" },
+  //     { title: "Product Performance", href: "/dashboard/analytics/products" },
+  //     { title: "Customer Insights", href: "/dashboard/analytics/customers" },
+  //   ],
+  // },
+  // {
+  //   title: "Settings",
+  //   href: "/dashboard/settings",
+  //   icon: Settings,
+  // },
 ];
 
 export function Sidebar() {
@@ -347,7 +347,7 @@ export function Sidebar() {
                       isMinimized ? "justify-center" : "gap-3 px-3 py-2",
                       isActive
                         ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-gray-100"
+                        : "hover:bg-gray-100"
                     )}
                     title={isMinimized ? item.title : undefined}>
                     <Icon
