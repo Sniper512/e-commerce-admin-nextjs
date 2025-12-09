@@ -93,4 +93,12 @@ export const messaging =
     ? isMessagingSupported().then((yes) => (yes ? getMessaging(app) : null))
     : null;
 
+// Utility function to convert Android Emulator URLs to work with localhost
+export const convertEmulatorUrl = (url: string): string => {
+  if (!url || !USE_EMULATOR) return url;
+
+  // Replace localhost with the emulator host for Android
+  return url.replace("10.0.2.2", "localhost");
+};
+
 export { app };
