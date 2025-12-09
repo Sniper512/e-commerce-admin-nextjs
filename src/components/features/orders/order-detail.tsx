@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ArrowLeft, Edit, X } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency, formatDateTime, getStatusColor } from "@/lib/utils";
+import { formatDateTime, getStatusColor } from "@/lib/utils";
 import { Order, Customer } from "@/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast-context";
@@ -31,11 +31,16 @@ interface OrderDetailProps {
   customer: Customer | null;
 }
 
-export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps) {
+export function OrderDetail({
+  order: initialOrder,
+  customer,
+}: OrderDetailProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [order, setOrder] = useState<SerializedOrder>(initialOrder);
-  const [productImages, setProductImages] = useState<Record<string, string>>({});
+  const [productImages, setProductImages] = useState<Record<string, string>>(
+    {}
+  );
 
   useEffect(() => {
     const fetchProductImages = async () => {
@@ -60,11 +65,17 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
 
   // Business logic for order edit/cancel eligibility
   const canEditOrder = (): boolean => {
-    return order.status === 'pending';
+    return (
+      order.status === "pending" &&
+      order.paymentMethod.type === "cash_on_delivery"
+    );
   };
 
   const canCancelOrder = (): boolean => {
-    return order.status === 'pending' && order.paymentMethod.type === 'cash_on_delivery';
+    return (
+      order.status === "pending" &&
+      order.paymentMethod.type === "cash_on_delivery"
+    );
   };
 
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
@@ -82,7 +93,11 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
       router.refresh();
     } catch (error) {
       console.error("Error cancelling order:", error);
-      showToast("error", "Failed to cancel order", error instanceof Error ? error.message : "Unknown error");
+      showToast(
+        "error",
+        "Failed to cancel order",
+        error instanceof Error ? error.message : "Unknown error"
+      );
     } finally {
       setShowCancelConfirmation(false);
     }
@@ -100,10 +115,14 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
       await orderService.updateOrderStatus(order.id, newStatus as any);
       showToast("success", "Order status updated successfully!");
       // Update local state to reflect changes immediately
-      setOrder(prev => prev ? { ...prev, status: newStatus as any } : prev);
+      setOrder((prev) => (prev ? { ...prev, status: newStatus as any } : prev));
     } catch (error) {
       console.error("Error updating order status:", error);
-      showToast("error", "Failed to update order status", error instanceof Error ? error.message : "Unknown error");
+      showToast(
+        "error",
+        "Failed to update order status",
+        error instanceof Error ? error.message : "Unknown error"
+      );
     } finally {
       setUpdatingStatus(false);
     }
@@ -117,10 +136,16 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
       await orderService.updatePaymentStatus(order.id, newStatus as any);
       showToast("success", "Payment status updated successfully!");
       // Update local state to reflect changes immediately
-      setOrder(prev => prev ? { ...prev, paymentStatus: newStatus as any } : prev);
+      setOrder((prev) =>
+        prev ? { ...prev, paymentStatus: newStatus as any } : prev
+      );
     } catch (error) {
       console.error("Error updating payment status:", error);
-      showToast("error", "Failed to update payment status", error instanceof Error ? error.message : "Unknown error");
+      showToast(
+        "error",
+        "Failed to update payment status",
+        error instanceof Error ? error.message : "Unknown error"
+      );
     } finally {
       setUpdatingStatus(false);
     }
@@ -152,7 +177,10 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
             </Link>
           )}
           {canCancelOrder() && (
-            <Button variant="outline" onClick={handleCancelOrder} className="text-red-600 hover:text-red-700">
+            <Button
+              variant="outline"
+              onClick={handleCancelOrder}
+              className="text-red-600 hover:text-red-700">
               <X className="h-4 w-4 mr-2" />
               Cancel Order
             </Button>
@@ -170,9 +198,15 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p><strong>Name:</strong> {customer?.name || "Unknown"}</p>
-                <p><strong>Phone:</strong> {customer?.phone || "N/A"}</p>
-                <p><strong>Address:</strong> {order.deliveryAddress}</p>
+                <p>
+                  <strong>Name:</strong> {customer?.name || "Unknown"}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {customer?.phone || "N/A"}
+                </p>
+                <p>
+                  <strong>Address:</strong> {order.deliveryAddress}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -185,7 +219,9 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
             <CardContent>
               <div className="space-y-4">
                 {order.items.map((item, index) => (
-                  <div key={index} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
                     <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
                       {productImages[item.productId] ? (
                         <Image
@@ -203,14 +239,22 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
                       <h4 className="font-medium">{item.productName}</h4>
                       <div className="text-sm text-gray-600 mt-1">
                         <p>Quantity: {item.quantity}</p>
-                        <p>Unit Price: Rs. {Math.floor(item.unitPrice).toLocaleString()}</p>
+                        <p>
+                          Unit Price: Rs.{" "}
+                          {Math.floor(item.unitPrice).toLocaleString()}
+                        </p>
                         {item.discount > 0 && (
-                          <p>Discount: Rs. {Math.floor(item.discount).toLocaleString()}</p>
+                          <p>
+                            Discount: Rs.{" "}
+                            {Math.floor(item.discount).toLocaleString()}
+                          </p>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">Rs. {Math.floor(item.subtotal).toLocaleString()}</p>
+                      <p className="font-semibold">
+                        Rs. {Math.floor(item.subtotal).toLocaleString()}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -229,21 +273,29 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">Rs. {Math.floor(order.subtotal).toLocaleString()}</span>
+                <span className="font-medium">
+                  Rs. {Math.floor(order.subtotal).toLocaleString()}
+                </span>
               </div>
               {order.discount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Discount</span>
-                  <span className="font-medium text-green-600">- Rs. {Math.floor(order.discount).toLocaleString()}</span>
+                  <span className="font-medium text-green-600">
+                    - Rs. {Math.floor(order.discount).toLocaleString()}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Delivery Fee</span>
-                <span className="font-medium">Rs. {Math.floor(order.deliveryFee).toLocaleString()}</span>
+                <span className="font-medium">
+                  Rs. {Math.floor(order.deliveryFee).toLocaleString()}
+                </span>
               </div>
               <div className="border-t pt-3 flex justify-between">
                 <span className="font-semibold text-lg">Total</span>
-                <span className="font-bold text-lg text-blue-600">Rs. {Math.floor(order.total).toLocaleString()}</span>
+                <span className="font-bold text-lg text-blue-600">
+                  Rs. {Math.floor(order.total).toLocaleString()}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -268,16 +320,22 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Payment Method</span>
-                <span className="font-medium">{order.paymentMethod.type?.replace(/_/g, " ") || "N/A"}</span>
+                <span className="font-medium">
+                  {order.paymentMethod.type?.replace(/_/g, " ") || "N/A"}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Created</span>
-                <span className="text-sm">{formatDateTime(order.createdAt)}</span>
+                <span className="text-sm">
+                  {formatDateTime(order.createdAt)}
+                </span>
               </div>
               {order.deliveredAt && (
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Delivered</span>
-                  <span className="text-sm">{formatDateTime(order.deliveredAt)}</span>
+                  <span className="text-sm">
+                    {formatDateTime(order.deliveredAt)}
+                  </span>
                 </div>
               )}
             </CardContent>
@@ -295,7 +353,9 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
                   <Select
                     id="orderStatus"
                     value={order.status}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleOrderStatusChange(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      handleOrderStatusChange(e.target.value)
+                    }
                     disabled={updatingStatus}
                     className="w-full">
                     <option value="pending">Pending</option>
@@ -311,11 +371,15 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
                   <Select
                     id="paymentStatus"
                     value={order.paymentStatus}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handlePaymentStatusChange(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      handlePaymentStatusChange(e.target.value)
+                    }
                     disabled={updatingStatus}
                     className="w-full">
                     <option value="pending">Pending</option>
-                    <option value="awaiting_confirmation">Awaiting Confirmation</option>
+                    <option value="awaiting_confirmation">
+                      Awaiting Confirmation
+                    </option>
                     <option value="confirmed">Confirmed</option>
                     <option value="refunded">Refunded</option>
                     <option value="cancelled">Cancelled</option>
@@ -331,32 +395,36 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
           </Card>
 
           {/* Proof of Payment - Only show for online payments */}
-          {order.proofOfPaymentUrl && ["easypaisa", "jazzcash", "bank_transfer"].includes(order.paymentMethod.type || "") && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Proof of Payment</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-center">
-                    <Image
-                      src={order.proofOfPaymentUrl}
-                      alt="Proof of Payment"
-                      width={400}
-                      height={300}
-                      className="max-w-full h-auto rounded-lg border border-gray-200"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/images/default-image.svg";
-                      }}
-                    />
+          {order.proofOfPaymentUrl &&
+            ["easypaisa", "jazzcash", "bank_transfer"].includes(
+              order.paymentMethod.type || ""
+            ) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Proof of Payment</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-center">
+                      <Image
+                        src={order.proofOfPaymentUrl}
+                        alt="Proof of Payment"
+                        width={400}
+                        height={300}
+                        className="max-w-full h-auto rounded-lg border border-gray-200"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "/images/default-image.svg";
+                        }}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600 text-center">
+                      Payment receipt uploaded by customer
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-600 text-center">
-                    Payment receipt uploaded by customer
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
         </div>
       </div>
 
@@ -370,14 +438,10 @@ export function OrderDetail({ order: initialOrder, customer }: OrderDetailProps)
               This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={cancelCancelOrder}>
+              <Button variant="outline" onClick={cancelCancelOrder}>
                 Cancel
               </Button>
-              <Button
-                variant="destructive"
-                onClick={confirmCancelOrder}>
+              <Button variant="destructive" onClick={confirmCancelOrder}>
                 Yes, Cancel Order
               </Button>
             </div>

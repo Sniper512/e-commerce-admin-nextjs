@@ -22,6 +22,7 @@ import { Order } from "@/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast-context";
 import orderService from "@/services/orderService";
+import { LinkButton } from "@/components/ui/link-button";
 
 // Type for serialized payment method
 type SerializedPaymentMethod = Omit<Order["paymentMethod"], "createdAt"> & {
@@ -29,7 +30,10 @@ type SerializedPaymentMethod = Omit<Order["paymentMethod"], "createdAt"> & {
 };
 
 // Type for serialized orders (dates as strings for client component)
-type SerializedOrder = Omit<Order, "createdAt" | "deliveredAt" | "paymentMethod"> & {
+type SerializedOrder = Omit<
+  Order,
+  "createdAt" | "deliveredAt" | "paymentMethod"
+> & {
   createdAt: string;
   deliveredAt?: string;
   paymentMethod: SerializedPaymentMethod;
@@ -67,10 +71,18 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
       (!dateFrom || new Date(order.createdAt) >= new Date(dateFrom)) &&
       (!dateTo || new Date(order.createdAt) <= new Date(dateTo));
     const matchesPaymentMethod =
-      paymentMethodFilter === "all" || order.paymentMethod.type === paymentMethodFilter;
+      paymentMethodFilter === "all" ||
+      order.paymentMethod.type === paymentMethodFilter;
     const matchesPaymentStatus =
-      paymentStatusFilter === "all" || order.paymentStatus === paymentStatusFilter;
-    return matchesSearch && matchesStatus && matchesDate && matchesPaymentMethod && matchesPaymentStatus;
+      paymentStatusFilter === "all" ||
+      order.paymentStatus === paymentStatusFilter;
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesDate &&
+      matchesPaymentMethod &&
+      matchesPaymentStatus
+    );
   });
 
   const sortedOrders = [...filteredOrders].sort((a, b) => {
@@ -109,18 +121,13 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
     refunded: orders.filter((o) => o.status === "refunded").length,
   };
 
-
   // Business logic for order edit/cancel eligibility
   const canEditOrder = (order: SerializedOrder): boolean => {
-    return order.status === 'pending';
+    return order.status === "pending";
   };
 
   const canCancelOrder = (order: SerializedOrder): boolean => {
-    return order.status === 'pending';
-  };
-
-  const handleEditOrder = (orderId: string) => {
-    router.push(`/dashboard/orders/${orderId}/edit`);
+    return order.status === "pending";
   };
 
   const handleCancelOrder = (order: SerializedOrder) => {
@@ -136,7 +143,11 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
       router.refresh();
     } catch (error) {
       console.error("Error cancelling order:", error);
-      showToast("error", "Failed to cancel order", error instanceof Error ? error.message : "Unknown error");
+      showToast(
+        "error",
+        "Failed to cancel order",
+        error instanceof Error ? error.message : "Unknown error"
+      );
     } finally {
       setCancelConfirmation(null);
     }
@@ -189,7 +200,9 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
           <div className="flex flex-wrap gap-4 items-end">
             {/* Date From */}
             <div className="flex flex-col">
-              <Label htmlFor="dateFrom" className="mb-2">Date From</Label>
+              <Label htmlFor="dateFrom" className="mb-2">
+                Date From
+              </Label>
               <Input
                 id="dateFrom"
                 type="date"
@@ -199,7 +212,9 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
             </div>
             {/* Date To */}
             <div className="flex flex-col">
-              <Label htmlFor="dateTo" className="mb-2">Date To</Label>
+              <Label htmlFor="dateTo" className="mb-2">
+                Date To
+              </Label>
               <Input
                 id="dateTo"
                 type="date"
@@ -209,12 +224,13 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
             </div>
             {/* Payment Method Filter */}
             <div className="flex flex-col">
-              <Label htmlFor="paymentMethodFilter" className="mb-2">Payment Method</Label>
+              <Label htmlFor="paymentMethodFilter" className="mb-2">
+                Payment Method
+              </Label>
               <Select
                 id="paymentMethodFilter"
                 value={paymentMethodFilter}
-                onChange={(e) => setPaymentMethodFilter(e.target.value)}
-              >
+                onChange={(e) => setPaymentMethodFilter(e.target.value)}>
                 <option value="all">All</option>
                 <option value="cash_on_delivery">Cash on Delivery</option>
                 <option value="easypaisa">Easypaisa</option>
@@ -224,15 +240,18 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
             </div>
             {/* Payment Status Filter */}
             <div className="flex flex-col">
-              <Label htmlFor="paymentStatusFilter" className="mb-2">Payment Status</Label>
+              <Label htmlFor="paymentStatusFilter" className="mb-2">
+                Payment Status
+              </Label>
               <Select
                 id="paymentStatusFilter"
                 value={paymentStatusFilter}
-                onChange={(e) => setPaymentStatusFilter(e.target.value)}
-              >
+                onChange={(e) => setPaymentStatusFilter(e.target.value)}>
                 <option value="all">All</option>
                 <option value="pending">Pending</option>
-                <option value="awaiting_confirmation">Awaiting Confirmation</option>
+                <option value="awaiting_confirmation">
+                  Awaiting Confirmation
+                </option>
                 <option value="confirmed">Confirmed</option>
                 <option value="refunded">Refunded</option>
                 <option value="cancelled">Cancelled</option>
@@ -240,12 +259,13 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
             </div>
             {/* Sort By */}
             <div className="flex flex-col">
-              <Label htmlFor="sortBy" className="mb-2">Sort By</Label>
+              <Label htmlFor="sortBy" className="mb-2">
+                Sort By
+              </Label>
               <Select
                 id="sortBy"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
+                onChange={(e) => setSortBy(e.target.value)}>
                 <option value="createdAt">Date</option>
                 <option value="total">Total</option>
                 <option value="customerName">Customer Name</option>
@@ -253,12 +273,15 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
             </div>
             {/* Sort Order */}
             <div className="flex flex-col">
-              <Label htmlFor="sortOrder" className="mb-2">Order</Label>
+              <Label htmlFor="sortOrder" className="mb-2">
+                Order
+              </Label>
               <Select
                 id="sortOrder"
                 value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-              >
+                onChange={(e) =>
+                  setSortOrder(e.target.value as "asc" | "desc")
+                }>
                 <option value="desc">Descending</option>
                 <option value="asc">Ascending</option>
               </Select>
@@ -279,16 +302,22 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                 <TableHead className="p-0 px-2 py-3">Items</TableHead>
                 <TableHead className="p-0 px-2 py-3">Total</TableHead>
                 <TableHead className="p-0 px-2 py-3">Payment Method</TableHead>
-                <TableHead className="p-0 px-2 py-3 text-center">Payment Status</TableHead>
-                <TableHead className="p-0 px-2 py-3 text-center">Order Status</TableHead>
+                <TableHead className="p-0 px-2 py-3 text-center">
+                  Payment Status
+                </TableHead>
+                <TableHead className="p-0 px-2 py-3 text-center">
+                  Order Status
+                </TableHead>
                 <TableHead className="p-0 px-2 py-3">Date</TableHead>
-                <TableHead className="p-0 px-2 py-3 text-right">Actions</TableHead>
+                <TableHead className="p-0 px-2 py-3 text-right">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="p-0 px-2 py-3 text-center py-8">
+                  <TableCell colSpan={10} className="p-0 px-2 text-center py-8">
                     <div className="flex flex-col items-center justify-center">
                       <h3 className="text-lg font-semibold mb-2">
                         No orders found
@@ -303,16 +332,24 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                 </TableRow>
               ) : (
                 sortedOrders.map((order) => {
-                   const customerName =
-                     customers[order.customerId]?.name || "Unknown Customer";
-                   const customerPhone =
-                     customers[order.customerId]?.phone || "N/A";
-                   return (
-                     <TableRow key={order.id}>
-                      <TableCell className="p-0 px-2 py-3 font-medium text-xs">{order.id}</TableCell>
-                      <TableCell className="p-0 px-2 py-3 text-xs">{customerName}</TableCell>
-                      <TableCell className="p-0 px-2 py-3 text-xs">{customerPhone}</TableCell>
-                      <TableCell className="p-0 px-2 py-3 text-xs">{order.items.length} items</TableCell>
+                  const customerName =
+                    customers[order.customerId]?.name || "Unknown Customer";
+                  const customerPhone =
+                    customers[order.customerId]?.phone || "N/A";
+                  return (
+                    <TableRow key={order.id}>
+                      <TableCell className="p-0 px-2 py-3 font-medium text-xs">
+                        {order.id}
+                      </TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-xs">
+                        {customerName}
+                      </TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-xs">
+                        {customerPhone}
+                      </TableCell>
+                      <TableCell className="p-0 px-2 py-3 text-xs">
+                        {order.items.length} items
+                      </TableCell>
                       <TableCell className="p-0 px-2 py-3 font-semibold text-xs">
                         Rs. {Math.floor(order.total).toLocaleString()}
                       </TableCell>
@@ -320,12 +357,18 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                         {order.paymentMethod.type?.replace(/_/g, " ") || "N/A"}
                       </TableCell>
                       <TableCell className="p-0 px-2 py-3 text-center">
-                        <Badge className={`${getStatusColor(order.paymentStatus)} text-xs px-2 py-1`}>
+                        <Badge
+                          className={`${getStatusColor(
+                            order.paymentStatus
+                          )} text-xs px-2 py-1`}>
                           {order.paymentStatus.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
                       <TableCell className="p-0 px-2 py-3 text-center">
-                        <Badge className={`${getStatusColor(order.status)} text-xs px-2 py-1`}>
+                        <Badge
+                          className={`${getStatusColor(
+                            order.status
+                          )} text-xs px-2 py-1`}>
                           {order.status.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
@@ -334,23 +377,21 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
                       </TableCell>
                       <TableCell className="p-0 px-2 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
+                          <LinkButton
                             variant="outline"
+                            href={`/dashboard/orders/${order.id}`}
                             size="sm"
-                            className="h-8 w-12 p-1"
-                            onClick={() =>
-                              router.push(`/dashboard/orders/${order.id}`)
-                            }>
+                            className="h-8 w-12 p-1">
                             <Eye className="h-4 w-4" />
-                          </Button>
+                          </LinkButton>
                           {canEditOrder(order) && (
-                            <Button
+                            <LinkButton
                               variant="outline"
                               size="sm"
                               className="h-8 w-12 p-1 text-blue-600 hover:text-blue-700"
-                              onClick={() => handleEditOrder(order.id)}>
+                              href={`/dashboard/orders/${order.id}/edit`}>
                               <Edit className="h-4 w-4" />
-                            </Button>
+                            </LinkButton>
                           )}
                           {canCancelOrder(order) && (
                             <Button
@@ -373,32 +414,34 @@ export function OrdersList({ orders, customers }: OrdersListProps) {
       </Card>
 
       {/* Custom Cancel Confirmation Dialog */}
-      {cancelConfirmation && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Cancel Order</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to cancel order <strong>{cancelConfirmation.order.id}</strong>?
-              This action cannot be undone.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={cancelCancelOrder}
-                disabled={false}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={confirmCancelOrder}
-                disabled={false}>
-                Yes, Cancel Order
-              </Button>
+      {cancelConfirmation &&
+        createPortal(
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">Cancel Order</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to cancel order{" "}
+                <strong>{cancelConfirmation.order.id}</strong>? This action
+                cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={cancelCancelOrder}
+                  disabled={false}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmCancelOrder}
+                  disabled={false}>
+                  Yes, Cancel Order
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }

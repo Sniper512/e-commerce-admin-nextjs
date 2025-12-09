@@ -10,7 +10,7 @@ import {
   orderBy,
   setDoc,
 } from "firebase/firestore";
-import { db } from "@/../firebaseConfig";
+import { convertEmulatorUrl, db } from "@/../firebaseConfig";
 import { sanitizeForFirestore, convertTimestamp } from "@/lib/firestore-utils";
 import { adjustBatchQuantity } from "@/helpers/firestore_helper_functions/batches/update_methods/adjustBatchQuantityInDB";
 import { generateOrderId } from "@/lib/orderUtils";
@@ -40,7 +40,7 @@ const firestoreToOrder = (id: string, data: any): Order => {
       updatedAt: convertTimestamp(h.updatedAt),
     })),
     riderId: data.riderId,
-    proofOfPaymentUrl: data.proofOfPaymentUrl,
+    proofOfPaymentUrl: convertEmulatorUrl(data.proofOfPaymentUrl),
     createdAt: convertTimestamp(data.createdAt),
     deliveredAt: data.deliveredAt
       ? convertTimestamp(data.deliveredAt)
@@ -65,11 +65,11 @@ const orderService = {
 
   // Get order by ID
   async getOrderById(id: string): Promise<Order | null> {
-    console.log('getOrderById called, db:', db);
+    console.log("getOrderById called, db:", db);
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
       const docSnap = await getDoc(docRef);
-
+      console.log("Document snapshot:", docSnap.data());
       if (docSnap.exists()) {
         return firestoreToOrder(docSnap.id, docSnap.data());
       }
@@ -81,7 +81,11 @@ const orderService = {
   },
 
   // Create new order
-  async createOrder(orderData: Omit<Order, "id" | "proofOfPaymentUrl"> & { proofOfPaymentUrl?: string }): Promise<string> {
+  async createOrder(
+    orderData: Omit<Order, "id" | "proofOfPaymentUrl"> & {
+      proofOfPaymentUrl?: string;
+    }
+  ): Promise<string> {
     try {
       // Generate readable order ID
       const orderId = generateOrderId();
@@ -126,10 +130,7 @@ const orderService = {
       for (const item of orderData.items) {
         if (item.batchId) {
           try {
-            await adjustBatchQuantity(
-              item.batchId,
-              -item.quantity
-            );
+            await adjustBatchQuantity(item.batchId, -item.quantity);
           } catch (error) {
             console.error(`Error adjusting batch ${item.batchId}:`, error);
           }
@@ -152,7 +153,7 @@ const orderService = {
       }
 
       // Business rule validation
-      if (order.status !== 'pending') {
+      if (order.status !== "pending") {
         throw new Error("Only pending orders can be edited");
       }
 
@@ -160,7 +161,10 @@ const orderService = {
       const oldQuantities = new Map<string, number>();
       for (const item of order.items) {
         if (item.batchId) {
-          oldQuantities.set(item.batchId, (oldQuantities.get(item.batchId) || 0) + item.quantity);
+          oldQuantities.set(
+            item.batchId,
+            (oldQuantities.get(item.batchId) || 0) + item.quantity
+          );
         }
       }
 
@@ -178,7 +182,10 @@ const orderService = {
       const newQuantities = new Map<string, number>();
       for (const item of updatedOrder.items) {
         if (item.batchId) {
-          newQuantities.set(item.batchId, (newQuantities.get(item.batchId) || 0) + item.quantity);
+          newQuantities.set(
+            item.batchId,
+            (newQuantities.get(item.batchId) || 0) + item.quantity
+          );
         }
       }
 
@@ -296,12 +303,12 @@ const orderService = {
       }
 
       // Business rule validation
-      if (order.status !== 'pending') {
+      if (order.status !== "pending") {
         throw new Error("Only pending orders can be cancelled");
       }
 
       // Update order status to cancelled
-      await this.updateOrderStatus(orderId, 'cancelled');
+      await this.updateOrderStatus(orderId, "cancelled");
 
       // Reverse customer statistics
       const customerRef = doc(db, "CUSTOMERS", order.customerId);
@@ -325,7 +332,6 @@ const orderService = {
           }
         }
       }
-
     } catch (error) {
       console.error("Error cancelling order:", error);
       throw error;
@@ -346,9 +352,7 @@ const orderService = {
 
       return {
         totalOrders: orders.length,
-        pendingOrders: orders.filter(
-          (o) => o.status === "pending"
-        ).length,
+        pendingOrders: orders.filter((o) => o.status === "pending").length,
         confirmedOrders: orders.filter((o) => o.status === "confirmed").length,
         deliveredOrders: orders.filter((o) => o.status === "delivered").length,
         cancelledOrders: orders.filter((o) => o.status === "cancelled").length,
